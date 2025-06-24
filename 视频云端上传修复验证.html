@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>视频云端上传修复验证</title>
+    <style>
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            font-weight: 700;
+        }
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 1.2em;
+            margin-bottom: 40px;
+        }
+        .status {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 30px;
+            font-weight: 600;
+            font-size: 1.1em;
+            box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3);
+        }
+        .problem-section, .solution-section, .test-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-left: 5px solid #e74c3c;
+        }
+        .solution-section {
+            border-left-color: #2ecc71;
+        }
+        .test-section {
+            border-left-color: #3498db;
+        }
+        h2 {
+            color: #2c3e50;
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .icon {
+            font-size: 1.2em;
+        }
+        .step {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            border: 2px solid #ecf0f1;
+            transition: all 0.3s ease;
+        }
+        .step:hover {
+            border-color: #3498db;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.1);
+        }
+        .step-number {
+            background: #3498db;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        .step-content {
+            flex: 1;
+        }
+        .step-title {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+        .step-desc {
+            color: #7f8c8d;
+            font-size: 0.95em;
+            line-height: 1.5;
+        }
+        .code-block {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+            font-size: 0.9em;
+            line-height: 1.4;
+            margin: 15px 0;
+            overflow-x: auto;
+            position: relative;
+        }
+        .code-block::before {
+            content: "修复代码";
+            position: absolute;
+            top: -10px;
+            left: 20px;
+            background: #e74c3c;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 6px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+        .before-after {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .before, .after {
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .before {
+            background: #fee;
+            border: 2px solid #e74c3c;
+        }
+        .after {
+            background: #efe;
+            border: 2px solid #2ecc71;
+        }
+        .highlight {
+            background: linear-gradient(120deg, #a8e6cf 0%, #88c999 100%);
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            color: #856404;
+        }
+        .warning::before {
+            content: "⚠️ ";
+            font-weight: bold;
+        }
+        .access-button {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+            margin: 10px 0;
+        }
+        .access-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+        .feature-list {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            border: 2px solid #ecf0f1;
+        }
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .feature-icon {
+            color: #2ecc71;
+            font-size: 1.2em;
+        }
+        @media (max-width: 768px) {
+            .before-after {
+                grid-template-columns: 1fr;
+            }
+            .container {
+                padding: 20px;
+            }
+            h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 视频云端上传修复验证</h1>
+        <p class="subtitle">修复视频插入功能，支持云端存储同步</p>
+        
+        <div class="status">
+            ✅ 修复完成 - 视频现在也能自动上传到云端存储
+        </div>
+
+        <div class="problem-section">
+            <h2><span class="icon">🐛</span> 问题描述</h2>
+            <div class="step">
+                <div style="display: flex; align-items: flex-start;">
+                    <span class="step-number">1</span>
+                    <div class="step-content">
+                        <div class="step-title">视频上传缺失云端支持</div>
+                        <div class="step-desc">
+                            之前的实现中，图片可以自动上传到阿里云OSS云端存储，但视频插入功能只能转换为本地base64，没有云端上传支持，导致功能不一致。
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="before-after">
+                <div class="before">
+                    <h3>修复前 ❌</h3>
+                    <p><strong>图片：</strong>云端上传 + 本地降级<br>
+                    <strong>视频：</strong>仅本地base64存储</p>
+                </div>
+                <div class="after">
+                    <h3>修复后 ✅</h3>
+                    <p><strong>图片：</strong>云端上传 + 本地降级<br>
+                    <strong>视频：</strong>云端上传 + 本地降级</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="solution-section">
+            <h2><span class="icon">🔧</span> 修复实现</h2>
+            <div class="step">
+                <div style="display: flex; align-items: flex-start;">
+                    <span class="step-number">1</span>
+                    <div class="step-content">
+                        <div class="step-title">统一的云端上传策略</div>
+                        <div class="step-desc">
+                            为视频插入功能添加了与图片相同的云端上传逻辑，确保处理流程一致性
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="code-block">
+// 修复前（仅base64）
+else if (file.type.startsWith('video/')) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    const url = reader.result as string;
+    const videoNode = { type: 'video', url, children: [{ text: '' }] };
+    Transforms.insertNodes(editor, [videoNode, ...]);
+  };
+  reader.readAsDataURL(file);
+}
+
+// 修复后（云端上传 + 本地降级）
+else if (file.type.startsWith('video/')) {
+  // 异步上传视频
+  (async () => {
+    let videoUrl: string;
+    
+    // 尝试云端上传
+    if (aliCloudStorage.isReady()) {
+      const filePath = `videos/${timestamp}-${randomStr}.${ext}`;
+      const result = await aliCloudStorage.uploadFile(filePath, file);
+      
+      if (result.success) {
+        videoUrl = result.url; // 云端URL
+      } else {
+        videoUrl = await base64Convert(file); // 降级方案
+      }
+    } else {
+      videoUrl = await base64Convert(file); // 本地存储
+    }
+    
+    // 插入视频节点
+    const videoNode = { type: 'video', url: videoUrl, children: [{ text: '' }] };
+    Transforms.insertNodes(editor, [videoNode, ...]);
+  })();
+}
+            </div>
+
+            <div class="feature-list">
+                <div class="feature-item">
+                    <span class="feature-icon">✅</span>
+                    <span><strong>云端存储优先：</strong>视频文件优先上传到阿里云OSS</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">✅</span>
+                    <span><strong>智能降级：</strong>云端上传失败时自动使用本地base64存储</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">✅</span>
+                    <span><strong>文件分类：</strong>视频保存在`videos/`目录，图片保存在`images/`目录</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">✅</span>
+                    <span><strong>异步处理：</strong>不阻塞UI，用户可以继续编辑</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">✅</span>
+                    <span><strong>详细日志：</strong>控制台输出完整的上传进度和状态</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2><span class="icon">🧪</span> 验证测试步骤</h2>
+            
+            <div class="step">
+                <div style="display: flex; align-items: flex-start;">
+                    <span class="step-number">1</span>
+                    <div class="step-content">
+                        <div class="step-title">准备测试视频</div>
+                        <div class="step-desc">
+                            准备一个小的测试视频文件（建议5MB以下），支持格式：MP4, WebM, MOV, AVI等
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step">
+                <div style="display: flex; align-items: flex-start;">
+                    <span class="step-number">2</span>
+                    <div class="step-content">
+                        <div class="step-title">插入视频测试</div>
+                        <div class="step-desc">
+                            在卡片编辑状态下，输入<code>/</code>并选择"插入图片/视频"，或者直接点击工具栏中的"🖼️ 插入图片/视频"按钮
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step">
+                <div style="display: flex; align-items: flex-start;">
+                    <span class="step-number">3</span>
+                    <div class="step-content">
+                        <div class="step-title">观察控制台日志</div>
+                        <div class="step-desc">
+                            打开浏览器开发者工具，在控制台中观察视频上传的详细日志：
+                            <br>• <span class="highlight">🎬 开始处理视频</span>
+                            <br>• <span class="highlight">📤 尝试上传视频到云端</span>
+                            <br>• <span class="highlight">✅ 视频云端上传成功</span>或<span class="highlight">⚠️ 视频云端上传失败，使用本地存储</span>
+                            <br>• <span class="highlight">✅ 视频插入完成!</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step">
+                <div style="display: flex; align-items: flex-start;">
+                    <span class="step-number">4</span>
+                    <div class="step-content">
+                        <div class="step-title">验证视频播放</div>
+                        <div class="step-desc">
+                            视频插入后应该能正常播放，显示播放控件。如果使用云端存储，视频URL应该是阿里云OSS的域名。
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step">
+                <div style="display: flex; align-items: flex-start;">
+                    <span class="step-number">5</span>
+                    <div class="step-content">
+                        <div class="step-title">测试分享功能</div>
+                        <div class="step-desc">
+                            保存白板并生成分享链接，在另一个浏览器或设备中访问分享链接，验证视频是否能正常加载和播放。
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="warning">
+            <strong>注意事项：</strong>
+            <ul style="margin: 10px 0 0 20px;">
+                <li>确保已正确配置阿里云OSS环境变量（.env.local文件）</li>
+                <li>视频文件较大时上传可能需要一些时间，请耐心等待</li>
+                <li>如果云端上传失败，系统会自动降级使用本地base64存储</li>
+                <li>大视频文件的base64存储可能导致性能问题，建议配置云端存储</li>
+            </ul>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="http://localhost:5175/" class="access-button">
+                🚀 访问白板应用进行测试
+            </a>
+        </div>
+
+        <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 10px; text-align: center; color: #7f8c8d; font-size: 0.9em;">
+            <p><strong>技术说明：</strong>现在图片和视频都支持统一的云端存储策略，提供了一致的用户体验和可靠的数据持久化。</p>
+            <p>修复涉及文件：<code>whiteboard-app/src/components/RichTextEditor.tsx</code></p>
+            <p>视频存储路径：<code>videos/{timestamp}-{random}.{extension}</code></p>
+        </div>
+    </div>
+</body>
+</html> 

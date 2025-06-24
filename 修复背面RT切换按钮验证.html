@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>隐藏背面富文本(RT)模式切换按钮 - 验证</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .issue-description, .fix-summary, .test-steps {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .issue-description {
+            background: #fffbe6;
+            border-left: 4px solid #facc15;
+        }
+        .fix-summary {
+            background: #f0fdf4;
+            border-left: 4px solid #4ade80;
+        }
+        h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        h3 {
+            border-bottom: 2px solid #eee;
+            padding-bottom: 8px;
+            margin-top: 24px;
+        }
+        code {
+            background: #e5e7eb;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'SF Mono', 'Fira Code', 'Fira Mono', 'Roboto Mono', monospace;
+            font-size: 0.9em;
+        }
+        pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+        pre code {
+            background: none;
+            padding: 0;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 10px;
+            line-height: 1.6;
+        }
+        strong {
+            color: #1e293b;
+        }
+        .success {
+            color: #16a34a;
+            font-weight: bold;
+        }
+        .fail {
+            color: #dc2626;
+            font-weight: bold;
+        }
+        .note {
+            background: #eef2ff;
+            border-left: 4px solid #6366f1;
+            padding: 15px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>隐藏背面富文本(RT)模式切换按钮 - 验证</h1>
+        <p>本文档用于验证在富文本卡片背面编辑时，右上角的RT/MD模式切换按钮是否已成功隐藏。</p>
+    </div>
+
+    <div class="issue-description">
+        <h2>问题描述</h2>
+        <p>用户反馈，在编辑富文本（Rich Text）卡片的背面时，右上角会显示一个模式切换按钮（显示为"RT"）。这与之前隐藏左上角调整手柄的逻辑不一致，用户希望将此按钮也隐藏掉，以保持富文本编辑模式的界面纯粹和简洁。</p>
+    </div>
+
+    <div class="fix-summary">
+        <h2>🎯 修复方案</h2>
+        <p>修复的核心是在 <code>whiteboard-app/src/components/NodeCard.tsx</code> 文件中，为渲染模式切换按钮的容器 `div` 添加了一个条件化的 `display` 样式。</p>
+        <pre><code>&lt;div style={{
+  position: 'absolute',
+  top: 8,
+  right: 8,
+  zIndex: 20,
+  // 核心修复：当背面编辑模式为'rich'时，隐藏此按钮
+  display: backEditMode === 'rich' ? 'none' : 'block'
+}}&gt;
+  &lt;!-- 切换按钮 --&gt;
+&lt;/div&gt;</code></pre>
+        <p><strong>修复逻辑：</strong></p>
+        <ul>
+            <li>当卡片在背面（<code>isFlipped</code>）且处于编辑模式（<code>editing</code>）时：</li>
+            <li>如果背面模式是富文本（<code>backEditMode === 'rich'</code>），则隐藏模式切换按钮。</li>
+            <li>如果背面模式是Markdown（<code>backEditMode === 'markdown'</code>），则按钮会<strong>正常显示</strong>（此时显示为"MD"），允许用户切换回RT模式。</li>
+        </ul>
+    </div>
+
+    <div class="test-steps">
+        <h2>🧪 验证步骤</h2>
+        <p>请按照以下步骤，在白板应用中进行测试，以确保修复符合预期且没有引入新的问题。</p>
+        
+        <h3>场景1：验证RT模式背面按钮隐藏（核心测试）</h3>
+        <ol>
+            <li>在白板上创建一个新卡片。</li>
+            <li>点击卡片右下角的翻转按钮（'A'或'🌐'），将卡片翻到背面。</li>
+            <li>双击卡片背面，进入编辑模式。此时应为<strong>富文本（RT）模式</strong>。</li>
+            <li><strong>预期结果：</strong><span class="success">右上角的"RT"切换按钮应该被隐藏，看不到。</span></li>
+        </ol>
+
+        <h3>场景2：验证MD模式背面按钮显示</h3>
+        <ol>
+            <li>在一个新卡片中，粘贴一段Markdown文本（例如 <code># Hello</code>），使其自动切换到Markdown模式。</li>
+            <li>将这个Markdown卡片翻到背面。</li>
+            <li>双击卡片背面进入编辑模式，并点击右上角的按钮，从RT模式切换到<strong>Markdown（MD）模式</strong>。</li>
+            <li><strong>预期结果：</strong><span class="success">右上角的"MD"切换按钮应该正常显示。</span></li>
+             <li>点击"MD"按钮，卡片会切换回RT模式。</li>
+            <li><strong>预期结果：</strong><span class="success">切换回RT模式后，按钮立即被隐藏。</span></li>
+        </ol>
+
+        <h3>场景3：验证正面按钮不受影响</h3>
+        <ol>
+            <li>将任意卡片保持在<strong>正面</strong>。</li>
+            <li>双击进入编辑模式。</li>
+            <li><strong>预期结果：</strong><span class="fail">正面的编辑模式逻辑保持不变，没有右上角的切换按钮（除非你之后要求添加）。</span></li>
+        </ol>
+        
+        <h3>场景4：验证非编辑状态不受影响</h3>
+        <ol>
+            <li>确保卡片处于<strong>非编辑</strong>状态（无论正面还是背面）。</li>
+            <li><strong>预期结果：</strong><span class="fail">右上角不应显示任何模式切换按钮。</span></li>
+        </ol>
+        
+        <div class="note">
+            <p><strong>总结：</strong> 此修复是精确的UI调整，旨在简化特定模式下的用户界面。它只影响卡片背面的富文本编辑状态，而保留了从Markdown切换回富文本的能力，确保了功能的完整性。</p>
+        </div>
+    </div>
+
+</body>
+</html> 

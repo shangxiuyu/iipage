@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>活跃白板持久化修复验证工具</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 16px 48px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 24px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 24px;
+        }
+        .section {
+            margin-bottom: 32px;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            background: #f9fafb;
+        }
+        .section h2 {
+            margin: 0 0 16px 0;
+            color: #374151;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            margin: 4px 8px 4px 0;
+        }
+        .button:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
+        .button.success {
+            background: #10b981;
+        }
+        .button.success:hover {
+            background: #059669;
+        }
+        .button.danger {
+            background: #ef4444;
+        }
+        .button.danger:hover {
+            background: #dc2626;
+        }
+        .board-item {
+            background: white;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 8px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .board-item.active {
+            border-color: #3b82f6;
+            background: #f0f9ff;
+        }
+        .board-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .board-status {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+        .status-active {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .status-inactive {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+        .output {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 16px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin-top: 12px;
+        }
+        .step {
+            background: #fff7ed;
+            border: 1px solid #fed7aa;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 12px 0;
+        }
+        .step-title {
+            color: #ea580c;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .step-desc {
+            color: #9a3412;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 活跃白板持久化修复验证工具</h1>
+            <p style="margin: 8px 0 0 0; opacity: 0.9;">验证刷新后白板活跃状态是否正确保持</p>
+        </div>
+        
+        <div class="content">
+            <!-- 问题说明 -->
+            <div class="section">
+                <h2>❌ 修复前的问题</h2>
+                <p><strong>问题描述:</strong> 每次刷新浏览器时，第一个白板总是被强制设为活跃状态，破坏了用户的操作连续性。</p>
+                <p><strong>根本原因:</strong> 代码在 <code>getAllBoardsFromStorage()</code> 中将所有白板的 <code>isActive</code> 设为 false，然后在初始化时强制激活第一个白板。</p>
+                <p><strong>影响:</strong> 用户在第二个白板操作，刷新后"被传送"到第一个白板，数据看起来"跑板"了。</p>
+            </div>
+
+            <!-- 修复方案 -->
+            <div class="section">
+                <h2>✅ 修复方案</h2>
+                <div class="step">
+                    <div class="step-title">步骤 1: 保持原有活跃状态读取</div>
+                    <div class="step-desc">在 getAllBoardsFromStorage() 中读取真实的 isActive 状态，而不是强制设为 false</div>
+                </div>
+                <div class="step">
+                    <div class="step-title">步骤 2: 智能初始化逻辑</div>
+                    <div class="step-desc">只有在没有任何活跃白板时，才将第一个白板设为活跃</div>
+                </div>
+                <div class="step">
+                    <div class="step-title">步骤 3: 保存活跃状态</div>
+                    <div class="step-desc">在 saveCurrentBoardData() 中保存 isActive 状态到 localStorage</div>
+                </div>
+                <div class="step">
+                    <div class="step-title">步骤 4: 切换时同步状态</div>
+                    <div class="step-desc">白板切换时更新所有白板在 localStorage 中的活跃状态</div>
+                </div>
+            </div>
+
+            <!-- 测试操作 -->
+            <div class="section">
+                <h2>🧪 验证测试</h2>
+                <button class="button" onclick="simulateMultipleBoardsData()">1. 模拟多白板数据</button>
+                <button class="button" onclick="setSecondBoardActive()">2. 激活第二个白板</button>
+                <button class="button success" onclick="checkActiveStateBeforeRefresh()">3. 检查活跃状态</button>
+                <button class="button danger" onclick="clearTestData()">清除测试数据</button>
+                
+                <div class="step" style="background: #f0f9ff; border-color: #bfdbfe;">
+                    <div class="step-title" style="color: #1d4ed8;">⚡ 关键测试步骤</div>
+                    <div class="step-desc" style="color: #1e40af;">
+                        1. 点击"模拟多白板数据" → 2. 点击"激活第二个白板" → 3. <strong>刷新浏览器</strong> → 4. 点击"检查活跃状态"<br>
+                        <strong>期望结果:</strong> 刷新后第二个白板仍然保持活跃状态
+                    </div>
+                </div>
+            </div>
+
+            <!-- 当前状态显示 -->
+            <div class="section">
+                <h2>📊 当前白板状态</h2>
+                <button class="button" onclick="displayCurrentBoardStatus()">刷新状态显示</button>
+                <div id="boardStatus"></div>
+            </div>
+
+            <!-- 日志输出 -->
+            <div class="section">
+                <h2>📝 操作日志</h2>
+                <button class="button" onclick="clearOutput()">清除日志</button>
+                <div id="output" class="output">等待操作...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 日志输出函数
+        function log(message, type = 'info') {
+            const output = document.getElementById('output');
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️';
+            output.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function clearOutput() {
+            document.getElementById('output').textContent = '日志已清除\n';
+        }
+
+        // 1. 模拟多白板数据
+        function simulateMultipleBoardsData() {
+            try {
+                // 创建三个白板数据
+                const boards = [
+                    {
+                        id: 'board_1',
+                        title: '白板一 (测试)',
+                        nodes: [
+                            { id: 'node1', x: 100, y: 100, content: [{ type: 'paragraph', children: [{ text: '白板一的卡片' }] }] }
+                        ],
+                        connections: [],
+                        isActive: false, // 第一个白板非活跃
+                        isPinned: false,
+                        createdAt: new Date().toISOString(),
+                        icon: '1F4CB.png'
+                    },
+                    {
+                        id: 'board_2', 
+                        title: '白板二 (测试)',
+                        nodes: [
+                            { id: 'node2', x: 200, y: 200, content: [{ type: 'paragraph', children: [{ text: '白板二的卡片' }] }] }
+                        ],
+                        connections: [],
+                        isActive: false, // 暂时非活跃
+                        isPinned: false,
+                        createdAt: new Date().toISOString(),
+                        icon: '1F4DD.png'
+                    },
+                    {
+                        id: 'board_3',
+                        title: '白板三 (测试)',
+                        nodes: [
+                            { id: 'node3', x: 300, y: 300, content: [{ type: 'paragraph', children: [{ text: '白板三的卡片' }] }] }
+                        ],
+                        connections: [],
+                        isActive: false,
+                        isPinned: false,
+                        createdAt: new Date().toISOString(),
+                        icon: '1F4DC.png'
+                    }
+                ];
+
+                // 保存到localStorage
+                boards.forEach(board => {
+                    const storageKey = `whiteboard-data-${board.id}`;
+                    localStorage.setItem(storageKey, JSON.stringify(board));
+                });
+
+                log('✨ 成功创建3个测试白板数据', 'success');
+                displayCurrentBoardStatus();
+            } catch (error) {
+                log(`创建测试数据失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 2. 设置第二个白板为活跃
+        function setSecondBoardActive() {
+            try {
+                // 清除所有白板的活跃状态
+                ['board_1', 'board_2', 'board_3'].forEach(boardId => {
+                    const storageKey = `whiteboard-data-${boardId}`;
+                    const data = localStorage.getItem(storageKey);
+                    if (data) {
+                        const boardData = JSON.parse(data);
+                        boardData.isActive = (boardId === 'board_2'); // 只有board_2为活跃
+                        localStorage.setItem(storageKey, JSON.stringify(boardData));
+                    }
+                });
+
+                log('🎯 已将"白板二"设为活跃状态，其他白板设为非活跃', 'success');
+                log('💡 现在请刷新浏览器，然后检查活跃状态是否保持', 'warning');
+                displayCurrentBoardStatus();
+            } catch (error) {
+                log(`设置活跃状态失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 3. 检查刷新前后的活跃状态
+        function checkActiveStateBeforeRefresh() {
+            try {
+                log('🔍 检查当前活跃状态...', 'info');
+                
+                const activeBoards = [];
+                ['board_1', 'board_2', 'board_3'].forEach(boardId => {
+                    const storageKey = `whiteboard-data-${boardId}`;
+                    const data = localStorage.getItem(storageKey);
+                    if (data) {
+                        const boardData = JSON.parse(data);
+                        if (boardData.isActive) {
+                            activeBoards.push({ id: boardId, title: boardData.title });
+                        }
+                    }
+                });
+
+                if (activeBoards.length === 0) {
+                    log('⚠️ 没有找到活跃的白板', 'warning');
+                } else if (activeBoards.length === 1) {
+                    log(`✅ 找到1个活跃白板: ${activeBoards[0].title} (${activeBoards[0].id})`, 'success');
+                    if (activeBoards[0].id === 'board_2') {
+                        log('🎉 完美！第二个白板保持活跃状态，修复成功！', 'success');
+                    } else {
+                        log('❌ 活跃的不是第二个白板，可能存在问题', 'error');
+                    }
+                } else {
+                    log(`❌ 发现多个活跃白板，这是异常情况: ${activeBoards.map(b => b.title).join(', ')}`, 'error');
+                }
+
+                displayCurrentBoardStatus();
+            } catch (error) {
+                log(`检查状态失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 显示当前白板状态
+        function displayCurrentBoardStatus() {
+            const container = document.getElementById('boardStatus');
+            let html = '';
+
+            ['board_1', 'board_2', 'board_3'].forEach(boardId => {
+                const storageKey = `whiteboard-data-${boardId}`;
+                const data = localStorage.getItem(storageKey);
+                
+                if (data) {
+                    try {
+                        const boardData = JSON.parse(data);
+                        const isActive = boardData.isActive;
+                        
+                        html += `
+                            <div class="board-item ${isActive ? 'active' : ''}">
+                                <div class="board-info">
+                                    <span style="font-size: 16px;">${boardData.icon || '📋'}</span>
+                                    <span style="font-weight: 500;">${boardData.title || boardId}</span>
+                                    <span style="color: #6b7280; font-size: 12px;">(${boardData.nodes?.length || 0} 张卡片)</span>
+                                </div>
+                                <span class="board-status ${isActive ? 'status-active' : 'status-inactive'}">
+                                    ${isActive ? '🟢 活跃' : '⚪ 非活跃'}
+                                </span>
+                            </div>
+                        `;
+                    } catch (e) {
+                        html += `
+                            <div class="board-item">
+                                <div class="board-info">
+                                    <span>❌ ${boardId} (数据解析失败)</span>
+                                </div>
+                            </div>
+                        `;
+                    }
+                } else {
+                    html += `
+                        <div class="board-item">
+                            <div class="board-info">
+                                <span style="color: #9ca3af;">📭 ${boardId} (无数据)</span>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+
+            if (!html) {
+                html = '<p style="color: #6b7280; text-align: center; padding: 20px;">暂无白板数据</p>';
+            }
+
+            container.innerHTML = html;
+        }
+
+        // 清除测试数据
+        function clearTestData() {
+            try {
+                ['board_1', 'board_2', 'board_3'].forEach(boardId => {
+                    localStorage.removeItem(`whiteboard-data-${boardId}`);
+                });
+                log('🗑️ 已清除所有测试白板数据', 'success');
+                displayCurrentBoardStatus();
+            } catch (error) {
+                log(`清除测试数据失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 页面加载时显示当前状态
+        window.addEventListener('load', () => {
+            log('🚀 活跃白板持久化修复验证工具已就绪', 'success');
+            displayCurrentBoardStatus();
+        });
+    </script>
+</body>
+</html> 

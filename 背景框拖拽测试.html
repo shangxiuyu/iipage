@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>背景框拖拽测试</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        .test-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #007acc;
+            margin-bottom: 15px;
+        }
+        .test-description {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        .test-steps {
+            background: #f0f8ff;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #007acc;
+        }
+        .test-step {
+            margin-bottom: 8px;
+            color: #333;
+        }
+        .test-step:last-child {
+            margin-bottom: 0;
+        }
+        .highlight {
+            background: #fff3cd;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+            color: #856404;
+        }
+        .success {
+            background: #d4edda;
+            padding: 10px;
+            border-radius: 4px;
+            border-left: 4px solid #28a745;
+            margin: 15px 0;
+        }
+        .warning {
+            background: #fff3cd;
+            padding: 10px;
+            border-radius: 4px;
+            border-left: 4px solid #ffc107;
+            margin: 15px 0;
+        }
+        .demo-link {
+            display: inline-block;
+            background: #007acc;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+            margin: 20px 0;
+            transition: background 0.3s;
+        }
+        .demo-link:hover {
+            background: #005a9e;
+        }
+        .debug-info {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 背景框拖拽测试</h1>
+        
+        <div class="test-section">
+            <div class="test-title">🎯 测试目标</div>
+            <div class="test-description">
+                验证背景框拖拽时，内部卡片是否能够同步移动。
+            </div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">📋 测试步骤</div>
+            <div class="test-steps">
+                <div class="test-step">1. 打开白板应用</div>
+                <div class="test-step">2. 创建几个测试卡片</div>
+                <div class="test-step">3. 拖拽鼠标框选一个包含多个卡片的区域</div>
+                <div class="test-step">4. 按 <span class="highlight">空格键</span> 创建背景框</div>
+                <div class="test-step">5. 将卡片拖拽到背景框内（观察绿色高亮）</div>
+                <div class="test-step">6. 点击背景框选中它（边框变粗）</div>
+                <div class="test-step">7. 拖拽背景框，观察内部卡片是否同步移动</div>
+                <div class="test-step">8. 检查卡片是否保持与背景框的相对位置</div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">🔍 调试信息</div>
+            <div class="test-description">
+                如果背景框拖拽时卡片没有同步移动，请检查以下信息：
+            </div>
+            <div class="debug-info">
+                <strong>控制台日志检查：</strong><br>
+                • 拖拽背景框时是否有 "moveBackgroundFrame" 相关日志<br>
+                • 卡片是否有 containerId 属性<br>
+                • 背景框的 nodeIds 数组是否包含卡片ID<br><br>
+                
+                <strong>状态检查：</strong><br>
+                • 卡片是否完全在背景框内<br>
+                • 背景框是否被正确选中<br>
+                • 是否有其他事件阻止了拖拽
+            </div>
+        </div>
+
+        <div class="warning">
+            <strong>⚠️ 常见问题：</strong>
+            <ul>
+                <li>卡片没有完全拖入背景框内</li>
+                <li>背景框没有被正确选中</li>
+                <li>拖拽事件被其他元素阻止</li>
+                <li>卡片正在编辑状态</li>
+            </ul>
+        </div>
+
+        <div class="success">
+            <strong>✅ 成功标准：</strong>
+            <ul>
+                <li>背景框可以正常拖拽</li>
+                <li>内部卡片与背景框同步移动</li>
+                <li>卡片保持相对位置关系</li>
+                <li>移动过程流畅无卡顿</li>
+            </ul>
+        </div>
+
+        <div style="text-align: center;">
+            <a href="http://localhost:5182/" class="demo-link" target="_blank">
+                🎮 打开白板应用进行测试
+            </a>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">📝 测试记录</div>
+            <div class="test-description">
+                请在测试过程中记录以下内容：
+            </div>
+            <div class="test-steps">
+                <div class="test-step">• 背景框创建是否成功</div>
+                <div class="test-step">• 卡片是否成功添加到背景框</div>
+                <div class="test-step">• 背景框拖拽是否响应</div>
+                <div class="test-step">• 卡片是否同步移动</div>
+                <div class="test-step">• 是否有任何错误信息</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 添加一些交互效果
+        document.addEventListener('DOMContentLoaded', function() {
+            // 为测试步骤添加点击效果
+            const steps = document.querySelectorAll('.test-step');
+            steps.forEach(step => {
+                step.addEventListener('click', function() {
+                    this.style.background = '#e3f2fd';
+                    setTimeout(() => {
+                        this.style.background = 'transparent';
+                    }, 300);
+                });
+            });
+
+            console.log('🔧 背景框拖拽测试页面已加载');
+            console.log('📋 请按照上述步骤在白板应用中测试背景框拖拽功能');
+        });
+    </script>
+</body>
+</html> 

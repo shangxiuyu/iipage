@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔧 CORS DELETE问题修复工具</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .warning { background: #fff3cd; color: #856404; }
+        .info { background: #d1ecf1; color: #0c5460; }
+
+        .test-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 4px solid #007bff;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .config-box {
+            background: #f4f4f4;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: monospace;
+            border-left: 4px solid #28a745;
+        }
+
+        .step-guide {
+            background: #e7f3ff;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 CORS DELETE问题修复工具</h1>
+        
+        <div class="status error">
+            <strong>❌ 检测到的问题：</strong><br>
+            XHR error (req "error"), DELETE ... -1 (connected: false)<br>
+            这是典型的CORS跨域DELETE请求被阻止的问题。
+        </div>
+
+        <div class="test-section">
+            <h3>🔍 快速诊断</h3>
+            <button onclick="testCORSStatus()">测试当前CORS状态</button>
+            <button onclick="testDELETEMethod()">专门测试DELETE方法</button>
+            <div id="diagnosisResult"></div>
+        </div>
+
+        <div class="step-guide">
+            <h3>🛠️ 解决步骤</h3>
+            <p><strong>您需要在阿里云OSS控制台配置CORS规则：</strong></p>
+            <ol>
+                <li>访问 <a href="https://oss.console.aliyun.com/" target="_blank">阿里云OSS控制台</a></li>
+                <li>选择存储桶：<strong>my-whiteboard-images</strong></li>
+                <li>左侧导航：数据管理 → 跨域设置</li>
+                <li>点击"设置" → "创建规则"</li>
+                <li>填入以下配置：</li>
+            </ol>
+            
+            <div class="config-box">
+来源(Origin): *
+方法(Method): GET, POST, PUT, DELETE, HEAD, OPTIONS
+允许Headers: *
+暴露Headers: ETag, x-oss-request-id
+缓存时间: 300
+            </div>
+            
+            <div class="status warning">
+                <strong>⚠️ 关键点：</strong>方法列表中必须包含 <strong>DELETE</strong>，否则取消分享功能无法工作！
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>✅ 验证修复</h3>
+            <button onclick="validateFix()">验证CORS修复</button>
+            <button onclick="testRealScenario()">测试真实删除场景</button>
+            <div id="validationResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📋 一键复制配置</h3>
+            <button onclick="copyCORSConfig()">复制CORS配置到剪贴板</button>
+            <div id="copyResult"></div>
+        </div>
+    </div>
+
+    <script>
+        const ossEndpoint = 'https://my-whiteboard-images.oss-cn-beijing.aliyuncs.com';
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = `[${timestamp}] ${message}`;
+            return div;
+        }
+
+        async function testCORSStatus() {
+            const resultDiv = document.getElementById('diagnosisResult');
+            resultDiv.innerHTML = '';
+            
+            resultDiv.appendChild(log('🔍 开始CORS状态检测...'));
+            
+            // 测试基本连接
+            try {
+                await fetch(ossEndpoint, { method: 'HEAD' });
+                resultDiv.appendChild(log('✅ OSS连接正常', 'success'));
+            } catch (error) {
+                resultDiv.appendChild(log('❌ OSS连接失败: ' + error.message, 'error'));
+                return;
+            }
+            
+            // 测试OPTIONS预检
+            try {
+                await fetch(`${ossEndpoint}/test`, {
+                    method: 'OPTIONS',
+                    headers: {
+                        'Access-Control-Request-Method': 'DELETE'
+                    }
+                });
+                resultDiv.appendChild(log('✅ OPTIONS预检通过', 'success'));
+            } catch (error) {
+                resultDiv.appendChild(log('❌ OPTIONS预检失败: ' + error.message, 'error'));
+                resultDiv.appendChild(log('🔧 这说明CORS配置缺失或不正确', 'warning'));
+            }
+        }
+
+        async function testDELETEMethod() {
+            const resultDiv = document.getElementById('diagnosisResult');
+            
+            resultDiv.appendChild(log('🗑️ 专门测试DELETE方法...'));
+            
+            try {
+                const response = await fetch(`${ossEndpoint}/test-delete-${Date.now()}`, {
+                    method: 'DELETE',
+                    mode: 'cors'
+                });
+                
+                resultDiv.appendChild(log('🎉 DELETE方法测试成功！', 'success'));
+                resultDiv.appendChild(log('✅ CORS配置正确，取消分享功能应该可以工作', 'success'));
+                
+            } catch (error) {
+                resultDiv.appendChild(log('❌ DELETE方法被阻止: ' + error.message, 'error'));
+                
+                if (error.message.includes('CORS')) {
+                    resultDiv.appendChild(log('🔧 确认：这是CORS配置问题', 'warning'));
+                    resultDiv.appendChild(log('💡 请按照上方指导配置CORS规则', 'info'));
+                } else {
+                    resultDiv.appendChild(log('🔧 可能是网络或权限问题', 'warning'));
+                }
+            }
+        }
+
+        async function validateFix() {
+            const resultDiv = document.getElementById('validationResult');
+            resultDiv.innerHTML = '';
+            
+            resultDiv.appendChild(log('🔍 验证CORS修复效果...'));
+            
+            // 依次测试各种方法
+            const methods = ['GET', 'PUT', 'DELETE'];
+            const results = {};
+            
+            for (const method of methods) {
+                try {
+                    const response = await fetch(`${ossEndpoint}/validation-${Date.now()}`, {
+                        method: method,
+                        mode: 'cors'
+                    });
+                    results[method] = { success: true, status: response.status };
+                    resultDiv.appendChild(log(`✅ ${method}: 成功`, 'success'));
+                } catch (error) {
+                    results[method] = { success: false, error: error.message };
+                    resultDiv.appendChild(log(`❌ ${method}: 失败 - ${error.message}`, 'error'));
+                }
+            }
+            
+            // 总结
+            if (results.DELETE?.success) {
+                resultDiv.appendChild(log('🎊 验证通过！DELETE方法已修复，取消分享功能现在可以正常工作！', 'success'));
+            } else {
+                resultDiv.appendChild(log('⚠️ DELETE方法仍有问题，请检查CORS配置', 'warning'));
+            }
+        }
+
+        async function testRealScenario() {
+            const resultDiv = document.getElementById('validationResult');
+            
+            resultDiv.appendChild(log('🎭 模拟真实取消分享场景...'));
+            
+            const testId = 'test-' + Date.now();
+            const testUrl = `${ossEndpoint}/whiteboards/${testId}.json`;
+            
+            try {
+                // 1. 创建测试文件（模拟分享）
+                const createResponse = await fetch(testUrl, {
+                    method: 'PUT',
+                    body: JSON.stringify({ test: true }),
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                if (createResponse.ok) {
+                    resultDiv.appendChild(log('1️⃣ 测试分享文件创建成功', 'success'));
+                    
+                    // 2. 删除文件（模拟取消分享）
+                    const deleteResponse = await fetch(testUrl, {
+                        method: 'DELETE'
+                    });
+                    
+                    if (deleteResponse.ok || deleteResponse.status === 204) {
+                        resultDiv.appendChild(log('2️⃣ 取消分享测试成功！', 'success'));
+                        resultDiv.appendChild(log('🎉 完整流程验证通过！', 'success'));
+                    } else {
+                        resultDiv.appendChild(log(`2️⃣ 删除失败，状态码: ${deleteResponse.status}`, 'error'));
+                    }
+                } else {
+                    resultDiv.appendChild(log('1️⃣ 无法创建测试文件', 'error'));
+                }
+                
+            } catch (error) {
+                resultDiv.appendChild(log('❌ 真实场景测试失败: ' + error.message, 'error'));
+            }
+        }
+
+        function copyCORSConfig() {
+            const config = `来源(Origin): *
+方法(Method): GET, POST, PUT, DELETE, HEAD, OPTIONS
+允许Headers: *
+暴露Headers: ETag, x-oss-request-id
+缓存时间: 300`;
+            
+            navigator.clipboard.writeText(config).then(() => {
+                const resultDiv = document.getElementById('copyResult');
+                resultDiv.innerHTML = '';
+                resultDiv.appendChild(log('✅ CORS配置已复制到剪贴板！请粘贴到阿里云控制台', 'success'));
+            }).catch(() => {
+                const resultDiv = document.getElementById('copyResult');
+                resultDiv.innerHTML = '';
+                resultDiv.appendChild(log('❌ 复制失败，请手动复制上方配置', 'error'));
+            });
+        }
+
+        // 页面加载时自动检测
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                document.getElementById('diagnosisResult').appendChild(
+                    log('🚀 工具已加载，点击"测试当前CORS状态"开始诊断', 'info')
+                );
+            }, 500);
+        });
+    </script>
+</body>
+</html> 

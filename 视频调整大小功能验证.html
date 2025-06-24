@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>视频调整大小功能验证</title>
+    <style>
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            font-weight: 700;
+        }
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 1.2em;
+            margin-bottom: 40px;
+        }
+        .status {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 30px;
+            font-weight: 600;
+            font-size: 1.1em;
+            box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3);
+        }
+        .feature-section, .implementation-section, .test-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-left: 5px solid #8b5cf6;
+        }
+        .implementation-section {
+            border-left-color: #2ecc71;
+        }
+        .test-section {
+            border-left-color: #6366f1;
+        }
+        h2 {
+            color: #2c3e50;
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .icon {
+            font-size: 1.2em;
+        }
+        .step {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            border: 2px solid #ecf0f1;
+            transition: all 0.3s ease;
+        }
+        .step:hover {
+            border-color: #8b5cf6;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(139, 92, 246, 0.1);
+        }
+        .step-number {
+            background: #8b5cf6;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        .step-content {
+            flex: 1;
+        }
+        .step-title {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+        .step-desc {
+            color: #7f8c8d;
+            font-size: 0.95em;
+            line-height: 1.5;
+        }
+        .code-block {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+            font-size: 0.9em;
+            line-height: 1.4;
+            margin: 15px 0;
+            overflow-x: auto;
+            position: relative;
+        }
+        .code-block::before {
+            content: "核心代码";
+            position: absolute;
+            top: -10px;
+            left: 20px;
+            background: #8b5cf6;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 6px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+        .highlight {
+            background: #fff2cd;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+            color: #d69e2e;
+        }
+        .demo-video-container {
+            position: relative;
+            margin: 20px auto;
+            width: 300px;
+            height: 200px;
+            background: #f3f4f6;
+            border: 2px dashed #8b5cf6;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6b7280;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .demo-video-container:hover {
+            border-color: #6366f1;
+            background: #f0f9ff;
+            transform: scale(1.02);
+        }
+        .resize-handle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #3b82f6;
+            border: 1px solid #ffffff;
+            border-radius: 2px;
+            bottom: -4px;
+            right: -4px;
+            cursor: se-resize;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .demo-video-container:hover .resize-handle {
+            opacity: 1;
+        }
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .comparison-item {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #e5e7eb;
+            text-align: center;
+        }
+        .comparison-item.before {
+            border-left-color: #ef4444;
+        }
+        .comparison-item.after {
+            border-left-color: #10b981;
+        }
+        .feature-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .feature-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #2ecc71;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .feature-icon {
+            color: #2ecc71;
+            font-size: 1.2em;
+        }
+        @media (max-width: 768px) {
+            .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+            .container {
+                padding: 20px;
+            }
+            h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 视频调整大小功能验证</h1>
+        <p class="subtitle">为视频添加与图片相同的调整大小功能</p>
+        
+        <div class="status">
+            ✅ 功能实现完成 - 视频现在支持拖拽调整大小
+        </div>
+
+        <div class="feature-section">
+            <h2><span class="icon">🎯</span> 功能特性</h2>
+            
+            <div class="feature-list">
+                <div class="feature-item">
+                    <span class="feature-icon">🔧</span>
+                    <span>右下角拖拽手柄调整尺寸</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">📐</span>
+                    <span>支持宽度和高度同时调整</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">🎭</span>
+                    <span>悬停显示调整手柄</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">⚡</span>
+                    <span>实时尺寸更新和保存</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">📱</span>
+                    <span>最小尺寸限制保护</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">🎨</span>
+                    <span>统一的选中状态视觉反馈</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="implementation-section">
+            <h2><span class="icon">🔧</span> 实现方案</h2>
+            
+            <div class="step">
+                <div style="display: flex; align-items: flex-start;">
+                    <span class="step-number">1</span>
+                    <div class="step-content">
+                        <div class="step-title">创建VideoResizer组件</div>
+                        <div class="step-desc">
+                            基于现有的<span class="highlight">ImageResizer</span>组件实现，复用相同的调整大小逻辑，确保图片和视频的功能一致性。
+                        </div>
+                        <div class="code-block">
+const VideoResizer: React.FC<{ element: any, path: any }> = ({ element: videoElement, path: videoPath }) => {
+  const [resizing, setResizing] = React.useState(false);
+  const [hovering, setHovering] = React.useState(false);
+  const isSelected = useSelected();
+  
+  const handleResizeMouseDown = (e: React.MouseEvent) => {
+    // 拖拽调整逻辑：记录起始位置和尺寸
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startWidth = videoElement.width || 320;
+    const startHeight = videoElement.height || 240;
+    
+    const onMouseMove = (e: MouseEvent) => {
+      // 计算新尺寸并更新到Slate编辑器
+      const newWidth = Math.max(200, startWidth + deltaX);
+      const newHeight = Math.max(150, startHeight + deltaY);
+      Transforms.setNodes(editor, newProperties, { at: videoPath });
+    };
+  };
+};
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step">
+                <div style="display: flex; align-items: flex-start;">
+                    <span class="step-number">2</span>
+                    <div class="step-content">
+                        <div class="step-title">集成调整手柄</div>
+                        <div class="step-desc">
+                            在视频右下角添加蓝色调整手柄，悬停或选中时显示，拖拽时可调整视频尺寸。
+                        </div>
+                        <div class="code-block">
+// 调整手柄样式
+const handleStyle = () => ({
+  position: 'absolute' as const,
+  width: '8px',
+  height: '8px',
+  backgroundColor: '#3b82f6',
+  border: '1px solid #ffffff',
+  borderRadius: '2px',
+  cursor: 'se-resize',
+  opacity: (isSelected || hovering) && !readOnly ? 1 : 0,
+  transition: 'opacity 0.2s',
+  zIndex: 1000,
+  bottom: -4,
+  right: -4,
+});
+
+// 渲染调整手柄
+{!readOnly && (
+  <div
+    style={handleStyle()}
+    onMouseDown={handleResizeMouseDown}
+  />
+)}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step">
+                <div style="display: flex; align-items: flex-start;">
+                    <span class="step-number">3</span>
+                    <div class="step-content">
+                        <div class="step-title">尺寸约束和保护</div>
+                        <div class="step-desc">
+                            设置最小尺寸限制（宽度200px，高度150px），防止视频缩放过小影响观看体验。
+                        </div>
+                        <div class="code-block">
+const minWidth = 200;   // 最小宽度
+const minHeight = 150;  // 最小高度
+
+// 右下角拖拽：同时调整宽度和高度
+const newWidth = Math.max(minWidth, startWidth + deltaX);
+const newHeight = Math.max(minHeight, startHeight + deltaY);
+
+// 更新视频尺寸
+const newProperties = { 
+  ...videoElement, 
+  width: newWidth,
+  height: newHeight
+};
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2><span class="icon">🧪</span> 功能对比</h2>
+            
+            <div class="comparison-grid">
+                <div class="comparison-item before">
+                    <h3 style="margin-top: 0; color: #ef4444;">修复前</h3>
+                    <div style="background: #fef2f2; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                        <div style="width: 200px; height: 120px; background: #fee2e2; border: 2px dashed #ef4444; border-radius: 8px; margin: 0 auto; display: flex; align-items: center; justify-content: center; color: #dc2626; font-size: 14px;">
+                            📹 静态视频<br>无法调整大小
+                        </div>
+                    </div>
+                    <ul style="font-size: 14px; color: #6b7280; margin: 0; padding-left: 20px; text-align: left;">
+                        <li>视频尺寸固定，无法调整</li>
+                        <li>没有调整手柄显示</li>
+                        <li>用户体验不如图片</li>
+                    </ul>
+                </div>
+                
+                <div class="comparison-item after">
+                    <h3 style="margin-top: 0; color: #10b981;">修复后</h3>
+                    <div style="background: #f0fdf4; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                        <div class="demo-video-container">
+                            📹 可调节视频
+                            <div class="resize-handle"></div>
+                        </div>
+                    </div>
+                    <ul style="font-size: 14px; color: #6b7280; margin: 0; padding-left: 20px; text-align: left;">
+                        <li>支持拖拽调整大小</li>
+                        <li>右下角显示调整手柄</li>
+                        <li>与图片功能完全一致</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2><span class="icon">✅</span> 测试验证步骤</h2>
+            
+            <div class="step">
+                <div style="display: flex; align-items: flex-start;">
+                    <span class="step-number">1</span>
+                    <div class="step-content">
+                        <div class="step-title">插入视频测试</div>
+                        <div class="step-desc">
+                            在白板应用中创建新卡片，通过富文本编辑器插入视频文件，观察视频是否正常显示。
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div style="display: flex; align-items: flex-start;">
+                    <span class="step-number">2</span>
+                    <div class="step-content">
+                        <div class="step-title">调整大小测试</div>
+                        <div class="step-desc">
+                            点击选中视频，悬停在视频上观察右下角是否出现蓝色调整手柄，拖拽手柄测试调整大小功能。
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div style="display: flex; align-items: flex-start;">
+                    <span class="step-number">3</span>
+                    <div class="step-content">
+                        <div class="step-title">功能一致性验证</div>
+                        <div class="step-desc">
+                            在同一卡片中插入图片和视频，对比两者的调整大小功能，确认操作体验完全一致。
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div style="display: flex; align-items: flex-start;">
+                    <span class="step-number">4</span>
+                    <div class="step-content">
+                        <div class="step-title">尺寸保存验证</div>
+                        <div class="step-desc">
+                            调整视频大小后，双击进入编辑状态，确认视频尺寸被正确保存，不会恢复到原始尺寸。
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 10px; padding: 20px; margin-top: 30px;">
+            <h3 style="color: #0ea5e9; margin-top: 0; display: flex; align-items: center; gap: 8px;">
+                <span class="feature-icon">🎉</span> 功能完成
+            </h3>
+            <p style="margin: 0; color: #075985; line-height: 1.6;">
+                现在视频和图片享受完全相同的调整大小功能！用户可以通过拖拽右下角手柄来调整视频尺寸，
+                支持最小尺寸保护、实时预览、自动保存等全部特性。这确保了媒体内容编辑体验的一致性和专业性。
+            </p>
+        </div>
+    </div>
+</body>
+</html> 

@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown卡片滚动问题修复验证</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .fix-summary {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-steps {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+            margin: 20px 0;
+        }
+        .issue-description {
+            background: #fef2f2;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #ef4444;
+            margin: 20px 0;
+        }
+        .solution {
+            background: #f0fdf4;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #10b981;
+            margin: 20px 0;
+        }
+        .code-block {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        .highlight {
+            background: #fef3c7;
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .step {
+            margin: 15px 0;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+        .step-number {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            background: #3b82f6;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 24px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .technical-details {
+            background: #f1f5f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .before-after {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .before, .after {
+            padding: 15px;
+            border-radius: 8px;
+        }
+        .before {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+        }
+        .after {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔧 Markdown卡片滚动问题修复验证</h1>
+        <p>验证背面Markdown编辑模式下的滚动功能修复</p>
+    </div>
+
+    <div class="issue-description">
+        <h2>🐛 问题描述</h2>
+        <p>用户反映：<strong>在编辑模式下，Markdown卡片无法双指上下滑动，但普通卡片可以正常滚动</strong></p>
+        <ul>
+            <li>正面Markdown编辑：滚动正常 ✅</li>
+            <li>正面富文本编辑：滚动正常 ✅</li>
+            <li>背面富文本编辑：滚动正常 ✅</li>
+            <li><span class="highlight">背面Markdown编辑：无法滚动 ❌</span></li>
+        </ul>
+    </div>
+
+    <div class="technical-details">
+        <h2>🔍 根本原因分析</h2>
+        <p>通过代码分析发现了问题的根本原因：</p>
+        
+        <div class="before-after">
+            <div class="before">
+                <h3>❌ 修复前</h3>
+                <ul>
+                    <li>正面编辑：有完整的Markdown模式实现</li>
+                    <li>背面编辑：<strong>缺少Markdown编辑模式</strong></li>
+                    <li>背面只有RichTextEditor，没有textarea</li>
+                    <li>滚动事件处理不完整</li>
+                </ul>
+            </div>
+            <div class="after">
+                <h3>✅ 修复后</h3>
+                <ul>
+                    <li>正面编辑：保持原有功能</li>
+                    <li>背面编辑：<strong>新增完整Markdown模式</strong></li>
+                    <li>背面添加了Markdown textarea</li>
+                    <li>修复了滚动事件处理逻辑</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="solution">
+        <h2>🛠️ 解决方案</h2>
+        <h3>1. 添加背面Markdown编辑模式</h3>
+        <div class="code-block">
+{backEditMode === 'markdown' ? (
+  &lt;div style={{ position: 'relative', width: '100%', height: '100%' }}&gt;
+    &lt;textarea
+      value={localBackMarkdown}
+      onChange={e =&gt; setLocalBackMarkdown(e.target.value)}
+      style={{ 
+        width: '100%', 
+        height: '100%',
+        overflowY: 'auto',
+        touchAction: 'auto',
+        WebkitOverflowScrolling: 'touch'  // 关键：支持iOS滚动
+      }}
+      placeholder="请输入Markdown内容..."
+    /&gt;
+  &lt;/div&gt;
+) : (
+  // 原有的RichTextEditor
+)}
+        </div>
+
+        <h3>2. 修复滚动事件处理</h3>
+        <div class="code-block">
+// 修复前：编辑模式时直接return，不处理滚动
+if (!node.selected || node.editing) return;
+
+// 修复后：编辑模式时也处理滚动事件
+if (!node.selected) return;
+const handleWheel = (e: WheelEvent) => {
+  if (node.editing) {
+    // 特殊处理Markdown编辑模式
+    if (node.editMode === 'markdown') {
+      const textarea = container.querySelector('textarea');
+      if (textarea) {
+        // 让textarea处理滚动
+        return;
+      }
+    }
+  }
+  e.stopPropagation(); // 阻止冒泡到白板
+};
+        </div>
+    </div>
+
+    <div class="test-steps">
+        <h2>🧪 测试步骤</h2>
+        
+        <div class="step">
+            <span class="step-number">1</span>
+            <strong>创建新卡片</strong>
+            <p>在白板应用中创建一个新的卡片</p>
+        </div>
+
+        <div class="step">
+            <span class="step-number">2</span>
+            <strong>翻转到背面</strong>
+            <p>点击卡片右上角的翻转按钮，切换到背面</p>
+        </div>
+
+        <div class="step">
+            <span class="step-number">3</span>
+            <strong>进入编辑模式</strong>
+            <p>双击背面卡片进入编辑模式</p>
+        </div>
+
+        <div class="step">
+            <span class="step-number">4</span>
+            <strong>切换到Markdown模式</strong>
+            <p>点击右上角的"RT"按钮，切换到"MD"模式</p>
+        </div>
+
+        <div class="step">
+            <span class="step-number">5</span>
+            <strong>输入长文本</strong>
+            <p>粘贴或输入足够长的Markdown文本，使内容超出卡片高度：</p>
+            <div class="code-block">
+# 标题1
+这是一段很长的文本...
+
+## 标题2  
+更多内容...
+
+### 标题3
+继续添加内容直到超出卡片高度...
+
+- 列表项1
+- 列表项2
+- 列表项3
+- 列表项4
+- 列表项5
+- 列表项6
+- 列表项7
+- 列表项8
+- 列表项9
+- 列表项10
+
+```javascript
+console.log('代码块');
+```
+
+更多文本内容...
+            </div>
+        </div>
+
+        <div class="step">
+            <span class="step-number">6</span>
+            <strong>测试滚动功能</strong>
+            <p>使用双指在textarea区域上下滑动，验证：</p>
+            <ul>
+                <li>✅ 内容可以正常上下滚动</li>
+                <li>✅ 滚动流畅，没有卡顿</li>
+                <li>✅ 不会触发白板的平移</li>
+            </ul>
+        </div>
+
+        <div class="step">
+            <span class="step-number">7</span>
+            <strong>对比测试</strong>
+            <p>切换回富文本模式（RT），验证富文本编辑器的滚动也正常工作</p>
+        </div>
+    </div>
+
+    <div class="fix-summary">
+        <h2>📋 修复总结</h2>
+        <ul>
+            <li><strong>问题根源</strong>：背面缺少Markdown编辑模式的完整实现</li>
+            <li><strong>修复方案</strong>：为背面添加与正面一致的Markdown编辑功能</li>
+            <li><strong>关键改进</strong>：
+                <ul>
+                    <li>添加了背面Markdown模式切换按钮</li>
+                    <li>实现了背面Markdown textarea</li>
+                    <li>修复了滚动事件处理逻辑</li>
+                    <li>添加了touchAction和WebkitOverflowScrolling支持</li>
+                </ul>
+            </li>
+            <li><strong>兼容性</strong>：保持了所有现有功能，向后兼容</li>
+        </ul>
+    </div>
+
+    <div class="technical-details">
+        <h2>🔧 技术实现细节</h2>
+        
+        <h3>新增的关键功能：</h3>
+        <ul>
+            <li><strong>背面编辑模式状态管理</strong>：
+                <div class="code-block">
+const [backEditMode, setBackEditMode] = useState&lt;'rich' | 'markdown'&gt;(
+  node.backEditMode || (node.isAICreated ? 'markdown' : 'rich')
+);
+const [localBackMarkdown, setLocalBackMarkdown] = useState(node.backMarkdownContent || '');
+                </div>
+            </li>
+            
+            <li><strong>背面模式切换函数</strong>：
+                <div class="code-block">
+const handleSwitchBackEditMode = () => {
+  if (backEditMode === 'markdown') {
+    updateNode(node.id, { backEditMode: 'rich' });
+    setBackEditMode('rich');
+  } else {
+    const text = getTextContent(localContent);
+    updateNode(node.id, { 
+      backEditMode: 'markdown',
+      backMarkdownContent: text 
+    });
+    setBackEditMode('markdown');
+  }
+};
+                </div>
+            </li>
+
+            <li><strong>滚动优化的textarea样式</strong>：
+                <div class="code-block">
+style={{ 
+  width: '100%', 
+  height: '100%',
+  overflowY: 'auto',           // 允许垂直滚动
+  touchAction: 'auto',         // 允许触摸滚动
+  WebkitOverflowScrolling: 'touch'  // iOS滚动优化
+}}
+                </div>
+            </li>
+        </ul>
+    </div>
+
+    <div style="text-align: center; margin-top: 40px; padding: 20px; background: #f0f9ff; border-radius: 8px;">
+        <h3>🎉 修复完成！</h3>
+        <p>现在背面Markdown编辑模式支持完整的滚动功能</p>
+        <p><strong>请在白板应用中测试验证修复效果</strong></p>
+    </div>
+</body>
+</html> 

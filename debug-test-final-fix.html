@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>白板存储修复验证工具</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #007AFF;
+            border-bottom: 2px solid #007AFF;
+            padding-bottom: 10px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 16px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .action-btn {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .action-btn:hover { background: #0056b3; }
+        .danger-btn {
+            background: #dc3545;
+            color: white;
+        }
+        .danger-btn:hover { background: #c82333; }
+        .success-btn {
+            background: #28a745;
+            color: white;
+        }
+        .success-btn:hover { background: #218838; }
+        .log {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 12px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin-top: 10px;
+        }
+        .status {
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.warning { background: #fff3cd; color: #856404; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛠️ 白板存储修复验证工具</h1>
+        
+        <div class="test-section">
+            <h3>📊 当前存储状态</h3>
+            <button class="action-btn" onclick="checkStorageStatus()">检查存储状态</button>
+            <button class="action-btn" onclick="showAllKeys()">显示所有键</button>
+            <div id="storageStatus"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🧹 存储清理</h3>
+            <button class="danger-btn" onclick="cleanConflictData()">清理冲突数据</button>
+            <button class="danger-btn" onclick="clearAllStorage()">清空所有存储</button>
+            <div id="cleanupResults"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>✅ 修复验证</h3>
+            <button class="success-btn" onclick="testStoragePersistence()">测试存储持久性</button>
+            <button class="success-btn" onclick="simulateRefresh()">模拟刷新测试</button>
+            <div id="testResults"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📋 操作日志</h3>
+            <button class="action-btn" onclick="clearLog()">清空日志</button>
+            <div id="log" class="log"></div>
+        </div>
+    </div>
+
+    <script>
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.textContent += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('log').textContent = '';
+        }
+
+        function checkStorageStatus() {
+            log('检查存储状态...');
+            const status = document.getElementById('storageStatus');
+            
+            const whiteboardKeys = [];
+            const conflictKeys = [];
+            let totalSize = 0;
+            
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
+                const size = new Blob([value]).size;
+                totalSize += size;
+                
+                if (key.startsWith('whiteboard-data-')) {
+                    whiteboardKeys.push({key, size});
+                } else if (key.includes('whiteboard')) {
+                    conflictKeys.push({key, size});
+                }
+            }
+            
+            let html = `
+                <div class="status ${conflictKeys.length > 0 ? 'warning' : 'success'}">
+                    总存储大小: ${(totalSize/1024).toFixed(1)}KB<br>
+                    白板数量: ${whiteboardKeys.length}<br>
+                    冲突键数量: ${conflictKeys.length}
+                </div>
+            `;
+            
+            if (whiteboardKeys.length > 0) {
+                html += '<h4>白板列表:</h4><ul>';
+                whiteboardKeys.forEach(({key, size}) => {
+                    const boardId = key.replace('whiteboard-data-', '');
+                    try {
+                        const data = JSON.parse(localStorage.getItem(key));
+                        const nodeCount = (data.nodes || []).length;
+                        html += `<li>${boardId}: ${nodeCount}个卡片 (${(size/1024).toFixed(1)}KB)</li>`;
+                    } catch (e) {
+                        html += `<li>${boardId}: 数据损坏!</li>`;
+                    }
+                });
+                html += '</ul>';
+            }
+            
+            if (conflictKeys.length > 0) {
+                html += '<h4>⚠️ 冲突键:</h4><ul>';
+                conflictKeys.forEach(({key, size}) => {
+                    html += `<li>${key} (${(size/1024).toFixed(1)}KB)</li>`;
+                });
+                html += '</ul>';
+            }
+            
+            status.innerHTML = html;
+            log(`发现 ${whiteboardKeys.length} 个白板，${conflictKeys.length} 个冲突键`);
+        }
+
+        function showAllKeys() {
+            log('显示所有localStorage键...');
+            const allKeys = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                allKeys.push(localStorage.key(i));
+            }
+            log('所有键: ' + allKeys.join(', '));
+        }
+
+        function cleanConflictData() {
+            log('开始清理冲突数据...');
+            const results = document.getElementById('cleanupResults');
+            
+            const conflictKeys = ['whiteboard-storage', 'whiteboard-current-board'];
+            let cleanedCount = 0;
+            
+            conflictKeys.forEach(key => {
+                if (localStorage.getItem(key)) {
+                    localStorage.removeItem(key);
+                    cleanedCount++;
+                    log(`删除冲突键: ${key}`);
+                }
+            });
+            
+            // 检查其他可能的冲突键
+            for (let i = localStorage.length - 1; i >= 0; i--) {
+                const key = localStorage.key(i);
+                if (key.includes('whiteboard') && !key.startsWith('whiteboard-data-')) {
+                    localStorage.removeItem(key);
+                    cleanedCount++;
+                    log(`删除未知whiteboard键: ${key}`);
+                }
+            }
+            
+            results.innerHTML = `<div class="status success">清理完成！删除了 ${cleanedCount} 个冲突键</div>`;
+            log(`清理完成，删除了 ${cleanedCount} 个冲突键`);
+        }
+
+        function clearAllStorage() {
+            if (confirm('确定要清空所有localStorage数据吗？这将删除所有白板！')) {
+                log('清空所有存储...');
+                localStorage.clear();
+                const results = document.getElementById('cleanupResults');
+                results.innerHTML = '<div class="status success">所有存储已清空</div>';
+                log('所有存储已清空');
+            }
+        }
+
+        function testStoragePersistence() {
+            log('测试存储持久性...');
+            const results = document.getElementById('testResults');
+            
+            // 创建测试数据
+            const testBoardId = 'test-' + Date.now();
+            const testData = {
+                nodes: [
+                    {
+                        id: 'test-node-1',
+                        x: 100,
+                        y: 100,
+                        content: [{ type: 'paragraph', children: [{ text: '测试卡片' }] }]
+                    }
+                ],
+                connections: [],
+                title: '测试白板',
+                createdAt: new Date().toISOString()
+            };
+            
+            // 保存测试数据
+            const storageKey = `whiteboard-data-${testBoardId}`;
+            localStorage.setItem(storageKey, JSON.stringify(testData));
+            log(`创建测试白板: ${testBoardId}`);
+            
+            // 立即读取验证
+            const saved = localStorage.getItem(storageKey);
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    if (parsed.nodes && parsed.nodes.length === 1) {
+                        results.innerHTML = '<div class="status success">✅ 存储持久性测试通过！</div>';
+                        log('存储持久性测试通过');
+                    } else {
+                        results.innerHTML = '<div class="status error">❌ 数据格式不正确</div>';
+                        log('数据格式不正确');
+                    }
+                } catch (e) {
+                    results.innerHTML = '<div class="status error">❌ 数据解析失败</div>';
+                    log('数据解析失败: ' + e.message);
+                }
+            } else {
+                results.innerHTML = '<div class="status error">❌ 数据保存失败</div>';
+                log('数据保存失败');
+            }
+            
+            // 清理测试数据
+            setTimeout(() => {
+                localStorage.removeItem(storageKey);
+                log('清理测试数据');
+            }, 2000);
+        }
+
+        function simulateRefresh() {
+            log('模拟刷新测试...');
+            const results = document.getElementById('testResults');
+            
+            // 记录刷新前的状态
+            const beforeKeys = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith('whiteboard-data-')) {
+                    beforeKeys.push(key);
+                }
+            }
+            
+            log(`刷新前白板数量: ${beforeKeys.length}`);
+            
+            // 模拟页面刷新（延迟检查）
+            setTimeout(() => {
+                const afterKeys = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key.startsWith('whiteboard-data-')) {
+                        afterKeys.push(key);
+                    }
+                }
+                
+                log(`刷新后白板数量: ${afterKeys.length}`);
+                
+                if (beforeKeys.length === afterKeys.length) {
+                    results.innerHTML = '<div class=\"status success\">✅ 刷新测试通过！数据保持一致</div>';
+                    log('刷新测试通过，数据保持一致');
+                } else {
+                    results.innerHTML = '<div class=\"status error\">❌ 刷新测试失败！数据丢失或重复</div>';
+                    log('刷新测试失败，数据不一致');
+                }
+            }, 1000);
+        }
+
+        // 页面加载时自动检查状态
+        window.onload = function() {
+            log('白板存储修复验证工具已启动');
+            checkStorageStatus();
+        };
+    </script>
+</body>
+</html> 

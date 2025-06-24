@@ -1,0 +1,1844 @@
+import React, { useState, useEffect, useRef } from 'react';
+import type { NodeData } from '../store/useBoardStore';
+import { useBoardStore, CARD_BACKGROUND_COLORS, defaultContent } from '../store/useBoardStore';
+import RichTextEditor from './RichTextEditor';
+import CardColorPicker from './CardColorPicker';
+import DeleteConfirmModal from './DeleteConfirmModal';
+import type { Descendant } from 'slate';
+
+// 简单的错误边界组件
+class ErrorBoundary extends React.Component<{children: React.ReactNode, fallback: React.ReactNode}> {
+  state = { hasError: false };
+  
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  
+  componentDidCatch(error: Error) {
+    console.error("编辑器错误:", error);
+  }
+  
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback;
+    }
+    return this.props.children;
+  }
+}
+
+interface Props {
+  node: NodeData;
+}
+
+// 提取文本内容的辅助函数
+const getTextContent = (descendants: any[]): string => {
+  if (!descendants || !Array.isArray(descendants)) return '';
+  
+  return descendants.map(desc => {
+    if (desc.children && Array.isArray(desc.children)) {
+      return getTextContent(desc.children);
+    }
+    return desc.text || '';
+  }).join('');
+};
+
+const NodeCard: React.FC<Props> = ({ node }) => {
+  const updateNode = useBoardStore((s) => s.updateNode);
+  const setNodeEditing = useBoardStore((s) => s.setNodeEditing);
+  const selectNode = useBoardStore((s) => s.selectNode);
+  const deleteNode = useBoardStore((s) => s.deleteNode);
+  const scale = useBoardStore((s) => s.scale);
+  const panX = useBoardStore((s) => s.panX);
+  const panY = useBoardStore((s) => s.panY);
+  
+  // 添加卡片翻转相关状态和方法
+  const flipCard = useBoardStore((s) => s.flipCard);
+  
+  // 添加连线相关的状态和方法
+  const isConnecting = useBoardStore((s) => s.isConnecting);
+  const connectingFrom = useBoardStore((s) => s.connectingFrom);
+  const startConnecting = useBoardStore((s) => s.startConnecting);
+  const finishConnecting = useBoardStore((s) => s.finishConnecting);
+  const addConnection = useBoardStore((s) => s.addConnection);
+  const updateTempConnection = useBoardStore((s) => s.updateTempConnection);
+  
+  // 添加CSS动画样式
+  React.useEffect(() => {
+    if (!document.getElementById('nodecard-animations')) {
+      const style = document.createElement('style');
+      style.id = 'nodecard-animations';
+      style.textContent = `
+        @keyframes slideIn {
+          from {
+            opacity: 0;
+            transform: translateX(10px) scale(0.8);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0) scale(1);
+          }
+        }
+        
+        /* 添加卡片翻转动画 */
+        .flip-card {
+          perspective: 1000px;
+        }
+        
+        .flip-card-inner {
+          position: relative;
+          width: 100%;
+          height: 100%;
+          transition: transform 0.6s;
+          transform-style: preserve-3d;
+        }
+        
+        .flip-card.flipped .flip-card-inner {
+          transform: rotateY(180deg);
+        }
+        
+        .flip-card-front, .flip-card-back {
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          -webkit-backface-visibility: hidden;
+          backface-visibility: hidden;
+          overflow: hidden;
+        }
+        
+        .flip-card-back {
+          transform: rotateY(180deg);
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  }, []);
+  
+  const [dragging, setDragging] = useState(false);
+  const [resizing, setResizing] = useState(false);
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showActionMenu, setShowActionMenu] = useState(false);
+  const [colorPickerPosition, setColorPickerPosition] = useState({ x: 0, y: 0 });
+  
+  // 分开管理正面和背面的编辑器内容
+  const [frontContent, setFrontContent] = useState<Descendant[]>(
+    (node.frontContent && Array.isArray(node.frontContent) && node.frontContent.length > 0) 
+      ? node.frontContent 
+      : (node.content && Array.isArray(node.content) && node.content.length > 0) 
+        ? node.content 
+        : defaultContent
+  );
+  
+  const [backContent, setBackContent] = useState<Descendant[]>(
+    (node.backContent && Array.isArray(node.backContent) && node.backContent.length > 0) 
+      ? node.backContent 
+      : defaultContent
+  );
+  
+  // 获取当前显示的内容
+  const currentContent = node.isFlipped ? backContent : frontContent;
+  const setCurrentContent = node.isFlipped ? setBackContent : setFrontContent;
+  
+  // 使用ref保存最新的编辑器内容
+  const currentContentRef = useRef<Descendant[]>(currentContent);
+  // 使用ref来跟踪卡片元素，用于获取实时高度
+  const cardRef = useRef<HTMLDivElement>(null);
+  
+  // 更新ref中的内容
+  useEffect(() => {
+    currentContentRef.current = currentContent;
+  }, [currentContent]);
+
+  // 监听编辑状态变化，确保内容不丢失
+  const [prevEditing, setPrevEditing] = useState(node.editing);
+  
+  useEffect(() => {
+    // 检测从编辑状态变为非编辑状态
+    if (prevEditing && !node.editing) {
+      // 立即保存当前编辑器内容
+      const contentToSave = currentContentRef.current;
+      if (contentToSave && Array.isArray(contentToSave) && contentToSave.length > 0) {
+        const hasContent = contentToSave.some((item: any) => 
+          item.children && Array.isArray(item.children) && 
+          item.children.some((child: any) => child.text && child.text.trim() !== '')
+        );
+        
+        if (hasContent || JSON.stringify(contentToSave) !== JSON.stringify(defaultContent)) {
+          // 根据当前卡片面更新相应的内容
+          if (node.isFlipped) {
+            updateNode(node.id, { backContent: contentToSave });
+          } else {
+            updateNode(node.id, { frontContent: contentToSave });
+          }
+        }
+      }
+    }
+    
+    setPrevEditing(node.editing);
+  }, [node.editing, prevEditing, updateNode, node.id, node.isFlipped]);
+
+  // 全局点击监听，当点击卡片外部时退出编辑状态和关闭菜单
+  useEffect(() => {
+    if (!node.editing && !showActionMenu) return;
+
+    const handleGlobalClick = (e: MouseEvent) => {
+      // 如果点击的是当前卡片内部，不做任何处理
+      const cardElement = e.target as Element;
+      let isClickInside = false;
+      
+      // 检查点击是否在当前卡片内
+      let current = cardElement;
+      while (current && current !== document.body) {
+        if (current.closest && current.closest(`[data-node-id="${node.id}"]`)) {
+          isClickInside = true;
+          break;
+        }
+        current = current.parentElement as Element;
+      }
+      
+      // 如果点击在卡片外部
+      if (!isClickInside) {
+        // 关闭动作菜单
+        if (showActionMenu) {
+          setShowActionMenu(false);
+        }
+        
+        // 如果在编辑状态，退出编辑
+        if (node.editing) {
+          // 保存当前编辑内容和调整高度
+          const validContent = (currentContent && Array.isArray(currentContent) && currentContent.length > 0) ? currentContent : defaultContent;
+          
+          // 在退出编辑前，检查内容是否需要更大的高度
+          if (cardRef.current) {
+            const contentHeight = getContentHeight();
+            const currentHeight = node.height || 80;
+            
+            // 如果内容高度大于当前高度，则扩展卡片高度
+            const newHeight = Math.max(currentHeight, contentHeight);
+            
+            // 同时保存内容和高度
+            updateNode(node.id, { 
+              frontContent: validContent,
+              backContent: validContent,
+              height: newHeight 
+            });
+          } else {
+            // 如果没有cardRef，至少保存内容
+            updateNode(node.id, { 
+              frontContent: validContent,
+              backContent: validContent,
+            });
+          }
+          
+          // 延迟一帧再退出编辑状态，确保内容和高度已经保存
+          setTimeout(() => {
+            setNodeEditing(node.id, false);
+          }, 0);
+        }
+      }
+    };
+
+    // 添加全局点击监听
+    document.addEventListener('mousedown', handleGlobalClick, true);
+    
+    return () => {
+      document.removeEventListener('mousedown', handleGlobalClick, true);
+    };
+  }, [node.editing, showActionMenu, node.id, setNodeEditing]);
+
+  // 获取当前背景色配置
+  const getCurrentCardBackground = () => {
+    const bgConfig = CARD_BACKGROUND_COLORS.find(c => c.id === node.backgroundColor) || CARD_BACKGROUND_COLORS[0];
+    return bgConfig;
+  };
+
+  const currentBg = getCurrentCardBackground();
+
+  // 右键菜单处理
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (node.editing) return;
+
+    // 设置颜色选择器位置
+    setColorPickerPosition({ x: e.clientX, y: e.clientY });
+    setShowColorPicker(true);
+  };
+
+  // 颜色变化处理
+  const handleColorChange = (colorId: string) => {
+    updateNode(node.id, { backgroundColor: colorId });
+  };
+
+  const handleConfirmDelete = () => {
+    deleteNode(node.id);
+    setShowDeleteModal(false);
+  };
+
+  // 点击处理 - 确保单击能选中
+  const handleClick = (e: React.MouseEvent) => {
+    if (node.editing || showColorPicker || showDeleteModal) return;
+    
+    e.stopPropagation(); // 阻止事件冒泡到BoardCanvas
+    
+    // 如果当前在连线模式，处理连线逻辑
+    if (isConnecting) {
+      if (connectingFrom === node.id) {
+        // 点击了同一个节点，取消连线
+        finishConnecting();
+        return;
+      } else if (connectingFrom) {
+        // 完成连线到目标节点
+        addConnection(connectingFrom, node.id);
+        finishConnecting();
+        return;
+      }
+    }
+    
+    // 检查是否有其他正在编辑的节点，如果有则先保存并退出编辑状态
+    const allNodes = useBoardStore.getState().nodes;
+    const editingNode = allNodes.find(n => n.editing && n.id !== node.id);
+    if (editingNode) {
+      const { setNodeEditing } = useBoardStore.getState();
+      setNodeEditing(editingNode.id, false);
+    }
+    
+    // 处理选中状态
+    const isMultiSelect = e.metaKey || e.ctrlKey;
+    selectNode(node.id, isMultiSelect);
+  };
+
+  // 连线按钮点击处理
+  const handleConnectClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    // 如果当前正在编辑，先保存编辑内容
+    if (node.editing) {
+      const validContent = (currentContent && Array.isArray(currentContent) && currentContent.length > 0) ? currentContent : defaultContent;
+      updateNode(node.id, { frontContent: validContent, backContent: validContent });
+      setNodeEditing(node.id, false);
+    }
+    
+    // 开始连线
+    startConnecting(node.id);
+    setShowActionMenu(false);
+  };
+
+  // 锚点拖拽开始
+  const handleAnchorMouseDown = (e: React.MouseEvent, position: 'top' | 'right' | 'bottom' | 'left') => {
+    e.stopPropagation();
+    e.preventDefault();
+    
+    // 如果当前正在编辑，先保存编辑内容
+    if (node.editing) {
+      const validContent = (currentContent && Array.isArray(currentContent) && currentContent.length > 0) ? currentContent : defaultContent;
+      updateNode(node.id, { frontContent: validContent, backContent: validContent });
+      setNodeEditing(node.id, false);
+    }
+    
+    // 检测目标锚点位置的辅助函数
+    const detectTargetAnchor = (clientX: number, clientY: number, targetElement: HTMLElement): 'top' | 'right' | 'bottom' | 'left' => {
+      const rect = targetElement.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      
+      // 计算鼠标位置相对于卡片中心的偏移
+      const offsetX = clientX - centerX;
+      const offsetY = clientY - centerY;
+      
+      // 根据偏移量确定最近的锚点
+      if (Math.abs(offsetX) > Math.abs(offsetY)) {
+        return offsetX > 0 ? 'right' : 'left';
+      } else {
+        return offsetY > 0 ? 'bottom' : 'top';
+      }
+    };
+    
+    // 计算锚点的精确屏幕坐标
+    const getAnchorScreenPosition = (position: string) => {
+      // 获取实际的卡片元素，而不是锚点本身
+      // 现在锚点是卡片面的子元素，所以要获取卡片正确的元素
+      const cardElement = node.isFlipped
+        ? cardRef.current?.querySelector('.flip-card-back')
+        : cardRef.current?.querySelector('.flip-card-front');
+        
+      if (!cardElement) return { x: e.clientX, y: e.clientY };
+      
+      const rect = cardElement.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      
+      switch (position) {
+        case 'top':
+          return { x: centerX, y: rect.top };
+        case 'right':
+          return { x: rect.right, y: centerY };
+        case 'bottom':
+          return { x: centerX, y: rect.bottom };
+        case 'left':
+          return { x: rect.left, y: centerY };
+        default:
+          return { x: centerX, y: centerY };
+      }
+    };
+    
+    // 开始连线，并设置初始位置为锚点位置
+    startConnecting(node.id, position);
+    const anchorPos = getAnchorScreenPosition(position);
+    updateTempConnection(anchorPos.x, anchorPos.y);
+    
+    // 立即开始跟踪鼠标移动
+    const onMouseMove = (e: MouseEvent) => {
+      updateTempConnection(e.clientX, e.clientY);
+    };
+    
+    const onMouseUp = (e: MouseEvent) => {
+      // 检查是否松开鼠标在另一个卡片上
+      const element = document.elementFromPoint(e.clientX, e.clientY);
+      const targetCard = element?.closest('[data-node-id]');
+      
+      if (targetCard) {
+        const targetNodeId = targetCard.getAttribute('data-node-id');
+        
+        if (targetNodeId && targetNodeId !== node.id) {
+          // 检测目标锚点位置
+          const targetAnchor = detectTargetAnchor(e.clientX, e.clientY, targetCard as HTMLElement);
+          // 使用 finishConnecting 并传递目标节点ID和锚点位置
+          finishConnecting(targetNodeId, targetAnchor);
+        } else {
+          // 如果目标是同一张卡片，直接取消连线
+          finishConnecting();
+        }
+      } else {
+        // 没有目标卡片时取消连线
+        finishConnecting();
+      }
+      
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+    
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  };
+
+  // 拖拽逻辑
+  const onMouseDown = (e: React.MouseEvent) => {
+    if (node.editing || showColorPicker || showDeleteModal) return;
+    
+    e.stopPropagation();
+    e.preventDefault();
+    
+    const startX = e.clientX;
+    const startY = e.clientY;
+    let hasDragged = false;
+    let lastX = startX;
+    let lastY = startY;
+    
+    const onMouseMove = (e: MouseEvent) => {
+      const deltaX = e.clientX - lastX;
+      const deltaY = e.clientY - lastY;
+      
+      // 如果移动距离超过阈值，开始拖拽
+      if (!hasDragged && (Math.abs(e.clientX - startX) > 5 || Math.abs(e.clientY - startY) > 5)) {
+        hasDragged = true;
+    setDragging(true);
+        
+        // 开始拖拽时，检查是否有其他正在编辑的节点
+        const allNodes = useBoardStore.getState().nodes;
+        const editingNode = allNodes.find(n => n.editing && n.id !== node.id);
+        if (editingNode) {
+          const { setNodeEditing } = useBoardStore.getState();
+          setNodeEditing(editingNode.id, false);
+        }
+        
+        // 如果当前卡片未选中，或者是多选模式，处理选中状态
+        const isMultiSelect = e.metaKey || e.ctrlKey;
+        if (!node.selected || isMultiSelect) {
+          selectNode(node.id, isMultiSelect);
+        }
+      }
+      
+      if (!hasDragged) return;
+      
+      // 获取当前状态
+      const currentNodes = useBoardStore.getState().nodes;
+      const currentSelectedNodes = useBoardStore.getState().selectedNodes;
+      
+      // 移动所有选中的节点（使用增量移动）
+      currentSelectedNodes.forEach(nodeId => {
+        const targetNode = currentNodes.find(n => n.id === nodeId);
+        if (!targetNode) return;
+        
+        if (targetNode.pinned) {
+          // 固定卡片直接使用屏幕坐标移动
+          const currentPinnedX = targetNode.pinnedX || 100;
+          const currentPinnedY = targetNode.pinnedY || 100;
+          updateNode(nodeId, {
+            pinnedX: currentPinnedX + deltaX,
+            pinnedY: currentPinnedY + deltaY,
+          });
+        } else {
+          // 普通卡片需要考虑缩放因子
+          const currentX = targetNode.x;
+          const currentY = targetNode.y;
+          updateNode(nodeId, {
+            x: currentX + deltaX / scale,
+            y: currentY + deltaY / scale,
+          });
+        }
+      });
+      
+      // 更新上次的鼠标位置
+      lastX = e.clientX;
+      lastY = e.clientY;
+    };
+
+    const onMouseUp = (e: MouseEvent) => {
+      // 如果没有拖拽，触发点击选中逻辑
+      if (!hasDragged) {
+        // 检查是否有其他正在编辑的节点
+        const allNodes = useBoardStore.getState().nodes;
+        const editingNode = allNodes.find(n => n.editing && n.id !== node.id);
+        if (editingNode) {
+          const { setNodeEditing } = useBoardStore.getState();
+          setNodeEditing(editingNode.id, false);
+        }
+        
+        // 处理选中状态
+        const isMultiSelect = (e as any).metaKey || (e as any).ctrlKey;
+        selectNode(node.id, isMultiSelect);
+      }
+      
+      setDragging(false);
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  };
+
+  // 编辑态切换时同步内容
+  useEffect(() => {
+    // 同步编辑器内容 - 只在进入编辑模式时更新，避免编辑过程中被重置
+    if (node.editing) {
+      // 根据当前是正面还是背面，加载对应的内容
+      const content = node.isFlipped
+        ? (node.backContent && Array.isArray(node.backContent) && node.backContent.length > 0)
+          ? node.backContent
+          : defaultContent
+        : (node.frontContent && Array.isArray(node.frontContent) && node.frontContent.length > 0)
+          ? node.frontContent
+          : (node.content && Array.isArray(node.content) && node.content.length > 0)
+            ? node.content
+            : defaultContent;
+      
+      // 只有当编辑器内容与store内容不同时才更新，避免不必要的重置
+      if (JSON.stringify(currentContent) !== JSON.stringify(content)) {
+        setCurrentContent(content);
+      }
+    }
+  }, [node.editing, node.isFlipped]); // 添加isFlipped依赖，确保翻转时能够更新内容
+
+  // 双击进入编辑态
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowColorPicker(false);
+    setShowDeleteModal(false);
+    
+    // 检查是否有其他正在编辑的节点，如果有则先保存并退出编辑状态
+    const allNodes = useBoardStore.getState().nodes;
+    const editingNode = allNodes.find(n => n.editing && n.id !== node.id);
+    if (editingNode) {
+      const { setNodeEditing } = useBoardStore.getState();
+      setNodeEditing(editingNode.id, false);
+    }
+    
+    // 立即进入编辑模式 - 编辑器内容会通过上面的useEffect加载
+    setNodeEditing(node.id, true);
+  };
+
+  // 保存内容并退出编辑态
+  const finishEdit = () => {
+    const validContent = (currentContent && Array.isArray(currentContent) && currentContent.length > 0) ? currentContent : defaultContent;
+    
+    // 在退出编辑前，检查内容是否需要更大的高度
+    if (cardRef.current) {
+      const contentHeight = getContentHeight();
+      const currentHeight = node.height || 80;
+      
+      // 如果内容高度大于当前高度，则扩展卡片高度
+      const newHeight = Math.max(currentHeight, contentHeight);
+      
+      // 根据当前是正面还是背面，更新对应的内容
+      if (node.isFlipped) {
+        updateNode(node.id, { 
+          backContent: validContent,
+          height: newHeight 
+        });
+      } else {
+        updateNode(node.id, { 
+          frontContent: validContent,
+          content: validContent, // 同时更新content以保持向后兼容
+          height: newHeight 
+        });
+      }
+    } else {
+      // 如果没有cardRef，至少保存内容
+      if (node.isFlipped) {
+        updateNode(node.id, { backContent: validContent });
+      } else {
+        updateNode(node.id, { 
+          frontContent: validContent,
+          content: validContent // 同时更新content以保持向后兼容
+        });
+      }
+    }
+    
+    setNodeEditing(node.id, false);
+  };
+
+  // 处理编辑器内容变化
+  const handleEditorChange = (value: Descendant[]) => {
+    setCurrentContent(value);
+    
+    // 实时更新到store中
+    if (node.editing) {
+      // 根据当前卡片面更新相应的内容
+      if (node.isFlipped) {
+        updateNode(node.id, { backContent: value });
+      } else {
+        updateNode(node.id, { frontContent: value });
+      }
+      
+      // 在编辑过程中也实时调整高度
+      setTimeout(() => {
+        if (cardRef.current && node.editing) {
+          const contentHeight = getContentHeight();
+          const currentHeight = node.height || 80;
+          const newHeight = Math.max(currentHeight, contentHeight);
+          
+          // 只有当需要扩展高度时才更新
+          if (newHeight > currentHeight) {
+            updateNode(node.id, { height: newHeight });
+          }
+        }
+      }, 50); // 延迟50ms让DOM更新完成
+    }
+  };
+
+  // 获取当前应该显示的内容
+  const displayContent = node.isFlipped
+    ? (node.backContent && Array.isArray(node.backContent) && node.backContent.length > 0)
+      ? node.backContent
+      : defaultContent
+    : (node.frontContent && Array.isArray(node.frontContent) && node.frontContent.length > 0)
+      ? node.frontContent
+      : (node.content && Array.isArray(node.content) && node.content.length > 0)
+        ? node.content
+        : defaultContent;
+
+  // 计算文本内容的最小高度
+  const getMinHeight = () => {
+    const textContent = getTextContent(displayContent);
+    
+    // 如果没有文本内容，返回一个很小的最小高度
+    if (!textContent || textContent.trim() === '') {
+      return 24; // 空内容时的最小高度，进一步降低
+    }
+    
+    // 基于字体大小计算最小高度：16px字体 + 减少内边距
+    const lineHeight = 18; // 稍微减少行高
+    const padding = 16; // 减少上下内边距到8px each
+    
+    return lineHeight + padding;
+  };
+
+  // 计算精确的内容高度
+  const getContentHeight = () => {
+    if (!cardRef.current) return getMinHeight();
+    
+    // 查找编辑器内容区域
+    const editorContent = cardRef.current.querySelector('[data-slate-editor="true"]') as HTMLElement;
+    if (editorContent) {
+      // 获取编辑器内容的实际高度
+      const contentHeight = editorContent.scrollHeight;
+      // 加上卡片的内边距 (12px * 2 = 24px)
+      const totalHeight = contentHeight + 24;
+      return Math.max(totalHeight, getMinHeight());
+    }
+    
+    // 如果编辑器不存在，但在编辑模式下，使用卡片的scrollHeight
+    if (node.editing) {
+      const cardScrollHeight = cardRef.current.scrollHeight;
+      return Math.max(cardScrollHeight, getMinHeight());
+    }
+    
+    // 非编辑模式，使用当前高度
+    const currentHeight = cardRef.current.offsetHeight;
+    return Math.max(currentHeight, getMinHeight());
+  };
+
+  // 调整尺寸逻辑
+  const handleResizeMouseDown = (e: React.MouseEvent, direction: 'se' | 'e' | 's') => {
+    e.stopPropagation();
+    e.preventDefault();
+    
+    if (node.editing || showColorPicker || showDeleteModal) return;
+    
+    setResizing(true);
+    
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startWidth = node.width || 200;
+    const startHeight = node.height || 80;
+    
+    const onMouseMove = (e: MouseEvent) => {
+      const deltaX = (e.clientX - startX) / scale;
+      const deltaY = (e.clientY - startY) / scale;
+      
+      let newWidth = startWidth;
+      let newHeight = startHeight;
+      
+      if (direction === 'se' || direction === 'e') {
+        const minWidth = 120; // 固定的最小宽度
+        newWidth = Math.max(minWidth, startWidth + deltaX);
+      }
+      
+      if (direction === 'se' || direction === 's') {
+        const minHeight = getMinHeight();
+        newHeight = Math.max(minHeight, startHeight + deltaY);
+      }
+      
+      updateNode(node.id, {
+        width: newWidth,
+        height: newHeight,
+      });
+    };
+
+    const onMouseUp = () => {
+      setResizing(false);
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  };
+
+  // 计算卡片的实际位置
+  const getCardPosition = () => {
+    if (node.pinned) {
+      // 如果卡片被固定，使用固定的屏幕坐标
+      return {
+        x: node.pinnedX || 100,
+        y: node.pinnedY || 100,
+        transform: 'none', // 不受缩放影响
+        zIndex: 1000 // 确保固定卡片在最上层
+      };
+    } else {
+      // 正常卡片跟随画布变换
+      return {
+        x: node.x,
+        y: node.y,
+        transform: undefined,
+        zIndex: node.selected ? 20 : 10
+      };
+    }
+  };
+
+  const cardPosition = getCardPosition();
+
+  // 处理翻转卡片
+  const handleFlipCard = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    // 如果当前正在编辑，先保存编辑内容
+    if (node.editing) {
+      // 保存当前编辑的内容
+      const contentToSave = currentContentRef.current;
+      if (node.isFlipped) {
+        updateNode(node.id, { backContent: contentToSave });
+      } else {
+        updateNode(node.id, { frontContent: contentToSave });
+      }
+      setNodeEditing(node.id, false);
+    }
+    
+    // 执行翻转
+    flipCard(node.id);
+    setShowActionMenu(false);
+  };
+
+  return (
+    <>
+    <div
+        ref={cardRef}
+        data-node-id={node.id}
+        className={`flip-card ${node.isFlipped ? 'flipped' : ''}`}
+      style={{
+        position: 'absolute',
+          left: cardPosition.x,
+          top: cardPosition.y,
+          width: node.width || 324,
+          height: node.editing ? 'auto' : (node.height || 200),
+          zIndex: cardPosition.zIndex
+        }}
+      >
+        <div className="flip-card-inner">
+          {/* 正面 */}
+          <div className="flip-card-front" style={{
+            minHeight: node.height || 80,
+            background: currentBg.color,
+            borderRadius: 8,
+            boxShadow: node.selected 
+              ? `0 4px 12px rgba(0,0,0,0.15)` 
+              : `0 2px 8px rgba(0,0,0,0.1)`,
+            cursor: node.editing ? 'text' : (resizing ? 'default' : 'move'),
+            userSelect: 'none',
+            border: node.selected ? `2px dashed #000000` : `1px solid ${currentBg.borderColor}`,
+            transform: dragging ? 'scale(1.02)' : 'scale(1)',
+            transition: dragging || resizing || node.editing ? 'none' : 'all 0.2s ease',
+            fontSize: 16,
+            overflow: node.editing ? 'visible' : (node.selected ? 'visible' : 'hidden'),
+            position: 'relative', // 确保相对定位
+          }}
+          onClick={handleClick}
+          onMouseDown={onMouseDown}
+          onDoubleClick={handleDoubleClick}
+          onContextMenu={handleContextMenu}
+          >
+            {/* 前面卡片锚点 - 只在选中且非编辑状态下显示 */}
+            {!node.isFlipped && !node.editing && node.selected && (
+              <>
+                {/* 上锚点 */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: '50%',
+                    top: '-5px',
+                    width: '10px',
+                    height: '10px',
+                    marginLeft: '-5px',
+                    backgroundColor: '#10b981',
+                    border: '2px solid #ffffff',
+                    borderRadius: '50%',
+                    cursor: 'crosshair',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                    zIndex: 1001,
+                  }}
+                  onMouseDown={(e) => handleAnchorMouseDown(e, 'top')}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#059669';
+                    e.currentTarget.style.width = '12px';
+                    e.currentTarget.style.height = '12px';
+                    e.currentTarget.style.marginLeft = '-6px';
+                    e.currentTarget.style.top = '-6px';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#10b981';
+                    e.currentTarget.style.width = '10px';
+                    e.currentTarget.style.height = '10px';
+                    e.currentTarget.style.marginLeft = '-5px';
+                    e.currentTarget.style.top = '-5px';
+                  }}
+                  title="拖拽创建连线"
+                />
+                
+                {/* 右锚点 */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    right: '-5px',
+                    top: '50%',
+                    width: '10px',
+                    height: '10px',
+                    marginTop: '-5px',
+                    backgroundColor: '#10b981',
+                    border: '2px solid #ffffff',
+                    borderRadius: '50%',
+                    cursor: 'crosshair',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                    zIndex: 1001,
+                  }}
+                  onMouseDown={(e) => handleAnchorMouseDown(e, 'right')}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#059669';
+                    e.currentTarget.style.width = '12px';
+                    e.currentTarget.style.height = '12px';
+                    e.currentTarget.style.right = '-6px';
+                    e.currentTarget.style.marginTop = '-6px';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#10b981';
+                    e.currentTarget.style.width = '10px';
+                    e.currentTarget.style.height = '10px';
+                    e.currentTarget.style.right = '-5px';
+                    e.currentTarget.style.marginTop = '-5px';
+                  }}
+                  title="拖拽创建连线"
+                />
+                
+                {/* 下锚点 */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: '50%',
+                    bottom: '-5px',
+                    width: '10px',
+                    height: '10px',
+                    marginLeft: '-5px',
+                    backgroundColor: '#10b981',
+                    border: '2px solid #ffffff',
+                    borderRadius: '50%',
+                    cursor: 'crosshair',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                    zIndex: 1001,
+                  }}
+                  onMouseDown={(e) => handleAnchorMouseDown(e, 'bottom')}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#059669';
+                    e.currentTarget.style.width = '12px';
+                    e.currentTarget.style.height = '12px';
+                    e.currentTarget.style.marginLeft = '-6px';
+                    e.currentTarget.style.bottom = '-6px';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#10b981';
+                    e.currentTarget.style.width = '10px';
+                    e.currentTarget.style.height = '10px';
+                    e.currentTarget.style.marginLeft = '-5px';
+                    e.currentTarget.style.bottom = '-5px';
+                  }}
+                  title="拖拽创建连线"
+                />
+                
+                {/* 左锚点 */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: '-5px',
+                    top: '50%',
+                    width: '10px',
+                    height: '10px',
+                    marginTop: '-5px',
+                    backgroundColor: '#10b981',
+                    border: '2px solid #ffffff',
+                    borderRadius: '50%',
+                    cursor: 'crosshair',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                    zIndex: 1001,
+                  }}
+                  onMouseDown={(e) => handleAnchorMouseDown(e, 'left')}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#059669';
+                    e.currentTarget.style.width = '12px';
+                    e.currentTarget.style.height = '12px';
+                    e.currentTarget.style.left = '-6px';
+                    e.currentTarget.style.marginTop = '-6px';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#10b981';
+                    e.currentTarget.style.width = '10px';
+                    e.currentTarget.style.height = '10px';
+                    e.currentTarget.style.left = '-5px';
+                    e.currentTarget.style.marginTop = '-5px';
+                  }}
+                  title="拖拽创建连线"
+                />
+              </>
+            )}
+            
+            {/* 固定状态指示器 - 前面 */}
+            {node.pinned && !node.editing && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 4,
+                  right: 4,
+                  width: 20,
+                  height: 20,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 10,
+                  cursor: 'pointer',
+                  zIndex: 20,
+                }}
+                title="点击取消固定"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // 取消固定
+                  const currentScreenX = node.pinnedX || 100;
+                  const currentScreenY = node.pinnedY || 100;
+                  const worldX = (currentScreenX - panX) / scale;
+                  const worldY = (currentScreenY - panY) / scale;
+                  updateNode(node.id, { 
+                    x: worldX, 
+                    y: worldY,
+                    pinned: false, // 直接设置pinned状态
+                    pinnedX: undefined, // 清除固定坐标
+                    pinnedY: undefined
+                  });
+                }}
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  style={{
+                    color: '#dc2626',
+                  }}
+                >
+                  <path d="M16,12V4A1,1 0 0,0 15,3H9A1,1 0 0,0 8,4V12L6,14V16H11V21.5C11,21.78 11.22,22 11.5,22A0.5,0.5 0 0,0 12,21.5V16H17V14L16,12Z" />
+                </svg>
+              </div>
+            )}
+            
+            {!node.isFlipped && (
+              <>
+                {node.editing ? (
+                  <div style={{
+                    width: '100%', 
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    padding: '0',
+                  }}>
+                    <ErrorBoundary
+                      fallback={<div style={{ padding: 10, color: '#e11d48' }}>编辑器加载失败，请尝试刷新页面</div>}
+                    >
+                      <RichTextEditor
+                        key={`front-editor-${node.id}`}
+                        value={frontContent}
+                        onChange={handleEditorChange}
+                        onBlur={finishEdit}
+                        autoFocus
+                        style={{ padding: '12px', height: '100%', flex: 1 }}
+                      />
+                    </ErrorBoundary>
+                  </div>
+                ) : (
+                  <div style={{ 
+                    width: '100%', 
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    padding: '0',
+                  }}>
+                    <ErrorBoundary
+                      fallback={<div style={{ padding: 4, color: '#666', fontSize: '14px' }}>内容加载失败</div>}
+                    >
+                      <RichTextEditor
+                        key={`front-view-${node.id}`}
+                        value={frontContent}
+                        onChange={() => {}}
+                        style={{ padding: '12px', height: '100%', flex: 1 }}
+                      />
+                    </ErrorBoundary>
+                  </div>
+                )}
+              </>
+            )}
+            
+            {/* 调整尺寸区域和锚点 - 只在不翻转状态下显示 */}
+            {!node.isFlipped && !node.editing && node.selected && (
+              <>
+                {/* 不可见的调整尺寸区域 - 只在选中且非编辑状态下启用 */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: -4,
+                    right: -4,
+                    width: 16,
+                    height: 16,
+                    cursor: 'se-resize',
+                    zIndex: 2,
+                    background: 'transparent',
+                  }}
+                  onMouseDown={(e) => handleResizeMouseDown(e, 'se')}
+                  title="拖拽调整大小"
+                />
+                
+                {/* 右边调整区域 - 只调整宽度 */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 8,
+                    right: -4,
+                    width: 8,
+                    height: 'calc(100% - 32px)',
+                    cursor: 'e-resize',
+                    zIndex: 2,
+                    background: 'transparent',
+                  }}
+                  onMouseDown={(e) => handleResizeMouseDown(e, 'e')}
+                  title="拖拽调整宽度"
+                />
+                
+                {/* 下边调整区域 - 只调整高度 */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: -4,
+                    left: 8,
+                    width: 'calc(100% - 32px)',
+                    height: 8,
+                    cursor: 's-resize',
+                    zIndex: 2,
+                    background: 'transparent',
+                  }}
+                  onMouseDown={(e) => handleResizeMouseDown(e, 's')}
+                  title="拖拽调整高度"
+                />
+              </>
+            )}
+          </div>
+          
+          {/* 背面 */}
+          <div className="flip-card-back" style={{
+            minHeight: node.height || 80,
+            background: currentBg.color,
+            borderRadius: 8,
+            boxShadow: node.selected 
+              ? `0 4px 12px rgba(0,0,0,0.15)` 
+              : `0 2px 8px rgba(0,0,0,0.1)`,
+            cursor: node.editing ? 'text' : (resizing ? 'default' : 'move'),
+            userSelect: 'none',
+            border: node.selected ? `2px dashed #000000` : `1px solid ${currentBg.borderColor}`,
+            position: 'relative', // 确保相对定位
+          }}
+          onClick={handleClick}
+          onMouseDown={onMouseDown}
+          onDoubleClick={handleDoubleClick}
+          onContextMenu={handleContextMenu}
+          >
+            {/* 背面卡片锚点 - 只在选中且非编辑状态下显示 */}
+            {node.isFlipped && !node.editing && node.selected && (
+              <>
+                {/* 上锚点 */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: '50%',
+                    top: '-5px',
+                    width: '10px',
+                    height: '10px',
+                    marginLeft: '-5px',
+                    backgroundColor: '#10b981',
+                    border: '2px solid #ffffff',
+                    borderRadius: '50%',
+                    cursor: 'crosshair',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                    zIndex: 1001,
+                  }}
+                  onMouseDown={(e) => handleAnchorMouseDown(e, 'top')}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#059669';
+                    e.currentTarget.style.width = '12px';
+                    e.currentTarget.style.height = '12px';
+                    e.currentTarget.style.marginLeft = '-6px';
+                    e.currentTarget.style.top = '-6px';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#10b981';
+                    e.currentTarget.style.width = '10px';
+                    e.currentTarget.style.height = '10px';
+                    e.currentTarget.style.marginLeft = '-5px';
+                    e.currentTarget.style.top = '-5px';
+                  }}
+                  title="拖拽创建连线"
+                />
+                
+                {/* 右锚点 */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    right: '-5px',
+                    top: '50%',
+                    width: '10px',
+                    height: '10px',
+                    marginTop: '-5px',
+                    backgroundColor: '#10b981',
+                    border: '2px solid #ffffff',
+                    borderRadius: '50%',
+                    cursor: 'crosshair',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                    zIndex: 1001,
+                  }}
+                  onMouseDown={(e) => handleAnchorMouseDown(e, 'right')}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#059669';
+                    e.currentTarget.style.width = '12px';
+                    e.currentTarget.style.height = '12px';
+                    e.currentTarget.style.right = '-6px';
+                    e.currentTarget.style.marginTop = '-6px';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#10b981';
+                    e.currentTarget.style.width = '10px';
+                    e.currentTarget.style.height = '10px';
+                    e.currentTarget.style.right = '-5px';
+                    e.currentTarget.style.marginTop = '-5px';
+                  }}
+                  title="拖拽创建连线"
+                />
+                
+                {/* 下锚点 */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: '50%',
+                    bottom: '-5px',
+                    width: '10px',
+                    height: '10px',
+                    marginLeft: '-5px',
+                    backgroundColor: '#10b981',
+                    border: '2px solid #ffffff',
+                    borderRadius: '50%',
+                    cursor: 'crosshair',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                    zIndex: 1001,
+                  }}
+                  onMouseDown={(e) => handleAnchorMouseDown(e, 'bottom')}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#059669';
+                    e.currentTarget.style.width = '12px';
+                    e.currentTarget.style.height = '12px';
+                    e.currentTarget.style.marginLeft = '-6px';
+                    e.currentTarget.style.bottom = '-6px';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#10b981';
+                    e.currentTarget.style.width = '10px';
+                    e.currentTarget.style.height = '10px';
+                    e.currentTarget.style.marginLeft = '-5px';
+                    e.currentTarget.style.bottom = '-5px';
+                  }}
+                  title="拖拽创建连线"
+                />
+                
+                {/* 左锚点 */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: '-5px',
+                    top: '50%',
+                    width: '10px',
+                    height: '10px',
+                    marginTop: '-5px',
+                    backgroundColor: '#10b981',
+                    border: '2px solid #ffffff',
+                    borderRadius: '50%',
+                    cursor: 'crosshair',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                    zIndex: 1001,
+                  }}
+                  onMouseDown={(e) => handleAnchorMouseDown(e, 'left')}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#059669';
+                    e.currentTarget.style.width = '12px';
+                    e.currentTarget.style.height = '12px';
+                    e.currentTarget.style.left = '-6px';
+                    e.currentTarget.style.marginTop = '-6px';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#10b981';
+                    e.currentTarget.style.width = '10px';
+                    e.currentTarget.style.height = '10px';
+                    e.currentTarget.style.left = '-5px';
+                    e.currentTarget.style.marginTop = '-5px';
+                  }}
+                  title="拖拽创建连线"
+                />
+              </>
+            )}
+            
+            {/* 固定状态指示器 - 背面 */}
+            {node.pinned && !node.editing && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 4,
+                  right: 4,
+                  width: 20,
+                  height: 20,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 10,
+                  cursor: 'pointer',
+                  zIndex: 20,
+                }}
+                title="点击取消固定"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // 取消固定
+                  const currentScreenX = node.pinnedX || 100;
+                  const currentScreenY = node.pinnedY || 100;
+                  const worldX = (currentScreenX - panX) / scale;
+                  const worldY = (currentScreenY - panY) / scale;
+                  updateNode(node.id, { 
+                    x: worldX, 
+                    y: worldY,
+                    pinned: false, // 直接设置pinned状态
+                    pinnedX: undefined, // 清除固定坐标
+                    pinnedY: undefined
+                  });
+                }}
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  style={{
+                    color: '#dc2626',
+                  }}
+                >
+                  <path d="M16,12V4A1,1 0 0,0 15,3H9A1,1 0 0,0 8,4V12L6,14V16H11V21.5C11,21.78 11.22,22 11.5,22A0.5,0.5 0 0,0 12,21.5V16H17V14L16,12Z" />
+                </svg>
+              </div>
+            )}
+            
+            {/* 背面指示器 */}
+            {!node.editing && (
+              <div
+                style={{
+                  position: 'absolute',
+                  bottom: 8,
+                  right: 8,
+                  width: 20,
+                  height: 20,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 10,
+                  background: 'rgba(139,92,246,0.2)',
+                  border: '1px solid rgba(139,92,246,0.3)',
+                  color: '#8b5cf6',
+                  fontSize: 11,
+                  fontWeight: 'bold',
+                  zIndex: 10,
+                }}
+                title="背面"
+              >
+                B
+              </div>
+            )}
+            
+            {node.isFlipped && (
+              <>
+                {node.editing ? (
+                  <div style={{
+                    width: '100%', 
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    padding: '0',
+                  }}>
+                    <ErrorBoundary
+                      fallback={<div style={{ padding: 10, color: '#e11d48' }}>编辑器加载失败，请尝试刷新页面</div>}
+                    >
+                      <RichTextEditor
+                        key={`back-editor-${node.id}`}
+                        value={backContent}
+                        onChange={handleEditorChange}
+                        onBlur={finishEdit}
+                        autoFocus
+                        style={{ padding: '12px', height: '100%', flex: 1 }}
+                      />
+                    </ErrorBoundary>
+                  </div>
+                ) : (
+                  <div style={{ 
+                    width: '100%', 
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    padding: '0',
+                  }}>
+                    <ErrorBoundary
+                      fallback={<div style={{ padding: 4, color: '#666', fontSize: '14px' }}>内容加载失败</div>}
+                    >
+                      <RichTextEditor
+                        key={`back-view-${node.id}`}
+                        value={backContent}
+                        onChange={() => {}}
+                        style={{ padding: '12px', height: '100%', flex: 1 }}
+                      />
+                    </ErrorBoundary>
+                  </div>
+                )}
+              </>
+            )}
+            
+            {/* 调整尺寸区域和锚点 - 只在翻转状态下显示 */}
+            {node.isFlipped && !node.editing && node.selected && (
+              <>
+                {/* 右下角调整区域 - 同时调整宽度和高度 */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: -4,
+                    right: -4,
+                    width: 16,
+                    height: 16,
+                    cursor: 'se-resize',
+                    zIndex: 2,
+                    background: 'transparent',
+                  }}
+                  onMouseDown={(e) => handleResizeMouseDown(e, 'se')}
+                  title="拖拽调整大小"
+                />
+                
+                {/* 右边调整区域 - 只调整宽度 */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 0,
+                    width: 8,
+                    height: 'calc(100% - 32px)',
+                    cursor: 'e-resize',
+                    zIndex: 2,
+                    background: 'transparent',
+                  }}
+                  onMouseDown={(e) => handleResizeMouseDown(e, 'e')}
+                  title="拖拽调整宽度"
+                />
+                
+                {/* 下边调整区域 - 只调整高度 */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: -4,
+                    left: 8,
+                    width: 'calc(100% - 32px)',
+                    height: 8,
+                    cursor: 's-resize',
+                    zIndex: 2,
+                    background: 'transparent',
+                  }}
+                  onMouseDown={(e) => handleResizeMouseDown(e, 's')}
+                  title="拖拽调整高度"
+                />
+              </>
+            )}
+          </div>
+        </div>
+        
+        {/* 动作按钮组 - 只在非编辑且选中状态下显示 */}
+        {!node.editing && node.selected && (
+          <>
+            {/* 主按钮 - 三个点 */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowActionMenu(!showActionMenu);
+              }}
+              style={{
+                position: 'absolute',
+                top: -32, // 移到卡片上方
+                right: 8, // 稍微向内一点
+                width: 24,
+                height: 24,
+                borderRadius: 12,
+                border: `2px solid #ffffff`,
+                background: showActionMenu ? '#3b82f6' : '#6b7280',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: `0 2px 8px rgba(0,0,0,0.2)`,
+                transition: 'all 0.2s ease',
+                zIndex: 1000, // 大幅提高z-index
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.1)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+              }}
+              title="更多操作"
+            >
+              {/* 三个点图标 */}
+              <div
+                style={{
+                  color: '#ffffff',
+                  fontSize: 12,
+                  fontWeight: 'bold',
+                  lineHeight: 1,
+                  transform: showActionMenu ? 'rotate(90deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.2s ease',
+                }}
+              >
+                ⋯
+              </div>
+            </button>
+
+            {/* 展开的动作菜单 */}
+            {showActionMenu && (
+              <>
+                {/* 颜色选择按钮 */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const { scale: currentScale, panX, panY } = useBoardStore.getState();
+                    setColorPickerPosition({ 
+                      x: node.x * currentScale + panX + 220, 
+                      y: node.y * currentScale + panY 
+                    });
+                    setShowColorPicker(true);
+                    setShowActionMenu(false);
+                  }}
+                  style={{
+                    position: 'absolute',
+                    top: -32, // 与主按钮同一水平线
+                    right: 36, // 向左偏移
+                    width: 28, // 稍微增大一点
+                    height: 28,
+                    borderRadius: 14,
+                    border: `2px solid #ffffff`,
+                    background: '#ffffff', // 白色背景
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: `0 3px 12px rgba(0,0,0,0.15)`, // 增强阴影
+                    transition: 'all 0.3s ease',
+                    animation: 'slideIn 0.2s ease-out',
+                    zIndex: 999, // 高z-index
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.1)';
+                    e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.2)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.boxShadow = '0 3px 12px rgba(0,0,0,0.15)';
+                  }}
+                  title="更改颜色"
+                >
+                  {/* 调色板图标 */}
+                  <div
+                    style={{
+                      width: 16,
+                      height: 16,
+                      position: 'relative',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {/* 调色板形状 */}
+                    <div
+                      style={{
+                        width: 14,
+                        height: 11,
+                        background: '#f8f9fa',
+                        border: '1.5px solid #dee2e6',
+                        borderRadius: '12px 12px 2px 12px',
+                        position: 'relative',
+                      }}
+                    >
+                      {/* 拇指孔 */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          right: 1,
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          width: 3,
+                          height: 3,
+                          borderRadius: '50%',
+                          background: '#ffffff',
+                          border: '1px solid #dee2e6',
+                        }}
+                      />
+                      {/* 颜色点 */}
+                      <div style={{ position: 'absolute', top: 1, left: 2, width: 2, height: 2, borderRadius: '50%', background: '#dc3545' }} />
+                      <div style={{ position: 'absolute', top: 1, left: 5, width: 2, height: 2, borderRadius: '50%', background: '#fd7e14' }} />
+                      <div style={{ position: 'absolute', top: 4, left: 2, width: 2, height: 2, borderRadius: '50%', background: '#ffc107' }} />
+                      <div style={{ position: 'absolute', top: 4, left: 5, width: 2, height: 2, borderRadius: '50%', background: '#198754' }} />
+                      <div style={{ position: 'absolute', top: 7, left: 2, width: 2, height: 2, borderRadius: '50%', background: '#0d6efd' }} />
+                      <div style={{ position: 'absolute', top: 7, left: 5, width: 2, height: 2, borderRadius: '50%', background: '#6f42c1' }} />
+                    </div>
+                    {/* 画笔 */}
+                    <div
+                      style={{
+                        position: 'absolute',
+                        bottom: -1,
+                        right: 0,
+                        width: 4,
+                        height: 1.5,
+                        background: '#8b5cf6',
+                        borderRadius: '0.5px',
+                        transform: 'rotate(30deg)',
+                      }}
+                    />
+                  </div>
+                </button>
+
+                {/* 图钉按钮 */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    
+                    // 如果当前正在编辑，先保存编辑内容
+                    if (node.editing) {
+                      const validContent = (currentContent && Array.isArray(currentContent) && currentContent.length > 0) ? currentContent : defaultContent;
+                      updateNode(node.id, { frontContent: validContent, backContent: validContent });
+                      setNodeEditing(node.id, false);
+                    }
+                    
+                    if (!node.pinned) {
+                      // 固定卡片
+                      const currentScreenX = node.x * scale + panX;
+                      const currentScreenY = node.y * scale + panY;
+                      updateNode(node.id, { 
+                        pinnedX: currentScreenX, 
+                        pinnedY: currentScreenY,
+                        pinned: true // 直接设置pinned状态，避免调用toggleNodePin
+                      });
+                    } else {
+                      // 取消固定
+                      const currentScreenX = node.pinnedX || 100;
+                      const currentScreenY = node.pinnedY || 100;
+                      const worldX = (currentScreenX - panX) / scale;
+                      const worldY = (currentScreenY - panY) / scale;
+                      updateNode(node.id, { 
+                        x: worldX, 
+                        y: worldY,
+                        pinned: false, // 直接设置pinned状态
+                        pinnedX: undefined, // 清除固定坐标
+                        pinnedY: undefined
+                      });
+                    }
+                    setShowActionMenu(false);
+                  }}
+                  style={{
+                    position: 'absolute',
+                    top: -32, // 与主按钮同一水平线
+                    right: 68, // 向左偏移更多
+                    width: 28,
+                    height: 28,
+                    borderRadius: 14,
+                    border: `2px solid #ffffff`,
+                    background: '#ffffff', // 白色背景
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: `0 3px 12px rgba(0,0,0,0.15)`, // 增强阴影
+                    transition: 'all 0.3s ease',
+                    animation: 'slideIn 0.2s ease-out 0.05s both',
+                    zIndex: 998, // 高z-index
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.1)';
+                    e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.2)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.boxShadow = '0 3px 12px rgba(0,0,0,0.15)';
+                  }}
+                  title={node.pinned ? "取消固定" : "固定位置"}
+                >
+                  {/* 📌图钉样式图标 */}
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    style={{
+                      color: '#dc2626',
+                    }}
+                  >
+                    <path d="M16,12V4A1,1 0 0,0 15,3H9A1,1 0 0,0 8,4V12L6,14V16H11V21.5C11,21.78 11.22,22 11.5,22A0.5,0.5 0 0,0 12,21.5V16H17V14L16,12Z" />
+                  </svg>
+                </button>
+
+                {/* 连线按钮 */}
+                <button
+                  onClick={handleConnectClick}
+                  style={{
+                    position: 'absolute',
+                    top: -32, // 与主按钮同一水平线
+                    right: 132, // 在图钉和删除按钮之间
+                    width: 28,
+                    height: 28,
+                    borderRadius: 14,
+                    border: `2px solid #ffffff`,
+                    background: isConnecting && connectingFrom === node.id ? '#3b82f6' : '#10b981', // 连线中高亮
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: `0 3px 12px rgba(16,185,129,0.3)`, // 绿色阴影
+                    transition: 'all 0.3s ease',
+                    animation: 'slideIn 0.2s ease-out 0.075s both',
+                    zIndex: 996, // 高z-index
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.1)';
+                    e.currentTarget.style.boxShadow = '0 4px 16px rgba(16,185,129,0.4)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.boxShadow = '0 3px 12px rgba(16,185,129,0.3)';
+                  }}
+                  title={isConnecting && connectingFrom === node.id ? "点击其他卡片完成连线" : "连接到其他卡片"}
+                >
+                  {/* 连线图标 */}
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="white"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M17 12H7"/>
+                    <path d="m12 17 5-5-5-5"/>
+                    <circle cx="5" cy="12" r="2" fill="white"/>
+                    <circle cx="19" cy="12" r="2" fill="white"/>
+                  </svg>
+                </button>
+
+                {/* 删除按钮 */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowDeleteModal(true);
+                    setShowActionMenu(false);
+                  }}
+                  style={{
+                    position: 'absolute',
+                    top: -32, // 与主按钮同一水平线
+                    right: 100, // 向左偏移最多
+                    width: 28, // 稍微增大一点
+                    height: 28,
+                    borderRadius: 14,
+                    border: `2px solid #ffffff`,
+                    background: '#ef4444',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: `0 3px 12px rgba(239,68,68,0.3)`, // 红色阴影
+                    transition: 'all 0.3s ease',
+                    animation: 'slideIn 0.2s ease-out 0.1s both',
+                    zIndex: 997, // 高z-index
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.1)';
+                    e.currentTarget.style.background = '#dc2626';
+                    e.currentTarget.style.boxShadow = '0 4px 16px rgba(220,38,38,0.4)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.background = '#ef4444';
+                    e.currentTarget.style.boxShadow = '0 3px 12px rgba(239,68,68,0.3)';
+                  }}
+                  title="删除卡片"
+                >
+                  {/* 垃圾桶SVG图标 - 更清晰的设计 */}
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                  >
+                    <path
+                      d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"
+                      fill="#ffffff"
+                    />
+                    <path
+                      d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"
+                      fill="#ffffff"
+                    />
+                  </svg>
+                </button>
+
+                {/* 添加翻转按钮 */}
+                <button
+                  onClick={handleFlipCard}
+                  style={{
+                    position: 'absolute',
+                    top: -32,
+                    right: 164, // 位于其他按钮左侧
+                    width: 28,
+                    height: 28,
+                    borderRadius: 14,
+                    border: `2px solid #ffffff`,
+                    background: '#8b5cf6', // 紫色背景
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: `0 3px 12px rgba(139,92,246,0.3)`, // 紫色阴影
+                    transition: 'all 0.3s ease',
+                    animation: 'slideIn 0.2s ease-out 0.05s both',
+                    zIndex: 999,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.1)';
+                    e.currentTarget.style.boxShadow = '0 4px 16px rgba(139,92,246,0.4)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.boxShadow = '0 3px 12px rgba(139,92,246,0.3)';
+                  }}
+                  title="翻转卡片"
+                >
+                  {/* 翻转图标 */}
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="white"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M9 18l6-6-6-6"/>
+                    <rect x="6" y="6" width="12" height="12" rx="1" />
+                  </svg>
+                </button>
+              </>
+            )}
+          </>
+        )}
+      </div>
+      
+      {/* 颜色选择器弹窗 */}
+      {showColorPicker && (
+        <CardColorPicker
+          position={colorPickerPosition}
+          onClose={() => setShowColorPicker(false)}
+          onColorChange={handleColorChange}
+          currentColor={node.backgroundColor || 'default'}
+        />
+      )}
+      
+      {/* 删除确认弹窗 */}
+      {showDeleteModal && (
+        <DeleteConfirmModal
+          isOpen={showDeleteModal}
+          nodeCount={1}
+          onCancel={() => setShowDeleteModal(false)}
+          onConfirm={handleConfirmDelete}
+        />
+      )}
+    </>
+  );
+};
+
+export default NodeCard;

@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>阿里云OSS Buffer修复验证测试</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        
+        .test-section h3 {
+            color: #34495e;
+            margin-bottom: 15px;
+        }
+        
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background: #2980b9;
+        }
+        
+        button:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+        
+        .success {
+            background: #27ae60 !important;
+        }
+        
+        .error {
+            background: #e74c3c !important;
+        }
+        
+        .status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+        
+        .status.success {
+            background: #d5f4e6;
+            color: #27ae60;
+            border: 1px solid #27ae60;
+        }
+        
+        .status.error {
+            background: #fdf2f2;
+            color: #e74c3c;
+            border: 1px solid #e74c3c;
+        }
+        
+        .status.info {
+            background: #e3f2fd;
+            color: #1976d2;
+            border: 1px solid #1976d2;
+        }
+        
+        pre {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        
+        .config-section {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        
+        .step-indicator {
+            display: inline-block;
+            background: #3498db;
+            color: white;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 25px;
+            font-size: 12px;
+            margin-right: 10px;
+        }
+        
+        .step-indicator.completed {
+            background: #27ae60;
+        }
+        
+        .step-indicator.error {
+            background: #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 阿里云OSS Buffer修复验证测试</h1>
+        
+        <div class="config-section">
+            <h4>📋 测试说明</h4>
+            <p>
+                <strong>问题：</strong> 之前的代码将字符串直接传递给OSS的put方法，导致 "Must provide Buffer/Blob/File for put" 错误<br>
+                <strong>修复：</strong> 使用 Buffer.from(content, 'utf-8') 将字符串转换为Buffer对象<br>
+                <strong>验证：</strong> 测试保存功能是否正常工作
+            </p>
+        </div>
+
+        <!-- 测试步骤 -->
+        <div class="test-section">
+            <h3><span class="step-indicator" id="step1">1</span>初始化阿里云OSS连接</h3>
+            <button onclick="initializeOSS()">初始化OSS连接</button>
+            <div id="init-status"></div>
+        </div>
+
+        <div class="test-section">
+            <h3><span class="step-indicator" id="step2">2</span>测试Buffer转换保存</h3>
+            <button onclick="testBufferSave()" id="save-btn" disabled>保存测试白板</button>
+            <div id="save-status"></div>
+            <div id="save-details"></div>
+        </div>
+
+        <div class="test-section">
+            <h3><span class="step-indicator" id="step3">3</span>验证保存的数据</h3>
+            <button onclick="testLoadSaved()" id="load-btn" disabled>加载并验证数据</button>
+            <div id="load-status"></div>
+            <div id="load-details"></div>
+        </div>
+
+        <div class="test-section">
+            <h3><span class="step-indicator" id="step4">4</span>检查数据完整性</h3>
+            <button onclick="testDataIntegrity()" id="integrity-btn" disabled>验证数据完整性</button>
+            <div id="integrity-status"></div>
+            <div id="integrity-details"></div>
+        </div>
+
+        <!-- 实时日志 -->
+        <div class="test-section">
+            <h3>📊 实时测试日志</h3>
+            <pre id="log-output">等待开始测试...</pre>
+        </div>
+    </div>
+
+    <script type="module">
+        // 导入必要的模块
+        import { aliCloudStorage } from '/src/services/aliCloudStorageService.ts';
+
+        let testBoardId = 'buffer-test-' + Date.now();
+        let originalData = null;
+        let loadedData = null;
+
+        // 全局函数
+        window.initializeOSS = initializeOSS;
+        window.testBufferSave = testBufferSave;
+        window.testLoadSaved = testLoadSaved;
+        window.testDataIntegrity = testDataIntegrity;
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logOutput = document.getElementById('log-output');
+            const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️';
+            logOutput.textContent += `\n[${timestamp}] ${prefix} ${message}`;
+            logOutput.scrollTop = logOutput.scrollHeight;
+        }
+
+        function setStepStatus(stepNum, status) {
+            const step = document.getElementById(`step${stepNum}`);
+            step.className = `step-indicator ${status}`;
+        }
+
+        function showStatus(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        async function initializeOSS() {
+            log('开始初始化阿里云OSS连接...');
+            
+            try {
+                // 从环境变量获取配置
+                const config = {
+                    region: import.meta.env.VITE_ALICLOUD_REGION || 'oss-cn-beijing',
+                    accessKeyId: import.meta.env.VITE_ALICLOUD_ACCESS_KEY_ID,
+                    accessKeySecret: import.meta.env.VITE_ALICLOUD_ACCESS_KEY_SECRET,
+                    bucket: import.meta.env.VITE_ALICLOUD_BUCKET || 'my-whiteboard-images'
+                };
+
+                if (!config.accessKeyId || !config.accessKeySecret) {
+                    throw new Error('阿里云访问密钥未配置，请检查 .env.local 文件');
+                }
+
+                const success = await aliCloudStorage.initialize(config);
+                
+                if (success) {
+                    log('阿里云OSS初始化成功！', 'success');
+                    showStatus('init-status', '✅ OSS连接成功，可以进行下一步测试', 'success');
+                    setStepStatus(1, 'completed');
+                    
+                    // 启用下一步按钮
+                    document.getElementById('save-btn').disabled = false;
+                } else {
+                    throw new Error('OSS初始化失败');
+                }
+                
+            } catch (error) {
+                log(`OSS初始化失败: ${error.message}`, 'error');
+                showStatus('init-status', `❌ 初始化失败: ${error.message}`, 'error');
+                setStepStatus(1, 'error');
+            }
+        }
+
+        async function testBufferSave() {
+            log('开始测试Buffer转换保存功能...');
+            
+            try {
+                // 创建测试数据
+                originalData = {
+                    id: testBoardId,
+                    name: 'Buffer修复测试白板',
+                    nodes: [
+                        {
+                            id: 'node1',
+                            x: 100,
+                            y: 100,
+                            width: 200,
+                            height: 150,
+                            content: {
+                                frontContent: [{
+                                    type: 'paragraph',
+                                    children: [{ text: '这是测试卡片内容，包含中文字符' }]
+                                }]
+                            },
+                            style: { backgroundColor: '#ffffff' },
+                            created: new Date().toISOString()
+                        }
+                    ],
+                    connections: [],
+                    settings: {
+                        background: '#f0f0f0',
+                        zoom: 1.0,
+                        panX: 0,
+                        panY: 0
+                    },
+                    metadata: {
+                        created: new Date().toISOString(),
+                        updated: new Date().toISOString(),
+                        version: '1.0.0',
+                        testId: 'buffer-fix-test'
+                    }
+                };
+
+                log(`准备保存白板数据，测试ID: ${testBoardId}`);
+                log(`数据大小: ${JSON.stringify(originalData).length} 字符`);
+
+                // 调用保存方法（应该使用Buffer）
+                const result = await aliCloudStorage.saveBoard(testBoardId, originalData);
+                
+                if (result.success) {
+                    log('🎉 Buffer转换保存成功！', 'success');
+                    showStatus('save-status', '✅ 保存成功，Buffer转换正常工作', 'success');
+                    
+                    if (result.url) {
+                        showStatus('save-details', `📁 文件URL: ${result.url}`, 'info');
+                    }
+                    
+                    setStepStatus(2, 'completed');
+                    document.getElementById('load-btn').disabled = false;
+                } else {
+                    throw new Error(result.error || '保存失败');
+                }
+                
+            } catch (error) {
+                log(`Buffer保存测试失败: ${error.message}`, 'error');
+                showStatus('save-status', `❌ 保存失败: ${error.message}`, 'error');
+                setStepStatus(2, 'error');
+            }
+        }
+
+        async function testLoadSaved() {
+            log('开始测试加载已保存的数据...');
+            
+            try {
+                const result = await aliCloudStorage.loadBoard(testBoardId);
+                
+                if (result.success) {
+                    loadedData = result.data;
+                    log('✅ 数据加载成功！', 'success');
+                    showStatus('load-status', '✅ 数据加载成功，可以进行完整性验证', 'success');
+                    
+                    const loadDetails = `
+                        <strong>加载的数据信息：</strong><br>
+                        • 白板ID: ${loadedData.id}<br>
+                        • 白板名称: ${loadedData.name}<br>
+                        • 卡片数量: ${loadedData.nodes?.length || 0}<br>
+                        • 连接数量: ${loadedData.connections?.length || 0}<br>
+                        • 元数据版本: ${loadedData.metadata?.version}
+                    `;
+                    showStatus('load-details', loadDetails, 'info');
+                    
+                    setStepStatus(3, 'completed');
+                    document.getElementById('integrity-btn').disabled = false;
+                } else {
+                    throw new Error(result.error || '加载失败');
+                }
+                
+            } catch (error) {
+                log(`数据加载失败: ${error.message}`, 'error');
+                showStatus('load-status', `❌ 加载失败: ${error.message}`, 'error');
+                setStepStatus(3, 'error');
+            }
+        }
+
+        async function testDataIntegrity() {
+            log('开始验证数据完整性...');
+            
+            try {
+                if (!originalData || !loadedData) {
+                    throw new Error('缺少原始数据或加载数据');
+                }
+
+                // 比较关键字段
+                const checks = [
+                    { field: 'id', original: originalData.id, loaded: loadedData.id },
+                    { field: 'name', original: originalData.name, loaded: loadedData.name },
+                    { field: 'nodes.length', original: originalData.nodes.length, loaded: loadedData.nodes.length },
+                    { field: 'metadata.testId', original: originalData.metadata.testId, loaded: loadedData.metadata.testId },
+                ];
+
+                let allPassed = true;
+                let checkResults = '<strong>完整性检查结果：</strong><br>';
+
+                for (const check of checks) {
+                    const passed = check.original === check.loaded;
+                    allPassed = allPassed && passed;
+                    
+                    checkResults += `• ${check.field}: ${passed ? '✅' : '❌'} (${check.original} ${passed ? '==' : '!='} ${check.loaded})<br>`;
+                    log(`${check.field}: ${passed ? 'PASS' : 'FAIL'} (${check.original} vs ${check.loaded})`);
+                }
+
+                // 检查卡片内容
+                if (originalData.nodes[0] && loadedData.nodes[0]) {
+                    const originalContent = JSON.stringify(originalData.nodes[0].content);
+                    const loadedContent = JSON.stringify(loadedData.nodes[0].content);
+                    const contentMatch = originalContent === loadedContent;
+                    
+                    checkResults += `• 卡片内容: ${contentMatch ? '✅' : '❌'}<br>`;
+                    allPassed = allPassed && contentMatch;
+                    log(`卡片内容: ${contentMatch ? 'PASS' : 'FAIL'}`);
+                }
+
+                if (allPassed) {
+                    log('🎉 所有完整性检查通过！Buffer修复成功！', 'success');
+                    showStatus('integrity-status', '✅ 数据完整性验证通过，Buffer修复完全成功！', 'success');
+                    setStepStatus(4, 'completed');
+                } else {
+                    log('⚠️ 部分完整性检查未通过', 'error');
+                    showStatus('integrity-status', '⚠️ 数据完整性存在问题，需要进一步检查', 'error');
+                    setStepStatus(4, 'error');
+                }
+
+                showStatus('integrity-details', checkResults, 'info');
+                
+            } catch (error) {
+                log(`完整性验证失败: ${error.message}`, 'error');
+                showStatus('integrity-status', `❌ 验证失败: ${error.message}`, 'error');
+                setStepStatus(4, 'error');
+            }
+        }
+
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            log('Buffer修复验证测试页面已加载');
+            log('点击 "初始化OSS连接" 开始测试...');
+        });
+    </script>
+</body>
+</html> 

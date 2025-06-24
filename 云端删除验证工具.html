@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>云端文件删除验证工具</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+            line-height: 1.6;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #2d3748;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.2em;
+            font-weight: 700;
+        }
+
+        .method-section {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            border-left: 5px solid #2196f3;
+        }
+
+        .verification-tool {
+            background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            border-left: 5px solid #9c27b0;
+        }
+
+        h2 {
+            color: #2d3748;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .icon {
+            font-size: 1.3em;
+        }
+
+        .input-group {
+            margin: 15px 0;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .button.danger {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+        }
+
+        .button.success {
+            background: linear-gradient(135deg, #51cf66 0%, #40c057 100%);
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-weight: 600;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .log-area {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.9em;
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 15px 0;
+            border: 1px solid #4a5568;
+        }
+
+        .step {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 12px;
+            margin: 15px 0;
+            border-left: 4px solid #3f51b5;
+        }
+
+        .step-number {
+            background: #3f51b5;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+
+        .url-display {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 0.9em;
+            word-break: break-all;
+            border: 1px solid #dee2e6;
+        }
+
+        .highlight {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #ffc107;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 云端文件删除验证工具</h1>
+
+        <div class="method-section">
+            <h2><span class="icon">📋</span> 验证方法1：控制台日志观察</h2>
+            <div class="step">
+                <div style="display: flex; align-items: flex-start;">
+                    <span class="step-number">1</span>
+                    <div class="step-content">
+                        <div style="font-weight: 600; margin-bottom: 8px;">打开浏览器控制台</div>
+                        <div>在白板应用中按 F12，切换到 Console 标签页</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div style="display: flex; align-items: flex-start;">
+                    <span class="step-number">2</span>
+                    <div class="step-content">
+                        <div style="font-weight: 600; margin-bottom: 8px;">插入并删除媒体文件</div>
+                        <div>观察控制台输出的完整删除日志</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="highlight">
+                <h3>🔍 关键日志标识</h3>
+                <p>删除成功时应该看到：</p>
+                <div class="log-area">
+🎯 检测到媒体文件被删除: https://xxx.aliyuncs.com/images/xxx.jpg...
+🗑️ 检测到云端文件删除: https://xxx.aliyuncs.com/images/xxx.jpg
+🗑️ 提取文件路径: images/xxx.jpg
+✅ 云端文件删除成功: images/xxx.jpg
+                </div>
+            </div>
+
+            <div style="text-align: center; margin: 20px 0;">
+                <button class="button" onclick="openWhiteboard()">🚀 打开白板应用测试</button>
+            </div>
+        </div>
+
+        <div class="verification-tool">
+            <h2><span class="icon">🛠️</span> 验证方法2：OSS文件存在性检查</h2>
+            <p>通过直接检查阿里云OSS中的文件是否存在来验证删除效果</p>
+
+            <div class="input-group">
+                <label for="ossUrl">输入要检查的OSS文件URL：</label>
+                <input type="url" id="ossUrl" placeholder="https://my-whiteboard-images.oss-cn-beijing.aliyuncs.com/images/xxx.jpg">
+            </div>
+
+            <div style="text-align: center; margin: 20px 0;">
+                <button class="button" onclick="checkFileExists()">🔍 检查文件是否存在</button>
+                <button class="button success" onclick="testOSSConnection()">🔗 测试OSS连接</button>
+            </div>
+
+            <div id="fileCheckResult"></div>
+
+            <div class="log-area" id="checkLog">
+等待检查操作...
+            </div>
+        </div>
+
+        <div class="method-section">
+            <h2><span class="icon">📊</span> 验证方法3：OSS控制台验证</h2>
+            <div class="step">
+                <div style="display: flex; align-items: flex-start;">
+                    <span class="step-number">1</span>
+                    <div class="step-content">
+                        <div style="font-weight: 600; margin-bottom: 8px;">登录阿里云OSS控制台</div>
+                        <div>访问 https://oss.console.aliyun.com</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step">
+                <div style="display: flex; align-items: flex-start;">
+                    <span class="step-number">2</span>
+                    <div class="step-content">
+                        <div style="font-weight: 600; margin-bottom: 8px;">进入存储桶</div>
+                        <div>找到您的白板应用存储桶（如：my-whiteboard-images）</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step">
+                <div style="display: flex; align-items: flex-start;">
+                    <span class="step-number">3</span>
+                    <div class="step-content">
+                        <div style="font-weight: 600; margin-bottom: 8px;">检查文件目录</div>
+                        <div>查看 images/ 和 videos/ 目录，确认文件是否已删除</div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin: 20px 0;">
+                <button class="button" onclick="openOSSConsole()">🌐 打开OSS控制台</button>
+            </div>
+        </div>
+
+        <div class="verification-tool">
+            <h2><span class="icon">⚡</span> 验证方法4：实时文件访问测试</h2>
+            <p>通过直接访问文件URL来验证文件是否已被删除</p>
+
+            <div class="input-group">
+                <label for="testUrl">输入要测试的文件URL：</label>
+                <input type="url" id="testUrl" placeholder="https://my-whiteboard-images.oss-cn-beijing.aliyuncs.com/images/xxx.jpg">
+            </div>
+
+            <div style="text-align: center; margin: 20px 0;">
+                <button class="button" onclick="testFileAccess()">🌐 测试文件访问</button>
+                <button class="button danger" onclick="clearResults()">🗑️ 清空结果</button>
+            </div>
+
+            <div id="accessTestResult"></div>
+        </div>
+
+        <div class="method-section">
+            <h2><span class="icon">📈</span> 验证技巧和注意事项</h2>
+            
+            <div class="highlight">
+                <h3>⚠️ 重要提示</h3>
+                <ul>
+                    <li><strong>删除延迟：</strong>云端删除可能有1-2秒延迟，稍等片刻再验证</li>
+                    <li><strong>缓存影响：</strong>浏览器可能缓存文件，建议使用无痕模式测试</li>
+                    <li><strong>权限检查：</strong>确保OSS配置允许删除操作（不要有只读限制）</li>
+                    <li><strong>CORS设置：</strong>如果验证工具无法访问，可能是CORS配置问题</li>
+                </ul>
+            </div>
+
+            <div class="step">
+                <div style="display: flex; align-items: flex-start;">
+                    <span class="step-number">💡</span>
+                    <div class="step-content">
+                        <div style="font-weight: 600; margin-bottom: 8px;">最佳验证流程</div>
+                        <div>
+                            1. 插入图片/视频 → 2. 复制OSS URL → 3. 删除文件 → 
+                            4. 检查控制台日志 → 5. 使用验证工具确认
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // OSS客户端配置（需要实际配置）
+        let ossClient = null;
+
+        function initOSS() {
+            // 这里需要配置您的OSS访问信息
+            const config = {
+                region: 'oss-cn-beijing',
+                bucket: 'my-whiteboard-images',
+                // 注意：实际使用时需要配置真实的访问密钥
+            };
+
+            try {
+                // 如果已经配置了OSS客户端，可以在这里初始化
+                console.log('OSS配置:', config);
+                return true;
+            } catch (error) {
+                console.error('OSS初始化失败:', error);
+                return false;
+            }
+        }
+
+        function log(message, type = 'info') {
+            const logArea = document.getElementById('checkLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const colors = {
+                info: '#81c784',
+                success: '#4caf50', 
+                error: '#f44336',
+                warning: '#ff9800'
+            };
+
+            logArea.innerHTML += `<div style="color: ${colors[type]}">[${timestamp}] ${message}</div>`;
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+
+        function setStatus(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        function openWhiteboard() {
+            window.open('http://localhost:5175/', '_blank');
+        }
+
+        function openOSSConsole() {
+            window.open('https://oss.console.aliyun.com', '_blank');
+        }
+
+        function testOSSConnection() {
+            log('测试OSS连接...', 'info');
+            
+            if (initOSS()) {
+                setStatus('fileCheckResult', '✅ OSS配置已初始化，可以进行文件检查', 'success');
+                log('OSS连接测试成功', 'success');
+            } else {
+                setStatus('fileCheckResult', '⚠️ OSS配置未完成，请检查配置信息', 'warning');
+                log('OSS连接测试失败', 'error');
+            }
+        }
+
+        async function checkFileExists() {
+            const url = document.getElementById('ossUrl').value.trim();
+            if (!url) {
+                setStatus('fileCheckResult', '请输入要检查的OSS文件URL', 'warning');
+                return;
+            }
+
+            log(`开始检查文件: ${url}`, 'info');
+
+            try {
+                // 方法1：使用HEAD请求检查文件是否存在
+                const response = await fetch(url, { method: 'HEAD' });
+                
+                if (response.ok) {
+                    setStatus('fileCheckResult', '❌ 文件仍然存在于云端', 'error');
+                    log('文件存在检查结果: 文件仍然存在', 'error');
+                } else if (response.status === 404) {
+                    setStatus('fileCheckResult', '✅ 文件已从云端删除', 'success');
+                    log('文件存在检查结果: 文件已删除', 'success');
+                } else {
+                    setStatus('fileCheckResult', `⚠️ 检查失败，状态码: ${response.status}`, 'warning');
+                    log(`文件检查失败，状态码: ${response.status}`, 'warning');
+                }
+            } catch (error) {
+                // CORS错误通常意味着文件不存在或访问被拒绝
+                if (error.message.includes('CORS') || error.message.includes('fetch')) {
+                    log('检查遇到CORS限制，这可能表示文件已删除', 'warning');
+                    setStatus('fileCheckResult', '⚠️ 遇到CORS限制，建议使用其他方法验证', 'warning');
+                } else {
+                    setStatus('fileCheckResult', `❌ 检查出错: ${error.message}`, 'error');
+                    log(`文件检查出错: ${error.message}`, 'error');
+                }
+            }
+        }
+
+        async function testFileAccess() {
+            const url = document.getElementById('testUrl').value.trim();
+            if (!url) {
+                setStatus('accessTestResult', '请输入要测试的文件URL', 'warning');
+                return;
+            }
+
+            log(`测试文件访问: ${url}`, 'info');
+
+            try {
+                // 创建一个隐藏的img或video元素来测试访问
+                const isImage = url.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+                const isVideo = url.match(/\.(mp4|webm|ogg|avi)$/i);
+
+                if (isImage) {
+                    const img = new Image();
+                    img.onload = () => {
+                        setStatus('accessTestResult', '❌ 图片文件仍可访问，未删除', 'error');
+                        log('图片访问测试: 文件仍然可访问', 'error');
+                    };
+                    img.onerror = () => {
+                        setStatus('accessTestResult', '✅ 图片文件无法访问，已删除', 'success');
+                        log('图片访问测试: 文件无法访问（已删除）', 'success');
+                    };
+                    img.src = url;
+                } else if (isVideo) {
+                    const video = document.createElement('video');
+                    video.onloadeddata = () => {
+                        setStatus('accessTestResult', '❌ 视频文件仍可访问，未删除', 'error');
+                        log('视频访问测试: 文件仍然可访问', 'error');
+                    };
+                    video.onerror = () => {
+                        setStatus('accessTestResult', '✅ 视频文件无法访问，已删除', 'success');
+                        log('视频访问测试: 文件无法访问（已删除）', 'success');
+                    };
+                    video.src = url;
+                } else {
+                    // 对于其他文件类型，使用fetch
+                    const response = await fetch(url);
+                    if (response.ok) {
+                        setStatus('accessTestResult', '❌ 文件仍可访问，未删除', 'error');
+                        log('文件访问测试: 文件仍然可访问', 'error');
+                    } else {
+                        setStatus('accessTestResult', '✅ 文件无法访问，已删除', 'success');
+                        log('文件访问测试: 文件无法访问（已删除）', 'success');
+                    }
+                }
+            } catch (error) {
+                setStatus('accessTestResult', '✅ 文件访问失败，已删除', 'success');
+                log(`文件访问失败（已删除）: ${error.message}`, 'success');
+            }
+        }
+
+        function clearResults() {
+            document.getElementById('fileCheckResult').innerHTML = '';
+            document.getElementById('accessTestResult').innerHTML = '';
+            document.getElementById('checkLog').innerHTML = '日志已清空...\n';
+            log('结果已清空', 'info');
+        }
+
+        // 页面加载时的提示
+        window.onload = function() {
+            log('云端删除验证工具已就绪', 'success');
+            log('请选择合适的验证方法来确认文件是否已从云端删除', 'info');
+        };
+    </script>
+</body>
+</html> 

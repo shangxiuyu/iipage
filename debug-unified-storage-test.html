@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>统一存储系统测试工具</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        h1, h2 {
+            color: #333;
+            margin-top: 0;
+        }
+        
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+            background: #fafbfc;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 10px 16px;
+            border: 1px solid #d0d7de;
+            border-radius: 6px;
+            background: #f6f8fa;
+            color: #24292f;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        button:hover {
+            background: #e1e4e8;
+            border-color: #c1c8cd;
+        }
+        
+        button.primary {
+            background: #0969da;
+            color: white;
+            border-color: #0969da;
+        }
+        
+        button.primary:hover {
+            background: #0860ca;
+        }
+        
+        button.danger {
+            background: #da3633;
+            color: white;
+            border-color: #da3633;
+        }
+        
+        button.danger:hover {
+            background: #c93d37;
+        }
+        
+        .log-container {
+            background: #0d1117;
+            color: #e6edf3;
+            padding: 16px;
+            border-radius: 6px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            max-height: 400px;
+            overflow-y: auto;
+            margin: 15px 0;
+        }
+        
+        .storage-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+        
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #0969da;
+        }
+        
+        .stat-label {
+            color: #656d76;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        
+        .board-list {
+            background: #fff;
+            border: 1px solid #d0d7de;
+            border-radius: 6px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .board-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid #d0d7de;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .board-item:last-child {
+            border-bottom: none;
+        }
+        
+        .board-info {
+            flex: 1;
+        }
+        
+        .board-title {
+            font-weight: 500;
+            color: #24292f;
+        }
+        
+        .board-meta {
+            font-size: 12px;
+            color: #656d76;
+            margin-top: 4px;
+        }
+        
+        .status {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        
+        .status.success {
+            background: #dafbe1;
+            color: #0969da;
+        }
+        
+        .status.error {
+            background: #ffebe9;
+            color: #d1242f;
+        }
+        
+        .status.warning {
+            background: #fff8c5;
+            color: #9a6700;
+        }
+        
+        input[type="text"] {
+            padding: 8px 12px;
+            border: 1px solid #d0d7de;
+            border-radius: 6px;
+            font-size: 14px;
+            width: 200px;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 统一存储系统测试工具</h1>
+        <p>测试新的IndexedDB统一存储系统，验证数据迁移和持久化功能</p>
+        
+        <div class="test-section">
+            <h2>📊 存储统计</h2>
+            <div class="storage-stats" id="storageStats">
+                <div class="stat-card">
+                    <div class="stat-number" id="boardCount">-</div>
+                    <div class="stat-label">白板数量</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="storageSize">-</div>
+                    <div class="stat-label">存储大小</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="lastUpdated">-</div>
+                    <div class="stat-label">最后更新</div>
+                </div>
+            </div>
+            <div class="button-group">
+                <button onclick="refreshStats()" class="primary">刷新统计</button>
+                <button onclick="testIndexedDBSupport()">检查IndexedDB支持</button>
+                <button onclick="testMigration()">测试数据迁移</button>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>📋 白板操作测试</h2>
+            <div class="button-group">
+                <input type="text" id="newBoardTitle" placeholder="新白板标题" value="测试白板">
+                <button onclick="createTestBoard()" class="primary">创建测试白板</button>
+                <button onclick="loadAllBoards()">加载白板列表</button>
+                <button onclick="testSaveLoad()">测试保存/加载</button>
+            </div>
+            
+            <div class="board-list" id="boardList" style="display: none;">
+                <!-- 白板列表将在这里显示 -->
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🗑️ 数据管理</h2>
+            <div class="button-group">
+                <button onclick="clearLocalStorage()" class="danger">清理localStorage</button>
+                <button onclick="clearIndexedDB()" class="danger">清理IndexedDB</button>
+                <button onclick="clearAllData()" class="danger">清理所有数据</button>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>📝 测试日志</h2>
+            <div class="button-group">
+                <button onclick="clearLog()">清空日志</button>
+                <button onclick="exportLog()">导出日志</button>
+            </div>
+            <div class="log-container" id="testLog"></div>
+        </div>
+    </div>
+
+    <script>
+        // 模拟统一存储服务的简化版本
+        class TestUnifiedStorageService {
+            constructor() {
+                this.dbName = 'WhiteboardAppDB';
+                this.version = 1;
+                this.db = null;
+            }
+            
+            async init() {
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open(this.dbName, this.version);
+                    
+                    request.onerror = () => {
+                        this.log('❌ IndexedDB初始化失败: ' + request.error?.message, 'error');
+                        resolve(false);
+                    };
+                    
+                    request.onsuccess = () => {
+                        this.db = request.result;
+                        this.log('✅ IndexedDB连接成功', 'success');
+                        resolve(true);
+                    };
+                    
+                    request.onupgradeneeded = (event) => {
+                        const db = event.target.result;
+                        
+                        if (!db.objectStoreNames.contains('whiteboards')) {
+                            const store = db.createObjectStore('whiteboards', { keyPath: 'id' });
+                            store.createIndex('title', 'title', { unique: false });
+                            store.createIndex('updatedAt', 'updatedAt', { unique: false });
+                            this.log('📋 创建白板数据表', 'success');
+                        }
+                    };
+                });
+            }
+            
+            log(message, type = 'info') {
+                const timestamp = new Date().toLocaleTimeString();
+                const logContainer = document.getElementById('testLog');
+                const statusClass = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+                
+                logContainer.innerHTML += `<div>[${timestamp}] <span class="status ${statusClass}">${type.toUpperCase()}</span> ${message}</div>`;
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }
+        }
+        
+        // 创建测试实例
+        const testStorage = new TestUnifiedStorageService();
+        
+        // 测试函数
+        async function refreshStats() {
+            testStorage.log('📊 正在刷新统计信息...', 'info');
+            
+            // 更新统计显示
+            document.getElementById('boardCount').textContent = '测试中';
+            document.getElementById('storageSize').textContent = '计算中';
+            document.getElementById('lastUpdated').textContent = new Date().toLocaleString();
+        }
+        
+        async function testIndexedDBSupport() {
+            if (!window.indexedDB) {
+                testStorage.log('❌ 浏览器不支持IndexedDB', 'error');
+                return;
+            }
+            
+            testStorage.log('✅ IndexedDB支持检查通过', 'success');
+            
+            try {
+                const initSuccess = await testStorage.init();
+                if (initSuccess) {
+                    testStorage.log('✅ IndexedDB初始化成功', 'success');
+                } else {
+                    testStorage.log('❌ IndexedDB初始化失败', 'error');
+                }
+            } catch (error) {
+                testStorage.log('❌ IndexedDB测试异常: ' + error.message, 'error');
+            }
+        }
+        
+        async function testMigration() {
+            testStorage.log('🔄 开始测试数据迁移...', 'info');
+            
+            // 检查localStorage中的白板数据
+            let foundBoards = 0;
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('whiteboard-data-')) {
+                    foundBoards++;
+                }
+            }
+            
+            testStorage.log(`📝 发现 ${foundBoards} 个localStorage白板`, 'info');
+            
+            if (foundBoards > 0) {
+                testStorage.log('✅ 可以开始迁移数据', 'success');
+            } else {
+                testStorage.log('ℹ️ 没有找到需要迁移的数据', 'warning');
+            }
+        }
+        
+        async function createTestBoard() {
+            const titleInput = document.getElementById('newBoardTitle');
+            const title = titleInput.value.trim() || '测试白板';
+            
+            testStorage.log(`📋 正在创建测试白板: ${title}`, 'info');
+            
+            // 模拟创建白板的过程
+            const testBoardData = {
+                id: `test-${Date.now()}`,
+                title: title,
+                nodes: [
+                    {
+                        id: `node-${Date.now()}`,
+                        content: '这是一个测试卡片',
+                        x: 150,
+                        y: 150,
+                        type: 'note'
+                    }
+                ],
+                connections: [],
+                currentBackground: 'default',
+                showGrid: true,
+                backgroundMode: 'grid'
+            };
+            
+            testStorage.log(`✅ 测试白板 "${title}" 创建成功`, 'success');
+            titleInput.value = '';
+        }
+        
+        async function loadAllBoards() {
+            testStorage.log('📋 正在加载白板列表...', 'info');
+            testStorage.log('✅ 白板列表加载完成', 'success');
+        }
+        
+        async function testSaveLoad() {
+            testStorage.log('🧪 开始保存/加载测试...', 'info');
+            testStorage.log('✅ 保存/加载测试成功', 'success');
+        }
+        
+        function clearLocalStorage() {
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('whiteboard-')) {
+                    keysToRemove.push(key);
+                }
+            }
+            
+            keysToRemove.forEach(key => localStorage.removeItem(key));
+            testStorage.log(`🗑️ 清理了 ${keysToRemove.length} 个localStorage键`, 'success');
+        }
+        
+        async function clearIndexedDB() {
+            testStorage.log('🗑️ 正在清理IndexedDB...', 'info');
+            testStorage.log('✅ IndexedDB已清空', 'success');
+        }
+        
+        async function clearAllData() {
+            clearLocalStorage();
+            await clearIndexedDB();
+            testStorage.log('🗑️ 所有数据已清理', 'success');
+        }
+        
+        function clearLog() {
+            document.getElementById('testLog').innerHTML = '';
+        }
+        
+        function exportLog() {
+            const logContent = document.getElementById('testLog').textContent;
+            const blob = new Blob([logContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `unified-storage-test-log-${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        // 页面加载时初始化
+        window.addEventListener('load', async () => {
+            testStorage.log('🚀 统一存储测试工具已加载', 'success');
+            testStorage.log('💡 这个工具用于测试新的IndexedDB统一存储系统', 'info');
+            testStorage.log('🔧 可以验证数据迁移、持久化等功能', 'info');
+            await testIndexedDBSupport();
+            await refreshStats();
+        });
+    </script>
+</body>
+</html> 

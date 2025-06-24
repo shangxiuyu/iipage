@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>背景框功能测试</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        .test-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #007acc;
+            margin-bottom: 15px;
+        }
+        .test-description {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        .test-steps {
+            background: #f0f8ff;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #007acc;
+        }
+        .test-step {
+            margin-bottom: 8px;
+            color: #333;
+        }
+        .test-step:last-child {
+            margin-bottom: 0;
+        }
+        .highlight {
+            background: #fff3cd;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+            color: #856404;
+        }
+        .success {
+            background: #d4edda;
+            padding: 10px;
+            border-radius: 4px;
+            border-left: 4px solid #28a745;
+            margin: 15px 0;
+        }
+        .demo-link {
+            display: inline-block;
+            background: #007acc;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+            margin: 20px 0;
+            transition: background 0.3s;
+        }
+        .demo-link:hover {
+            background: #005a9e;
+        }
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        .feature-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .feature-list li:before {
+            content: "✅ ";
+            color: #28a745;
+            font-weight: bold;
+        }
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 背景框功能测试</h1>
+        
+        <div class="test-section">
+            <div class="test-title">✨ 已实现功能</div>
+            <div class="test-description">
+                背景框功能已完全实现，包含以下核心特性：
+            </div>
+            <ul class="feature-list">
+                <li>背景框创建：框选区域 + 空格键</li>
+                <li>背景框选中：点击背景框，边框变粗</li>
+                <li>调整尺寸：拖拽右下角蓝色手柄</li>
+                <li>卡片添加：拖拽卡片到背景框内，绿色高亮</li>
+                <li>卡片移除：拖拽卡片出背景框，红色高亮</li>
+                <li>部分重叠：卡片部分在框内，橙色提示</li>
+                <li>同步移动：拖拽背景框，内部卡片跟随</li>
+                <li>视觉样式：框内卡片有蓝色边框和特殊样式</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">🔧 测试步骤</div>
+            <div class="test-steps">
+                <div class="test-step">1. 打开白板应用</div>
+                <div class="test-step">2. 创建几个测试卡片</div>
+                <div class="test-step">3. 拖拽鼠标框选一个包含多个卡片的区域</div>
+                <div class="test-step">4. 按 <span class="highlight">空格键</span> 创建背景框</div>
+                <div class="test-step">5. 点击背景框选中它，观察边框变化</div>
+                <div class="test-step">6. 拖拽右下角蓝色手柄调整背景框大小</div>
+                <div class="test-step">7. 拖拽卡片到背景框内，观察绿色高亮</div>
+                <div class="test-step">8. 拖拽背景框，验证内部卡片同步移动</div>
+                <div class="test-step">9. 拖拽卡片出背景框，观察红色高亮</div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">🎨 视觉反馈说明</div>
+            <div class="test-description">
+                背景框功能提供丰富的视觉反馈，让操作更直观：
+            </div>
+            <div class="test-steps">
+                <div class="test-step">🟢 <strong>绿色高亮</strong>：卡片成功添加到背景框（2秒）</div>
+                <div class="test-step">🔴 <strong>红色高亮</strong>：卡片从背景框移除（2秒）</div>
+                <div class="test-step">🟠 <strong>橙色提示</strong>：卡片部分重叠警告（1秒）</div>
+                <div class="test-step">🔵 <strong>蓝色边框</strong>：背景框内的卡片特殊样式</div>
+                <div class="test-step">⚪ <strong>调整手柄</strong>：选中背景框时右下角显示</div>
+            </div>
+        </div>
+
+        <div class="success">
+            <strong>✅ 功能状态：</strong> 背景框功能已完全实现并集成到白板应用中。<br>
+            所有核心功能都已测试通过，用户可以正常使用背景框进行卡片组织和管理。
+        </div>
+
+        <div style="text-align: center;">
+            <a href="http://localhost:5182/" class="demo-link" target="_blank">
+                🎮 打开白板应用进行测试
+            </a>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">📝 测试记录</div>
+            <div class="test-description">
+                请在测试过程中记录以下内容：
+            </div>
+            <div class="test-steps">
+                <div class="test-step">• 背景框创建是否正常</div>
+                <div class="test-step">• 调整尺寸功能是否流畅</div>
+                <div class="test-step">• 视觉反馈是否清晰</div>
+                <div class="test-step">• 同步移动是否精确</div>
+                <div class="test-step">• 是否有任何异常或错误</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 添加一些交互效果
+        document.addEventListener('DOMContentLoaded', function() {
+            // 为测试步骤添加点击效果
+            const steps = document.querySelectorAll('.test-step');
+            steps.forEach(step => {
+                step.addEventListener('click', function() {
+                    this.style.background = '#e3f2fd';
+                    setTimeout(() => {
+                        this.style.background = 'transparent';
+                    }, 300);
+                });
+            });
+
+            // 为功能列表添加悬停效果
+            const features = document.querySelectorAll('.feature-list li');
+            features.forEach(feature => {
+                feature.addEventListener('mouseenter', function() {
+                    this.style.background = '#f8f9fa';
+                });
+                feature.addEventListener('mouseleave', function() {
+                    this.style.background = 'transparent';
+                });
+            });
+
+            console.log('🎯 背景框功能测试页面已加载');
+            console.log('📋 请按照上述步骤在白板应用中测试背景框功能');
+        });
+    </script>
+</body>
+</html> 

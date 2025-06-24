@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>白板存储修复测试工具</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #007AFF;
+            border-bottom: 2px solid #007AFF;
+            padding-bottom: 10px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 16px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #007AFF;
+        }
+        .btn {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 4px;
+            font-size: 14px;
+        }
+        .btn:hover {
+            background: #0056b3;
+        }
+        .btn.danger {
+            background: #dc3545;
+        }
+        .btn.danger:hover {
+            background: #c82333;
+        }
+        .btn.success {
+            background: #28a745;
+        }
+        .btn.success:hover {
+            background: #1e7e34;
+        }
+        .storage-item {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 12px;
+            margin: 8px 0;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .log {
+            background: #1a1a1a;
+            color: #00ff88;
+            padding: 16px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            height: 200px;
+            overflow-y: auto;
+            margin: 16px 0;
+        }
+        .status {
+            padding: 8px 16px;
+            border-radius: 4px;
+            margin: 8px 0;
+            font-weight: bold;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛠️ 白板存储修复测试工具</h1>
+        
+        <div class="section">
+            <h2>📊 当前存储状态</h2>
+            <button class="btn" onclick="scanStorage()">🔍 扫描存储</button>
+            <button class="btn danger" onclick="clearPersistStorage()">🗑️ 清除persist存储</button>
+            <button class="btn danger" onclick="clearAllWhiteboardData()">⚠️ 清除所有白板数据</button>
+            <div id="storageStatus"></div>
+        </div>
+
+        <div class="section">
+            <h2>🧪 测试步骤</h2>
+            <ol>
+                <li><button class="btn" onclick="step1()">步骤1: 清理冲突存储</button></li>
+                <li><button class="btn" onclick="step2()">步骤2: 创建测试白板A</button></li>
+                <li><button class="btn" onclick="step3()">步骤3: 创建测试白板B</button></li>
+                <li><button class="btn" onclick="step4()">步骤4: 模拟添加卡片到A</button></li>
+                <li><button class="btn" onclick="step5()">步骤5: 切换到白板B</button></li>
+                <li><button class="btn" onclick="step6()">步骤6: 检查卡片是否跑板</button></li>
+            </ol>
+            <div id="testStatus"></div>
+        </div>
+
+        <div class="section">
+            <h2>📋 实时日志</h2>
+            <button class="btn" onclick="clearLog()">清空日志</button>
+            <div class="log" id="logContainer"></div>
+        </div>
+
+        <div class="section">
+            <h2>💾 存储详情</h2>
+            <div id="storageDetails"></div>
+        </div>
+    </div>
+
+    <script>
+        let logContainer = document.getElementById('logContainer');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `<span style="color: #666;">[${timestamp}]</span> ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            console.log(`[${timestamp}] ${message}`);
+        }
+
+        function clearLog() {
+            logContainer.innerHTML = '';
+        }
+
+        function scanStorage() {
+            log('🔍 开始扫描localStorage...');
+            const storageKeys = Object.keys(localStorage);
+            const whiteboardKeys = storageKeys.filter(key => key.startsWith('whiteboard-'));
+            
+            log(`发现 ${whiteboardKeys.length} 个白板相关存储项:`);
+            whiteboardKeys.forEach(key => {
+                const data = localStorage.getItem(key);
+                const size = new Blob([data]).size;
+                log(`  - ${key}: ${size} bytes`);
+            });
+
+            updateStorageStatus();
+            updateStorageDetails();
+        }
+
+        function updateStorageStatus() {
+            const statusDiv = document.getElementById('storageStatus');
+            const keys = Object.keys(localStorage).filter(key => key.startsWith('whiteboard-'));
+            
+            let html = '<h3>存储项目统计:</h3>';
+            
+            const persistKeys = keys.filter(key => key.includes('whiteboard-storage') || key.includes('whiteboard-current-board'));
+            const boardKeys = keys.filter(key => key.startsWith('whiteboard-data-'));
+            
+            if (persistKeys.length > 0) {
+                html += `<div class="status error">⚠️ 发现 ${persistKeys.length} 个persist存储项 (可能导致冲突)</div>`;
+                persistKeys.forEach(key => {
+                    html += `<div class="storage-item">❌ ${key}</div>`;
+                });
+            } else {
+                html += `<div class="status success">✅ 没有persist存储冲突</div>`;
+            }
+
+            html += `<div class="status">${boardKeys.length} 个白板数据项:</div>`;
+            boardKeys.forEach(key => {
+                const boardId = key.replace('whiteboard-data-', '');
+                html += `<div class="storage-item">📋 白板 ${boardId}</div>`;
+            });
+
+            statusDiv.innerHTML = html;
+        }
+
+        function updateStorageDetails() {
+            const detailsDiv = document.getElementById('storageDetails');
+            const keys = Object.keys(localStorage).filter(key => key.startsWith('whiteboard-'));
+            
+            let html = '';
+            keys.forEach(key => {
+                const data = localStorage.getItem(key);
+                let preview = '';
+                try {
+                    const parsed = JSON.parse(data);
+                    if (parsed.nodes) {
+                        preview = `包含 ${parsed.nodes.length} 个卡片`;
+                    } else if (parsed.title) {
+                        preview = `标题: ${parsed.title}`;
+                    } else {
+                        preview = '未知格式';
+                    }
+                } catch (e) {
+                    preview = '非JSON数据';
+                }
+                
+                html += `
+                    <div class="storage-item">
+                        <strong>${key}</strong><br>
+                        ${preview}<br>
+                        <small>大小: ${new Blob([data]).size} bytes</small>
+                        <button class="btn danger" onclick="deleteStorageItem('${key}')">删除</button>
+                    </div>
+                `;
+            });
+            
+            detailsDiv.innerHTML = html;
+        }
+
+        function deleteStorageItem(key) {
+            if (confirm(`确定要删除存储项 "${key}" 吗？`)) {
+                localStorage.removeItem(key);
+                log(`🗑️ 已删除存储项: ${key}`);
+                updateStorageStatus();
+                updateStorageDetails();
+            }
+        }
+
+        function clearPersistStorage() {
+            const persistKeys = ['whiteboard-storage', 'whiteboard-current-board'];
+            let deleted = 0;
+            
+            persistKeys.forEach(key => {
+                if (localStorage.getItem(key)) {
+                    localStorage.removeItem(key);
+                    deleted++;
+                    log(`🗑️ 已删除persist存储: ${key}`);
+                }
+            });
+            
+            if (deleted === 0) {
+                log('ℹ️ 没有发现persist存储项');
+            } else {
+                log(`✅ 已清除 ${deleted} 个persist存储项`);
+            }
+            
+            updateStorageStatus();
+            updateStorageDetails();
+        }
+
+        function clearAllWhiteboardData() {
+            if (!confirm('⚠️ 这将删除所有白板数据，确定继续吗？')) {
+                return;
+            }
+            
+            const keys = Object.keys(localStorage).filter(key => key.startsWith('whiteboard-'));
+            keys.forEach(key => {
+                localStorage.removeItem(key);
+            });
+            
+            log(`🗑️ 已清除所有白板数据 (${keys.length} 项)`);
+            updateStorageStatus();
+            updateStorageDetails();
+        }
+
+        // 测试步骤
+        function step1() {
+            log('🧪 步骤1: 清理冲突存储');
+            clearPersistStorage();
+            document.getElementById('testStatus').innerHTML = '<div class="status success">✅ 步骤1完成</div>';
+        }
+
+        function step2() {
+            log('🧪 步骤2: 创建测试白板A');
+            const boardA = {
+                id: 'test-board-a',
+                title: '测试白板A',
+                nodes: [],
+                connections: [],
+                createdAt: new Date().toISOString(),
+                isActive: true
+            };
+            
+            localStorage.setItem('whiteboard-data-test-board-a', JSON.stringify(boardA));
+            log('✅ 已创建测试白板A');
+            updateStorageDetails();
+            document.getElementById('testStatus').innerHTML = '<div class="status success">✅ 步骤2完成</div>';
+        }
+
+        function step3() {
+            log('🧪 步骤3: 创建测试白板B');
+            const boardB = {
+                id: 'test-board-b',
+                title: '测试白板B',
+                nodes: [],
+                connections: [],
+                createdAt: new Date().toISOString(),
+                isActive: false
+            };
+            
+            localStorage.setItem('whiteboard-data-test-board-b', JSON.stringify(boardB));
+            log('✅ 已创建测试白板B');
+            updateStorageDetails();
+            document.getElementById('testStatus').innerHTML = '<div class="status success">✅ 步骤3完成</div>';
+        }
+
+        function step4() {
+            log('🧪 步骤4: 模拟添加卡片到白板A');
+            const boardAData = JSON.parse(localStorage.getItem('whiteboard-data-test-board-a'));
+            
+            // 添加测试卡片
+            const testCard = {
+                id: 'test-card-' + Date.now(),
+                x: 100,
+                y: 100,
+                content: [{ type: 'paragraph', children: [{ text: '这是测试卡片，应该在白板A中' }] }],
+                title: '测试卡片A'
+            };
+            
+            boardAData.nodes.push(testCard);
+            localStorage.setItem('whiteboard-data-test-board-a', JSON.stringify(boardAData));
+            
+            log(`✅ 已在白板A中添加卡片: ${testCard.id}`);
+            updateStorageDetails();
+            document.getElementById('testStatus').innerHTML = '<div class="status success">✅ 步骤4完成</div>';
+        }
+
+        function step5() {
+            log('🧪 步骤5: 模拟切换到白板B');
+            // 更新活跃状态
+            const boardAData = JSON.parse(localStorage.getItem('whiteboard-data-test-board-a'));
+            const boardBData = JSON.parse(localStorage.getItem('whiteboard-data-test-board-b'));
+            
+            boardAData.isActive = false;
+            boardBData.isActive = true;
+            
+            localStorage.setItem('whiteboard-data-test-board-a', JSON.stringify(boardAData));
+            localStorage.setItem('whiteboard-data-test-board-b', JSON.stringify(boardBData));
+            
+            log('✅ 已切换到白板B');
+            updateStorageDetails();
+            document.getElementById('testStatus').innerHTML = '<div class="status success">✅ 步骤5完成</div>';
+        }
+
+        function step6() {
+            log('🧪 步骤6: 检查卡片是否跑板');
+            const boardAData = JSON.parse(localStorage.getItem('whiteboard-data-test-board-a'));
+            const boardBData = JSON.parse(localStorage.getItem('whiteboard-data-test-board-b'));
+            
+            const cardInA = boardAData.nodes.filter(node => node.id.startsWith('test-card-'));
+            const cardInB = boardBData.nodes.filter(node => node.id.startsWith('test-card-'));
+            
+            let result = '';
+            if (cardInA.length > 0 && cardInB.length === 0) {
+                result = '<div class="status success">✅ 测试通过: 卡片正确保留在白板A中</div>';
+                log('✅ 测试通过: 卡片没有跑板');
+            } else if (cardInB.length > 0) {
+                result = '<div class="status error">❌ 测试失败: 卡片跑到了白板B中</div>';
+                log('❌ 测试失败: 发现卡片跑板');
+            } else {
+                result = '<div class="status error">❌ 测试失败: 卡片丢失</div>';
+                log('❌ 测试失败: 卡片丢失');
+            }
+            
+            log(`白板A卡片数量: ${cardInA.length}`);
+            log(`白板B卡片数量: ${cardInB.length}`);
+            
+            document.getElementById('testStatus').innerHTML = result;
+            updateStorageDetails();
+        }
+
+        // 页面加载时自动扫描
+        window.onload = function() {
+            log('🚀 白板存储修复测试工具已启动');
+            scanStorage();
+        };
+    </script>
+</body>
+</html> 

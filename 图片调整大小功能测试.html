@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片调整大小功能测试</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            min-height: 100vh;
+        }
+        
+        .test-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #4338ca;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        
+        .feature-section {
+            margin-bottom: 40px;
+            padding: 24px;
+            border: 2px dashed #e5e7eb;
+            border-radius: 12px;
+            background: #f9fafb;
+        }
+        
+        .feature-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .feature-description {
+            color: #6b7280;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        
+        .mock-image-container {
+            position: relative;
+            display: inline-block;
+            margin: 20px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.2s;
+        }
+        
+        .mock-image-container:hover {
+            box-shadow: 0 0 0 2px #6366f1;
+        }
+        
+        .mock-image {
+            width: 300px;
+            height: 200px;
+            border-radius: 8px;
+            object-fit: cover;
+            display: block;
+            background: #f3f4f6;
+            border: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #9ca3af;
+            font-size: 14px;
+        }
+        
+        .resize-handle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            backgroundColor: #3b82f6;
+            border: 1px solid #ffffff;
+            borderRadius: 2px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            zIndex: 1000;
+        }
+        
+        .mock-image-container:hover .resize-handle {
+            opacity: 1;
+        }
+        
+        .handle-nw { top: -4px; left: -4px; cursor: nw-resize; }
+        .handle-ne { top: -4px; right: -4px; cursor: ne-resize; }
+        .handle-sw { bottom: -4px; left: -4px; cursor: sw-resize; }
+        .handle-se { bottom: -4px; right: -4px; cursor: se-resize; }
+        .handle-w { top: 50%; left: -4px; transform: translateY(-50%); cursor: ew-resize; }
+        .handle-e { top: 50%; right: -4px; transform: translateY(-50%); cursor: ew-resize; }
+        
+        .size-info {
+            position: absolute;
+            top: -24px;
+            left: 0;
+            fontSize: 12px;
+            color: #6b7280;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 2px 6px;
+            borderRadius: 4px;
+            border: 1px solid #e5e7eb;
+            whiteSpace: nowrap;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        
+        .mock-image-container:hover .size-info {
+            opacity: 1;
+        }
+        
+        .implementation-code {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+        
+        .highlight {
+            color: #fbbf24;
+            font-weight: bold;
+        }
+        
+        .function-name {
+            color: #34d399;
+        }
+        
+        .string {
+            color: #f87171;
+        }
+        
+        .test-steps {
+            background: #eff6ff;
+            border: 1px solid #dbeafe;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
+        }
+        
+        .test-steps h4 {
+            color: #1d4ed8;
+            margin: 0 0 12px 0;
+            font-size: 16px;
+        }
+        
+        .test-steps ol {
+            margin: 0;
+            padding-left: 20px;
+            color: #1e40af;
+        }
+        
+        .test-steps li {
+            margin-bottom: 8px;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .info-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+        }
+        
+        .info-card h4 {
+            color: #475569;
+            margin: 0 0 12px 0;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .info-card ul {
+            margin: 0;
+            padding-left: 16px;
+            color: #64748b;
+            font-size: 13px;
+        }
+        
+        .info-card li {
+            margin-bottom: 4px;
+        }
+        
+        .success-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #10b981;
+            margin-right: 8px;
+        }
+        
+        .implementation-status {
+            background: #dcfce7;
+            border: 1px solid #bbf7d0;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .implementation-status h3 {
+            color: #166534;
+            margin: 0 0 8px 0;
+            font-size: 18px;
+        }
+        
+        .implementation-status p {
+            color: #15803d;
+            margin: 0;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🖼️ 图片调整大小功能测试</h1>
+        
+        <div class="implementation-status">
+            <h3><span class="success-indicator"></span>功能已实现</h3>
+            <p>RichTextEditor 中的图片现在支持拖拽调整大小，就像调整卡片大小一样！</p>
+        </div>
+        
+        <div class="feature-section">
+            <div class="feature-title">
+                🎯 核心功能特性
+            </div>
+            <div class="feature-description">
+                新增了图片调整大小功能，用户可以通过拖拽图片边缘和角落来调整图片尺寸，操作体验与卡片调整大小完全一致。
+            </div>
+            
+            <div class="info-grid">
+                <div class="info-card">
+                    <h4>🎮 交互方式</h4>
+                    <ul>
+                        <li>选中或悬停图片显示右下角调整手柄</li>
+                        <li>拖拽右下角：同时调整宽度和高度</li>
+                        <li>操作简洁直观</li>
+                        <li>最小尺寸限制：100×75px</li>
+                        <li>只读模式不显示手柄</li>
+                    </ul>
+                </div>
+                
+                <div class="info-card">
+                    <h4>🎨 视觉反馈</h4>
+                    <ul>
+                        <li>蓝色调整手柄（8×8px）</li>
+                        <li>选中时显示蓝色边框</li>
+                        <li>se-resize鼠标指针</li>
+                        <li>无多余尺寸信息干扰</li>
+                        <li>平滑的过渡动画</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="feature-section">
+            <div class="feature-title">
+                🖼️ 模拟图片调整演示
+            </div>
+            <div class="feature-description">
+                下面的模拟展示了图片调整大小的交互效果（悬停查看调整手柄）：
+            </div>
+            
+            <div style="text-align: center;">
+                <div class="mock-image-container" id="mockImage1">
+                    <div class="mock-image">
+                        📷 模拟图片 1<br>简洁调整
+                    </div>
+                    <!-- 只显示右下角调整手柄 -->
+                    <div class="resize-handle handle-se"></div>
+                </div>
+                
+                <div class="mock-image-container" id="mockImage2">
+                    <div class="mock-image" style="width: 240px; height: 160px;">
+                        🖼️ 模拟图片 2<br>拖拽右下角
+                    </div>
+                    <!-- 只显示右下角调整手柄 -->
+                    <div class="resize-handle handle-se"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="feature-section">
+            <div class="feature-title">
+                💻 核心实现代码
+            </div>
+            <div class="feature-description">
+                以下是图片调整大小功能的核心实现代码：
+            </div>
+            
+            <div class="implementation-code">
+<span class="highlight">// 图片调整大小逻辑</span>
+<span class="function-name">const ImageResizer</span>: React.FC&lt;{ element: any, path: any }&gt; = ({ element: imgElement, path: imgPath }) =&gt; {
+  <span class="function-name">const handleResizeMouseDown</span> = (e: React.MouseEvent, direction: <span class="string">'nw' | 'ne' | 'sw' | 'se' | 'w' | 'e'</span>) =&gt; {
+    <span class="highlight">// 阻止事件冒泡和默认行为</span>
+    e.stopPropagation();
+    e.preventDefault();
+    
+    <span class="highlight">// 记录初始状态</span>
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startWidth = imgElement.width || <span class="string">320</span>;
+    const startHeight = imgElement.height || <span class="string">240</span>;
+    
+    <span class="function-name">const onMouseMove</span> = (e: MouseEvent) =&gt; {
+      <span class="highlight">// 计算偏移量</span>
+      const deltaX = e.clientX - startX;
+      const deltaY = e.clientY - startY;
+      
+      <span class="highlight">// 根据拖拽方向调整尺寸</span>
+      <span class="function-name">switch</span> (direction) {
+        <span class="function-name">case</span> <span class="string">'se'</span>: <span class="highlight">// 右下角</span>
+          newWidth = Math.max(minWidth, startWidth + deltaX);
+          newHeight = Math.max(minHeight, startHeight + deltaY);
+          <span class="function-name">break</span>;
+        <span class="highlight">// ... 其他方向处理</span>
+      }
+      
+      <span class="highlight">// 使用 Slate.js 更新图片节点</span>
+      <span class="function-name">Transforms.setNodes</span>(editorStatic, { 
+        ...imgElement, 
+        width: newWidth,
+        height: newHeight
+      }, { at: imgPath });
+    };
+  };
+};
+            </div>
+        </div>
+        
+        <div class="feature-section">
+            <div class="feature-title">
+                🧪 测试步骤
+            </div>
+            
+            <div class="test-steps">
+                <h4>在白板应用中测试图片调整大小：</h4>
+                <ol>
+                    <li>打开白板应用，创建或编辑一个卡片</li>
+                    <li>粘贴一张图片到卡片内容中</li>
+                    <li>点击选中图片，观察是否出现蓝色边框</li>
+                    <li>将鼠标悬停在图片上，查看右下角调整手柄是否显示</li>
+                    <li>拖拽右下角手柄，测试同时调整宽高</li>
+                    <li>观察操作的简洁性和直观性</li>
+                    <li>测试最小尺寸限制（100×75px）是否生效</li>
+                    <li>保存卡片，重新打开验证尺寸是否保持</li>
+                </ol>
+            </div>
+            
+            <div class="test-steps">
+                <h4>预期效果：</h4>
+                <ol>
+                    <li>✅ 图片选中时显示蓝色边框</li>
+                    <li>✅ 悬停时显示右下角调整手柄</li>
+                    <li>✅ 拖拽手柄能流畅调整图片尺寸</li>
+                    <li>✅ 操作简洁直观，无多余信息干扰</li>
+                    <li>✅ 鼠标指针显示se-resize样式</li>
+                    <li>✅ 尺寸变化立即保存到编辑器状态</li>
+                </ol>
+            </div>
+        </div>
+        
+        <div class="feature-section">
+            <div class="feature-title">
+                ⚙️ 技术实现要点
+            </div>
+            
+            <div class="info-grid">
+                <div class="info-card">
+                    <h4>🔧 核心技术</h4>
+                    <ul>
+                        <li>Slate.js Transforms API</li>
+                        <li>React Hook 状态管理</li>
+                        <li>DOM 事件处理机制</li>
+                        <li>CSS Position 布局</li>
+                        <li>TypeScript 类型安全</li>
+                    </ul>
+                </div>
+                
+                <div class="info-card">
+                    <h4>🎯 设计原则</h4>
+                    <ul>
+                        <li>与卡片调整大小一致的交互</li>
+                        <li>直观的视觉反馈机制</li>
+                        <li>平滑的动画过渡效果</li>
+                        <li>最小尺寸的合理限制</li>
+                        <li>只读模式的完整支持</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 40px; color: #6b7280;">
+            <p><strong>🎉 图片调整大小功能已成功实现！</strong></p>
+            <p>现在用户可以像调整卡片一样调整图片尺寸，提供了统一且直观的操作体验。</p>
+        </div>
+    </div>
+    
+    <script>
+        // 简单的交互演示
+        document.querySelectorAll('.mock-image-container').forEach(container => {
+            container.addEventListener('mouseenter', () => {
+                container.style.transform = 'scale(1.02)';
+            });
+            
+            container.addEventListener('mouseleave', () => {
+                container.style.transform = 'scale(1)';
+            });
+        });
+        
+        // 模拟拖拽效果（仅用于演示）
+        document.querySelectorAll('.resize-handle').forEach(handle => {
+            handle.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                console.log('🎯 模拟拖拽开始 - 方向:', handle.className.split(' ')[1]);
+                handle.style.backgroundColor = '#1d4ed8';
+                
+                setTimeout(() => {
+                    handle.style.backgroundColor = '#3b82f6';
+                    console.log('✅ 模拟拖拽结束');
+                }, 300);
+            });
+        });
+    </script>
+</body>
+</html> 

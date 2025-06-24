@@ -1,0 +1,37 @@
+                    e.currentTarget.style.bottom = '-5px';
+                  }}
+                  title="拖拽创建连线"
+                />
+                
+                {/* 左锚点 */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: '-5px',
+                    top: '50%',
+                    width: '10px',
+                    height: '10px',
+                    marginTop: '-5px',
+                    backgroundColor: '#10b981',
+                    border: '2px solid #ffffff',
+                    borderRadius: '50%',
+                    cursor: 'crosshair',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                    zIndex: 1001,
+                  }}
+                  onMouseDown={(e) => handleAnchorMouseDown(e, 'left')}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#059669';
+                    e.currentTarget.style.width = '12px';
+                    e.currentTarget.style.height = '12px';
+                    e.currentTarget.style.left = '-6px';
+                    e.currentTarget.style.marginTop = '-6px';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#10b981';
+                    e.currentTarget.style.width = '10px';
+                    e.currentTarget.style.height = '10px';
+                    e.currentTarget.style.left = '-5px';
+                    e.currentTarget.style.marginTop = '-5px';
+                  }}
+                  title="拖拽创建连线"

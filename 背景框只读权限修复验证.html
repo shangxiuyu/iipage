@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>背景框只读权限修复验证</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .header h1 {
+            color: #333;
+            margin: 0 0 10px 0;
+            font-size: 28px;
+        }
+        .header p {
+            color: #666;
+            margin: 0;
+            font-size: 16px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        .test-section h3 {
+            color: #333;
+            margin: 0 0 15px 0;
+            font-size: 18px;
+        }
+        .test-item {
+            margin-bottom: 15px;
+            padding: 12px;
+            background: white;
+            border-radius: 6px;
+            border-left: 4px solid #007acc;
+        }
+        .test-item h4 {
+            margin: 0 0 8px 0;
+            color: #333;
+            font-size: 14px;
+        }
+        .test-item p {
+            margin: 0;
+            color: #666;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 12px;
+            margin: 10px 0;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+        }
+        .button {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+            transition: background 0.2s;
+        }
+        .button:hover {
+            background: #005a9e;
+        }
+        .button.secondary {
+            background: #6c757d;
+        }
+        .button.secondary:hover {
+            background: #545b62;
+        }
+        .iframe-container {
+            margin-top: 20px;
+            border: 2px solid #007acc;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .iframe-container iframe {
+            width: 100%;
+            height: 600px;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔒 背景框只读权限修复验证</h1>
+            <p>验证分享页面中背景框的权限控制是否正常工作</p>
+        </div>
+
+        <div class="test-section">
+            <h3>📋 修复内容概述</h3>
+            <div class="test-item">
+                <h4>问题描述 <span class="status error">已修复</span></h4>
+                <p>分享的白板中，其他用户能够移动背景框的位置，这违反了只读权限控制原则。</p>
+            </div>
+            <div class="test-item">
+                <h4>根本原因 <span class="status warning">已分析</span></h4>
+                <p>BoardCanvas.tsx 中背景框的拖拽事件处理没有检查 readOnly 状态，导致分享页面中的用户仍能操作背景框。</p>
+            </div>
+            <div class="test-item">
+                <h4>修复方案 <span class="status success">已实施</span></h4>
+                <p>在所有背景框交互事件中添加 readOnly 检查，确保只读模式下完全禁用背景框操作。</p>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>🔧 具体修复点</h3>
+            <div class="test-item">
+                <h4>1. 背景框拖拽事件 <span class="status success">已修复</span></h4>
+                <p>在 onMouseDown 事件处理中添加 <code>if (readOnly) return;</code> 检查</p>
+                <div class="code-block">
+// 修复前
+onMouseDown={(e) => {
+  e.stopPropagation();
+  selectBackgroundFrame(frame.id, e.metaKey || e.ctrlKey);
+  // ... 拖拽逻辑
+}}
+
+// 修复后  
+onMouseDown={(e) => {
+  e.stopPropagation();
+  if (readOnly) return; // 🔒 只读模式下禁止拖拽
+  selectBackgroundFrame(frame.id, e.metaKey || e.ctrlKey);
+  // ... 拖拽逻辑
+}}
+                </div>
+            </div>
+            <div class="test-item">
+                <h4>2. 背景框标题点击事件 <span class="status success">已修复</span></h4>
+                <p>在标题 onClick 事件中添加 readOnly 检查，防止切换展开/收起状态</p>
+                <div class="code-block">
+onClick={(e) => {
+  e.stopPropagation();
+  if (readOnly) return; // 🔒 只读模式下禁止切换展开/收起状态
+  updateBackgroundFrame(frame.id, { collapsed: !frame.collapsed });
+}}
+                </div>
+            </div>
+            <div class="test-item">
+                <h4>3. 右键菜单和调整大小 <span class="status success">已有保护</span></h4>
+                <p>右键菜单和调整大小手柄已有 readOnly 检查，无需额外修复</p>
+                <div class="code-block">
+onContextMenu={(e) => {
+  if (readOnly) return; // ✅ 已有保护
+  // ... 菜单逻辑
+}}
+
+{frame.selected && (hoveredFrameId === frame.id || resizingFrameId === frame.id) && !readOnly && (
+  // ✅ 调整大小手柄已有 !readOnly 条件
+)}
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>🧪 测试验证</h3>
+            <div class="test-item">
+                <h4>测试步骤</h4>
+                <p>1. 在白板中创建背景框并添加一些卡片<br>
+                2. 启用分享功能，获取分享链接<br>
+                3. 在新窗口/隐私模式中打开分享链接<br>
+                4. 尝试以下操作，验证是否被正确禁用：</p>
+                <ul>
+                    <li>拖拽背景框位置</li>
+                    <li>点击背景框标题切换展开/收起</li>
+                    <li>右键点击背景框打开样式菜单</li>
+                    <li>拖拽背景框右下角调整大小</li>
+                </ul>
+            </div>
+            <div class="test-item">
+                <h4>预期结果 <span class="status success">应该实现</span></h4>
+                <p>在分享页面中，所有背景框操作都应该被禁用，用户只能查看内容，无法进行任何编辑操作。</p>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>🎯 安全影响</h3>
+            <div class="test-item">
+                <h4>权限控制完整性 <span class="status success">已完善</span></h4>
+                <p>现在分享页面的权限控制覆盖了所有交互元素：</p>
+                <ul>
+                    <li>✅ 卡片编辑和拖拽</li>
+                    <li>✅ 连线创建和删除</li>
+                    <li>✅ 背景框拖拽和调整</li>
+                    <li>✅ 背景框样式修改</li>
+                    <li>✅ 画布缩放和平移</li>
+                    <li>✅ 键盘快捷键</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>📝 技术细节</h3>
+            <div class="test-item">
+                <h4>readOnly 属性传递链</h4>
+                <p>ShareBoardPage → BoardCanvas → 所有交互组件</p>
+                <div class="code-block">
+// ShareBoardPage.tsx
+content = &lt;BoardCanvas readOnly /&gt;;
+
+// BoardCanvas.tsx  
+const BoardCanvas: React.FC&lt;BoardCanvasProps&gt; = ({ readOnly = false }) =&gt; {
+  // 传递给所有子组件
+  &lt;NodeCard readOnly={readOnly} /&gt;
+  // 在事件处理中检查 readOnly
+  if (readOnly) return;
+}
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px;">
+            <button class="button" onclick="window.open('http://localhost:5176/', '_blank')">
+                🚀 打开白板应用
+            </button>
+            <button class="button secondary" onclick="window.open('http://localhost:5176/share/test', '_blank')">
+                🔗 测试分享页面
+            </button>
+        </div>
+
+        <div class="iframe-container">
+            <iframe src="http://localhost:5176/" title="白板应用"></iframe>
+        </div>
+    </div>
+
+    <script>
+        // 自动检测应用是否运行
+        function checkAppStatus() {
+            fetch('http://localhost:5176/')
+                .then(response => {
+                    if (response.ok) {
+                        document.querySelector('.iframe-container').style.display = 'block';
+                        console.log('✅ 白板应用正在运行');
+                    }
+                })
+                .catch(error => {
+                    document.querySelector('.iframe-container').style.display = 'none';
+                    console.log('❌ 白板应用未运行，请先启动开发服务器');
+                });
+        }
+
+        // 页面加载时检查
+        checkAppStatus();
+        
+        // 每30秒检查一次
+        setInterval(checkAppStatus, 30000);
+    </script>
+</body>
+</html> 

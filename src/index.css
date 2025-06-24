@@ -1,0 +1,246 @@
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', 'Helvetica Neue', Arial, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  background: var(--bg-color);
+  color: var(--text-color);
+  
+  /* 阻止浏览器的左右滑动后退/前进手势 */
+  overscroll-behavior-x: none;
+  /* 阻止所有方向的过度滚动行为 */
+  overscroll-behavior: none;
+  
+  /* 浅色模式变量 */
+  --bg-color: #f5f6fa;
+  --text-color: #222;
+  --card-bg: #fff;
+  --card-border: rgba(0,0,0,0.10);
+  --card-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  --grid-bg: #f5f6fa;
+  --grid-line: #e5e7eb;
+  --button-bg: #fff;
+  --button-text: #222;
+  --button-border: #ccc;
+  --connection-default: #d1d5db;
+  --connection-arrow: #9ca3af;
+}
+
+body.dark-mode {
+  /* 深色模式变量 */
+  --bg-color: #181c23;
+  --text-color: #e2e8f0;
+  --card-bg: #232a36;
+  --card-border: rgba(255,255,255,0.10);
+  --card-shadow: 0 2px 8px rgba(0,0,0,0.30);
+  --grid-bg: #181c23;
+  --grid-line: #283040;
+  --button-bg: #232a36;
+  --button-text: #e2e8f0;
+  --button-border: #444b5a;
+  --connection-default: #374151;
+  --connection-arrow: #4b5563;
+}
+
+/* 卡片内容容器滚动样式 */
+.card-content-container {
+  overflow-y: hidden; /* 默认隐藏溢出 */
+}
+
+.card-content-container.content-scrollable {
+  overflow-y: auto; /* 内容超出时启用滚动 */
+}
+
+/* 编辑器容器滚动样式 */
+.editor-container {
+  overflow-y: hidden; /* 默认隐藏溢出 */
+}
+
+.editor-container.content-scrollable {
+  overflow-y: auto; /* 内容超出时启用滚动 */
+}
+
+/* 滚动条样式优化 */
+.card-content-container::-webkit-scrollbar,
+.editor-container::-webkit-scrollbar {
+  width: 4px;
+}
+
+.card-content-container::-webkit-scrollbar-track,
+.editor-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.card-content-container::-webkit-scrollbar-thumb,
+.editor-container::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 2px;
+}
+
+.card-content-container::-webkit-scrollbar-thumb:hover,
+.editor-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+/* 深色模式下的滚动条 */
+body.dark-mode .card-content-container::-webkit-scrollbar-thumb,
+body.dark-mode .editor-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+body.dark-mode .card-content-container::-webkit-scrollbar-thumb:hover,
+body.dark-mode .editor-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* React Flow 样式 */
+.react-flow__node {
+  background: transparent !important;
+  border: none !important;
+}
+
+.react-flow__handle {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.react-flow__node:hover .react-flow__handle {
+  opacity: 1;
+}
+
+.react-flow__edge {
+  stroke-width: 3px;
+}
+
+.react-flow__edge-path {
+  stroke: #10b981;
+  stroke-width: 3;
+}
+
+.react-flow__edge .react-flow__edge-path {
+  stroke: #10b981;
+}
+
+.react-flow__controls {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+}
+
+.react-flow__minimap {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+}
+
+/* 连线流动动画 - 正向流动（沿着箭头方向） */
+@keyframes dash-flow {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -24;
+  }
+}
+
+/* 自定义滚动条样式 - 用于卡片设置弹窗 */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 3px;
+  transition: background 0.2s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* 深色模式下的自定义滚动条 */
+body.dark-mode .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+body.dark-mode .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.markdown-body table {
+  border-collapse: collapse;
+  width: auto;
+  margin: 8px 0;
+  font-size: 15px;
+}
+.markdown-body th, .markdown-body td {
+  border: 1px solid #d1d5db;
+  padding: 6px 12px;
+  text-align: left;
+  background: none;
+}
+.markdown-body th {
+  font-weight: 600;
+  background: #fafbfc;
+  color: #222;
+}
+body.dark-mode .markdown-body th {
+  background: #3a3a3c;
+  color: #fff;
+}
+
+.markdown-editor-wrapper {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  border-radius: inherit;
+  box-shadow: none;
+  padding: 0;
+}
+.markdown-editor-linenumbers {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 36px;
+  padding: 0;
+  font-size: 15px;
+  line-height: 1.8;
+  color: #b0b3b8;
+  text-align: right;
+  user-select: none;
+  pointer-events: none;
+  font-family: 'JetBrains Mono', 'Menlo', 'Consolas', 'monospace';
+  white-space: pre;
+  background: transparent;
+  border-radius: inherit;
+}
+body.dark-mode .markdown-editor-linenumbers {
+  color: #5c6370;
+}
+.markdown-editor-textarea {
+  font-size: 15px;
+  line-height: 1.8;
+  padding: 0 0 0 44px;
+  font-family: 'JetBrains Mono', 'Menlo', 'Consolas', 'monospace';
+  background: transparent;
+  border: none;
+  border-radius: inherit;
+  box-shadow: none;
+  color: inherit;
+  outline: none;
+  width: 100%;
+  height: 100%;
+  resize: none;
+}
+body.dark-mode .markdown-editor-textarea {
+  background: transparent;
+  border: none;
+  color: inherit;
+}

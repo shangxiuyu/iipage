@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>背景框功能验证 - 增强版</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        .container {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #2d3748;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        h2 {
+            color: #4a5568;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+            margin-top: 30px;
+        }
+        h3 {
+            color: #2d3748;
+            margin-top: 25px;
+        }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .feature-card {
+            background: linear-gradient(135deg, #f7fafc, #edf2f7);
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            border-color: #667eea;
+        }
+        .feature-card h4 {
+            color: #2d3748;
+            margin-top: 0;
+            font-size: 1.2em;
+        }
+        .step {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .step-number {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 24px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .highlight {
+            background: linear-gradient(120deg, #a8edea 0%, #fed6e3 100%);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #667eea;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .interaction-demo {
+            background: #e8f4fd;
+            border: 2px dashed #4299e1;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .visual-feedback {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .feedback-item {
+            text-align: center;
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid;
+        }
+        .feedback-green {
+            background: rgba(0, 255, 0, 0.1);
+            border-color: #28a745;
+            color: #155724;
+        }
+        .feedback-red {
+            background: rgba(255, 0, 0, 0.1);
+            border-color: #dc3545;
+            color: #721c24;
+        }
+        .feedback-orange {
+            background: rgba(255, 165, 0, 0.1);
+            border-color: #fd7e14;
+            color: #856404;
+        }
+        .test-checklist {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .checklist-item {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+            border-left: 4px solid #e2e8f0;
+        }
+        .checklist-item.checked {
+            border-left-color: #48bb78;
+            background: #f0fff4;
+        }
+        .checklist-item input[type="checkbox"] {
+            margin-right: 10px;
+            transform: scale(1.2);
+        }
+        .app-link {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: bold;
+            margin: 20px 0;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        .app-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+        .resize-handle {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            background: #007acc;
+            border: 2px solid white;
+            border-radius: 50%;
+            margin: 0 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 背景框功能验证 - 增强版</h1>
+        
+        <div class="highlight">
+            <strong>🎉 新功能已上线！</strong> 背景框现在支持调整尺寸、智能交互反馈和完美同步移动。
+        </div>
+
+        <h2>✨ 核心功能特性</h2>
+        <div class="feature-grid">
+            <div class="feature-card">
+                <h4>🔧 背景框调整尺寸</h4>
+                <p>选中背景框后，右下角会出现蓝色调整手柄 <span class="resize-handle"></span>，拖拽可调整背景框大小。</p>
+                <ul>
+                    <li>最小尺寸限制：100×100px</li>
+                    <li>实时预览调整效果</li>
+                    <li>保持内部卡片相对位置</li>
+                </ul>
+            </div>
+            
+            <div class="feature-card">
+                <h4>🎨 智能交互反馈</h4>
+                <p>卡片与背景框交互时提供丰富的视觉反馈，让操作更直观。</p>
+                <ul>
+                    <li>绿色高亮：成功添加卡片</li>
+                    <li>红色高亮：卡片移除提示</li>
+                    <li>橙色提示：部分重叠警告</li>
+                </ul>
+            </div>
+            
+            <div class="feature-card">
+                <h4>🚀 完美同步移动</h4>
+                <p>背景框内的卡片与框体融为一体，拖动背景框时所有卡片同步移动。</p>
+                <ul>
+                    <li>精确的位置计算</li>
+                    <li>流畅的移动体验</li>
+                    <li>保持相对位置关系</li>
+                </ul>
+            </div>
+            
+            <div class="feature-card">
+                <h4>🎭 视觉层次设计</h4>
+                <p>背景框内的卡片有特殊的视觉样式，显示层次感和归属关系。</p>
+                <ul>
+                    <li>蓝色边框标识</li>
+                    <li>半透明背景</li>
+                    <li>阴影效果增强</li>
+                </ul>
+            </div>
+        </div>
+
+        <h2>🎮 操作指南</h2>
+        
+        <h3>1. 创建背景框</h3>
+        <div class="step">
+            <span class="step-number">1</span>
+            在白板上拖动鼠标框选一个区域
+        </div>
+        <div class="step">
+            <span class="step-number">2</span>
+            按空格键创建背景框
+        </div>
+        <div class="step">
+            <span class="step-number">3</span>
+            背景框会出现在框选区域，带有蓝色边框和半透明背景
+        </div>
+
+        <h3>2. 调整背景框尺寸</h3>
+        <div class="step">
+            <span class="step-number">1</span>
+            点击背景框选中它（边框会变粗，透明度增加）
+        </div>
+        <div class="step">
+            <span class="step-number">2</span>
+            右下角会出现蓝色调整手柄 <span class="resize-handle"></span>
+        </div>
+        <div class="step">
+            <span class="step-number">3</span>
+            拖拽手柄调整背景框大小
+        </div>
+
+        <h3>3. 卡片与背景框交互</h3>
+        <div class="step">
+            <span class="step-number">1</span>
+            将卡片拖拽到背景框内
+        </div>
+        <div class="step">
+            <span class="step-number">2</span>
+            观察视觉反馈：
+        </div>
+        
+        <div class="visual-feedback">
+            <div class="feedback-item feedback-green">
+                <strong>✅ 成功添加</strong><br>
+                背景框变绿色高亮2秒
+            </div>
+            <div class="feedback-item feedback-red">
+                <strong>❌ 卡片移除</strong><br>
+                背景框变红色高亮2秒
+            </div>
+            <div class="feedback-item feedback-orange">
+                <strong>⚠️ 部分重叠</strong><br>
+                背景框变橙色提示1秒
+            </div>
+        </div>
+
+        <h3>4. 同步移动</h3>
+        <div class="step">
+            <span class="step-number">1</span>
+            确保卡片完全在背景框内（卡片边框会变成蓝色）
+        </div>
+        <div class="step">
+            <span class="step-number">2</span>
+            拖拽背景框，观察内部卡片同步移动
+        </div>
+        <div class="step">
+            <span class="step-number">3</span>
+            卡片会保持与背景框的相对位置关系
+        </div>
+
+        <h2>🔍 测试检查清单</h2>
+        <div class="test-checklist">
+            <div class="checklist-item">
+                <input type="checkbox" id="test1">
+                <label for="test1">背景框创建：框选区域 + 空格键</label>
+            </div>
+            <div class="checklist-item">
+                <input type="checkbox" id="test2">
+                <label for="test2">背景框选中：点击背景框，边框变粗</label>
+            </div>
+            <div class="checklist-item">
+                <input type="checkbox" id="test3">
+                <label for="test3">调整尺寸：拖拽右下角蓝色手柄</label>
+            </div>
+            <div class="checklist-item">
+                <input type="checkbox" id="test4">
+                <label for="test4">卡片添加：拖拽卡片到背景框内，绿色高亮</label>
+            </div>
+            <div class="checklist-item">
+                <input type="checkbox" id="test5">
+                <label for="test5">卡片移除：拖拽卡片出背景框，红色高亮</label>
+            </div>
+            <div class="checklist-item">
+                <input type="checkbox" id="test6">
+                <label for="test6">部分重叠：卡片部分在框内，橙色提示</label>
+            </div>
+            <div class="checklist-item">
+                <input type="checkbox" id="test7">
+                <label for="test7">同步移动：拖拽背景框，内部卡片跟随</label>
+            </div>
+            <div class="checklist-item">
+                <input type="checkbox" id="test8">
+                <label for="test8">视觉样式：框内卡片有蓝色边框和特殊样式</label>
+            </div>
+        </div>
+
+        <h2>⚠️ 注意事项</h2>
+        <div class="warning">
+            <strong>重要提示：</strong>
+            <ul>
+                <li>卡片必须完全在背景框内才会被关联</li>
+                <li>部分重叠的卡片不会自动关联，需要完全拖入</li>
+                <li>背景框最小尺寸为100×100像素</li>
+                <li>调整背景框尺寸时，内部卡片相对位置保持不变</li>
+                <li>删除背景框不会删除内部卡片，只会解除关联</li>
+            </ul>
+        </div>
+
+        <h2>🚀 开始测试</h2>
+        <div style="text-align: center;">
+            <a href="http://localhost:5182/" class="app-link" target="_blank">
+                🌐 打开白板应用进行测试
+            </a>
+        </div>
+
+        <div class="success">
+            <strong>测试成功标准：</strong>
+            <ul>
+                <li>✅ 背景框可以正常创建和调整尺寸</li>
+                <li>✅ 卡片拖拽到背景框内有清晰的视觉反馈</li>
+                <li>✅ 背景框内的卡片有特殊的视觉样式</li>
+                <li>✅ 拖动背景框时内部卡片完美同步移动</li>
+                <li>✅ 所有交互都有流畅的动画效果</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // 简单的检查清单交互
+        document.querySelectorAll('.checklist-item input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const item = this.closest('.checklist-item');
+                if (this.checked) {
+                    item.classList.add('checked');
+                } else {
+                    item.classList.remove('checked');
+                }
+            });
+        });
+
+        // 添加一些动画效果
+        document.querySelectorAll('.feature-card').forEach((card, index) => {
+            card.style.animationDelay = `${index * 0.1}s`;
+            card.style.animation = 'fadeInUp 0.6s ease forwards';
+        });
+
+        // 添加CSS动画
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeInUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(30px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html> 

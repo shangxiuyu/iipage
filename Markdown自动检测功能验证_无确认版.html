@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown自动检测功能验证 - 无确认版</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .input-section, .result-section {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .input-section h3, .result-section h3 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 2px solid #007AFF;
+            padding-bottom: 10px;
+        }
+        textarea {
+            width: 100%;
+            height: 200px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+        textarea:focus {
+            border-color: #007AFF;
+            outline: none;
+        }
+        .detection-result {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 10px;
+        }
+        .confidence-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff4757, #ffa726, #66bb6a, #42a5f5);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+        .status {
+            font-weight: bold;
+            padding: 5px 10px;
+            border-radius: 5px;
+            display: inline-block;
+            margin: 5px 0;
+        }
+        .status.detected {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.not-detected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .status.auto-switch {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        .features {
+            margin-top: 10px;
+        }
+        .feature-tag {
+            background: #007AFF;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin: 2px;
+            display: inline-block;
+        }
+        .examples {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .example-btn {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        .example-btn:hover {
+            background: #0056CC;
+        }
+        .workflow {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+        .step {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .step-number {
+            background: #007AFF;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        .highlight {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .icon {
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📝 Markdown自动检测功能验证</h1>
+        <p style="color: #666; margin: 10px 0;">无需确认对话框 - 自动切换版本</p>
+        <div class="highlight">
+            <strong>🎯 新功能特点：</strong>
+            <ul style="text-align: left; margin: 10px 0;">
+                <li>✅ 粘贴Markdown内容时自动识别</li>
+                <li>✅ 置信度 > 40% 时自动切换到Markdown模式</li>
+                <li>✅ 无需用户确认，直接应用内容</li>
+                <li>✅ 智能检测20+种Markdown语法特征</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <div class="input-section">
+            <h3>🔤 测试输入区域</h3>
+            <textarea id="testInput" placeholder="在这里粘贴或输入测试内容...&#10;&#10;试试粘贴一些Markdown格式的文本！"></textarea>
+            
+            <div class="examples">
+                <button class="example-btn" onclick="setExample('headers')">📰 标题示例</button>
+                <button class="example-btn" onclick="setExample('list')">📋 列表示例</button>
+                <button class="example-btn" onclick="setExample('code')">💻 代码示例</button>
+                <button class="example-btn" onclick="setExample('links')">🔗 链接示例</button>
+                <button class="example-btn" onclick="setExample('table')">📊 表格示例</button>
+                <button class="example-btn" onclick="setExample('complex')">🎯 复杂示例</button>
+                <button class="example-btn" onclick="setExample('plain')">📄 纯文本</button>
+            </div>
+        </div>
+
+        <div class="result-section">
+            <h3>🔍 检测结果</h3>
+            <div class="detection-result">
+                <div id="detectionStatus" class="status not-detected">等待输入...</div>
+                <div>置信度: <span id="confidenceText">0%</span></div>
+                <div class="confidence-bar">
+                    <div id="confidenceFill" class="confidence-fill" style="width: 0%"></div>
+                </div>
+                <div id="autoSwitchIndicator" style="display: none;">
+                    <div class="status auto-switch">🚀 将自动切换到Markdown模式</div>
+                </div>
+                <div class="features">
+                    <strong>检测到的特征:</strong>
+                    <div id="featuresContainer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="workflow">
+        <h3>🔄 白板应用中的实际工作流程</h3>
+        <div class="step">
+            <div class="step-number">1</div>
+            <div>新建一个卡片，双击进入编辑模式</div>
+        </div>
+        <div class="step">
+            <div class="step-number">2</div>
+            <div>复制Markdown格式的文本（如上方示例）</div>
+        </div>
+        <div class="step">
+            <div class="step-number">3</div>
+            <div>粘贴到卡片中 (Ctrl+V 或 Cmd+V)</div>
+        </div>
+        <div class="step">
+            <div class="step-number">4</div>
+            <div><strong>🎯 自动检测并切换</strong> - 系统自动识别Markdown格式并切换到Markdown模式</div>
+        </div>
+        <div class="step">
+            <div class="step-number">5</div>
+            <div>内容自动渲染为格式化的Markdown显示</div>
+        </div>
+    </div>
+
+    <script>
+        // 这里是我们在实际应用中使用的Markdown检测算法
+        function detectMarkdown(text) {
+            if (!text || text.length < 10) {
+                return { isMarkdown: false, confidence: 0, features: [] };
+            }
+
+            let features = [];
+            let score = 0;
+
+            // 标题检测 (#, ##, ###)
+            if (/^#{1,6}\s+.+$/m.test(text)) {
+                features.push('标题');
+                score += 1;
+            }
+
+            // 代码块检测 (```, ~~~)
+            if (/^```[\s\S]*?```/m.test(text) || /^~~~[\s\S]*?~~~/m.test(text)) {
+                features.push('代码块');
+                score += 1;
+            }
+
+            // 行内代码检测 (`code`)
+            if (/`[^`\n]+`/.test(text)) {
+                features.push('行内代码');
+                score += 0.5;
+            }
+
+            // 粗体/斜体检测 (**text**, *text*)
+            if (/\*\*[^*\n]+\*\*/.test(text) || /__[^_\n]+__/.test(text)) {
+                features.push('粗体');
+                score += 0.5;
+            }
+            if (/(?<!\*)\*[^*\n]+\*(?!\*)/.test(text) || /(?<!_)_[^_\n]+_(?!_)/.test(text)) {
+                features.push('斜体');
+                score += 0.5;
+            }
+
+            // 链接检测 ([text](url))
+            if (/\[([^\]]+)\]\(([^)]+)\)/.test(text)) {
+                features.push('链接');
+                score += 1;
+            }
+
+            // 图片检测 (![alt](url))
+            if (/!\[([^\]]*)\]\(([^)]+)\)/.test(text)) {
+                features.push('图片');
+                score += 1;
+            }
+
+            // 无序列表检测 (-, *, +)
+            if (/^[\s]*[-*+]\s+.+$/m.test(text)) {
+                features.push('无序列表');
+                score += 1;
+            }
+
+            // 有序列表检测 (1., 2.)
+            if (/^[\s]*\d+\.\s+.+$/m.test(text)) {
+                features.push('有序列表');
+                score += 1;
+            }
+
+            // 引用检测 (> text)
+            if (/^>\s+.+$/m.test(text)) {
+                features.push('引用');
+                score += 0.5;
+            }
+
+            // 表格检测 (|col1|col2|)
+            if (/\|.+\|/.test(text) && /\|[\s]*:?-+:?[\s]*\|/.test(text)) {
+                features.push('表格');
+                score += 1;
+            }
+
+            // 删除线检测 (~~text~~)
+            if (/~~[^~\n]+~~/.test(text)) {
+                features.push('删除线');
+                score += 0.3;
+            }
+
+            // 任务列表检测 (- [ ], - [x])
+            if (/^[\s]*-\s+\[[x\s]\]\s+.+$/m.test(text)) {
+                features.push('任务列表');
+                score += 0.5;
+            }
+
+            // 水平线检测 (---, ***)
+            if (/^[\s]*[-*_]{3,}[\s]*$/m.test(text)) {
+                features.push('水平线');
+                score += 0.3;
+            }
+
+            // 特殊字符指示器检测
+            const indicators = ['```', '***', '**', '![', '](', '- [ ]', '- [x]'];
+            indicators.forEach(indicator => {
+                if (text.includes(indicator)) {
+                    score += 0.3;
+                }
+            });
+
+            // 空行分段检测
+            if (/\n\s*\n/.test(text)) {
+                features.push('段落分隔');
+                score += 0.2;
+            }
+
+            // 缩进格式检测
+            if (/^\s{2,}.+$/m.test(text)) {
+                features.push('缩进格式');
+                score += 0.2;
+            }
+
+            // 计算置信度 (0-1)
+            const confidence = Math.min(score / 5, 1);
+            const isMarkdown = confidence > 0.3;
+
+            return {
+                isMarkdown,
+                confidence,
+                features
+            };
+        }
+
+        function updateDetection() {
+            const text = document.getElementById('testInput').value;
+            const result = detectMarkdown(text);
+            
+            // 更新状态
+            const statusEl = document.getElementById('detectionStatus');
+            const confidenceTextEl = document.getElementById('confidenceText');
+            const confidenceFillEl = document.getElementById('confidenceFill');
+            const featuresEl = document.getElementById('featuresContainer');
+            const autoSwitchEl = document.getElementById('autoSwitchIndicator');
+            
+            // 设置状态
+            if (result.isMarkdown) {
+                statusEl.className = 'status detected';
+                statusEl.textContent = '✅ 检测到Markdown格式';
+            } else {
+                statusEl.className = 'status not-detected';
+                statusEl.textContent = '❌ 未检测到Markdown格式';
+            }
+            
+            // 设置置信度
+            const percentage = Math.round(result.confidence * 100);
+            confidenceTextEl.textContent = percentage + '%';
+            confidenceFillEl.style.width = percentage + '%';
+            
+            // 显示是否会自动切换
+            if (result.confidence > 0.4) {
+                autoSwitchEl.style.display = 'block';
+            } else {
+                autoSwitchEl.style.display = 'none';
+            }
+            
+            // 设置特征
+            featuresEl.innerHTML = '';
+            if (result.features.length > 0) {
+                result.features.forEach(feature => {
+                    const tag = document.createElement('span');
+                    tag.className = 'feature-tag';
+                    tag.textContent = feature;
+                    featuresEl.appendChild(tag);
+                });
+            } else {
+                featuresEl.innerHTML = '<span style="color: #666;">暂无检测到的特征</span>';
+            }
+        }
+
+        // 示例内容
+        const examples = {
+            headers: `# 这是一级标题
+## 这是二级标题
+### 这是三级标题
+
+这是一些普通的段落文本。`,
+
+            list: `## 购物清单
+
+- 苹果
+- 香蕉
+- 橙子
+
+### 待办事项
+
+1. 完成项目报告
+2. 发送邮件给客户
+3. 准备明天的会议
+
+- [ ] 未完成的任务
+- [x] 已完成的任务`,
+
+            code: `## 代码示例
+
+这是一个JavaScript函数：
+
+\`\`\`javascript
+function greet(name) {
+    console.log(\`Hello, \${name}!\`);
+    return \`Hello, \${name}!\`;
+}
+\`\`\`
+
+还有一些行内代码：\`console.log('Hello')\``,
+
+            links: `## 链接和图片
+
+这是一个[链接到Google](https://google.com)。
+
+这是一张图片：
+![示例图片](https://via.placeholder.com/150)
+
+**粗体文本** 和 *斜体文本*`,
+
+            table: `## 数据表格
+
+| 姓名 | 年龄 | 职业 |
+|------|------|------|
+| 张三 | 25   | 工程师 |
+| 李四 | 30   | 设计师 |
+| 王五 | 28   | 产品经理 |
+
+> 这是一个引用文本。
+> 可以包含多行内容。`,
+
+            complex: `# 综合示例文档
+
+## 简介
+
+这是一个包含**多种Markdown格式**的*综合示例*。
+
+### 代码块
+\`\`\`python
+def hello_world():
+    print("Hello, World!")
+    return True
+\`\`\`
+
+### 列表和任务
+- 项目A
+  - 子项目A1
+  - 子项目A2
+- 项目B
+
+任务列表：
+- [x] 完成设计
+- [ ] 开发功能
+- [ ] 测试验证
+
+### 表格
+| 功能 | 状态 | 进度 |
+|------|------|------|
+| 登录 | ✅ 完成 | 100% |
+| 注册 | 🔄 进行中 | 80% |
+
+### 其他格式
+> 重要提示：请仔细阅读文档
+
+删除线：~~这是错误的信息~~
+
+---
+
+**结论**：这是一个标准的Markdown文档。`,
+
+            plain: `这是一段普通的文本内容，没有任何特殊的格式。
+只是一些正常的句子和段落。
+不包含任何Markdown特定的语法标记。
+
+这里有一些数字 123 和符号 !@#$%，但它们不构成Markdown格式。`
+        };
+
+        function setExample(type) {
+            document.getElementById('testInput').value = examples[type];
+            updateDetection();
+        }
+
+        // 绑定输入事件
+        document.getElementById('testInput').addEventListener('input', updateDetection);
+
+        // 初始化
+        updateDetection();
+    </script>
+</body>
+</html> 

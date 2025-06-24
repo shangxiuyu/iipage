@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>取消分享功能调试工具</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        
+        .section h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background: #2980b9;
+        }
+        
+        button:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+        
+        .danger {
+            background: #e74c3c;
+        }
+        
+        .danger:hover {
+            background: #c0392b;
+        }
+        
+        .warning {
+            background: #f39c12;
+        }
+        
+        .warning:hover {
+            background: #d68910;
+        }
+        
+        .success {
+            background: #27ae60;
+        }
+        
+        .success:hover {
+            background: #229954;
+        }
+        
+        .log {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 10px;
+            white-space: pre-wrap;
+        }
+        
+        .status {
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-weight: 500;
+        }
+        
+        .status.success {
+            background: #d5f4e6;
+            color: #27ae60;
+            border: 1px solid #27ae60;
+        }
+        
+        .status.error {
+            background: #fdeaea;
+            color: #e74c3c;
+            border: 1px solid #e74c3c;
+        }
+        
+        .status.warning {
+            background: #fcf3cf;
+            color: #f39c12;
+            border: 1px solid #f39c12;
+        }
+        
+        .input-group {
+            margin: 10px 0;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        
+        .input-group input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 取消分享功能调试工具</h1>
+        <p>这个工具可以帮助您测试和调试白板应用的取消分享功能，包括云端删除验证和错误处理。</p>
+    </div>
+
+    <div class="grid">
+        <div class="container">
+            <div class="section">
+                <h3>🌐 OSS连接测试</h3>
+                <p>验证阿里云OSS连接状态和配置</p>
+                <button onclick="testOSSConnection()">测试OSS连接</button>
+                <button onclick="checkCORSConfig()" class="warning">检查CORS配置</button>
+                <div id="connectionStatus"></div>
+                <div id="connectionLog" class="log"></div>
+            </div>
+
+            <div class="section">
+                <h3>📁 文件存在性检查</h3>
+                <p>检查指定白板文件是否存在于云端</p>
+                <div class="input-group">
+                    <label for="boardIdInput">白板ID:</label>
+                    <input type="text" id="boardIdInput" placeholder="输入白板ID (如: current)" value="current">
+                </div>
+                <button onclick="checkFileExists()">检查文件存在</button>
+                <button onclick="listAllFiles()" class="success">列出所有文件</button>
+                <div id="fileStatus"></div>
+                <div id="fileLog" class="log"></div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="section">
+                <h3>🗑️ 删除操作测试</h3>
+                <p>测试删除功能（谨慎使用！）</p>
+                <div class="input-group">
+                    <label for="deleteIdInput">要删除的白板ID:</label>
+                    <input type="text" id="deleteIdInput" placeholder="输入白板ID">
+                </div>
+                <button onclick="testDelete()" class="danger">⚠️ 执行删除测试</button>
+                <button onclick="verifyDeletion()" class="warning">验证删除结果</button>
+                <div id="deleteStatus"></div>
+                <div id="deleteLog" class="log"></div>
+            </div>
+
+            <div class="section">
+                <h3>🔄 完整流程测试</h3>
+                <p>模拟完整的取消分享流程</p>
+                <button onclick="runFullTest()" class="success">运行完整测试</button>
+                <button onclick="clearTestData()" class="warning">清理测试数据</button>
+                <div id="fullTestStatus"></div>
+                <div id="fullTestLog" class="log"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="section">
+            <h3>📊 本地存储状态</h3>
+            <p>检查本地白板数据的分享状态</p>
+            <button onclick="checkLocalSharing()">检查本地分享状态</button>
+            <button onclick="clearLocalShareIds()" class="danger">清除所有本地shareId</button>
+            <div id="localStatus"></div>
+            <div id="localLog" class="log"></div>
+        </div>
+    </div>
+
+    <script>
+        // 阿里云OSS配置
+        const ossConfig = {
+            region: 'oss-cn-beijing',
+            accessKeyId: 'LTAI5tD7o7vJupkYdpGf5iPS', 
+            accessKeySecret: 'SX0WOhS619Xf3wqpMsk6zWWlZPxdTp',
+            bucket: 'my-whiteboard-images'
+        };
+
+        let ossClient = null;
+
+        // 初始化OSS客户端
+        function initOSS() {
+            if (window.OSS) {
+                ossClient = new OSS({
+                    region: ossConfig.region,
+                    accessKeyId: ossConfig.accessKeyId,
+                    accessKeySecret: ossConfig.accessKeySecret,
+                    bucket: ossConfig.bucket,
+                    secure: true
+                });
+                return true;
+            }
+            return false;
+        }
+
+        // 日志输出函数
+        function log(elementId, message, type = 'info') {
+            const logElement = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : type === 'warning' ? '⚠️' : 'ℹ️';
+            logElement.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function setStatus(elementId, message, type = 'info') {
+            const statusElement = document.getElementById(elementId);
+            statusElement.className = `status ${type}`;
+            statusElement.textContent = message;
+        }
+
+        // 测试OSS连接
+        async function testOSSConnection() {
+            log('connectionLog', '开始测试OSS连接...', 'info');
+            
+            if (!initOSS()) {
+                setStatus('connectionStatus', '错误：阿里云OSS SDK未加载', 'error');
+                log('connectionLog', '请确保已加载ali-oss SDK', 'error');
+                return;
+            }
+
+            try {
+                // 测试列出文件
+                const result = await ossClient.list({
+                    prefix: 'test/',
+                    'max-keys': 1
+                });
+                
+                setStatus('connectionStatus', '✅ OSS连接成功', 'success');
+                log('connectionLog', `连接成功，当前bucket: ${ossConfig.bucket}`, 'success');
+                log('connectionLog', `区域: ${ossConfig.region}`, 'info');
+                
+            } catch (error) {
+                setStatus('connectionStatus', '❌ OSS连接失败', 'error');
+                log('connectionLog', `连接失败: ${error.message}`, 'error');
+                
+                if (error.message.includes('CORS')) {
+                    log('connectionLog', '发现CORS错误，请配置OSS跨域规则', 'warning');
+                }
+            }
+        }
+
+        // 检查CORS配置
+        async function checkCORSConfig() {
+            log('connectionLog', '检查CORS配置...', 'info');
+            
+            try {
+                const testUrl = `https://${ossConfig.bucket}.${ossConfig.region}.aliyuncs.com/test-cors.txt`;
+                
+                const response = await fetch(testUrl, {
+                    method: 'HEAD',
+                    mode: 'cors'
+                });
+                
+                log('connectionLog', 'CORS预检查通过', 'success');
+                
+            } catch (error) {
+                if (error.message.includes('CORS')) {
+                    log('connectionLog', '❌ CORS配置有问题，需要在OSS控制台配置', 'error');
+                    log('connectionLog', '请配置允许的Method: GET, POST, PUT, DELETE, HEAD', 'warning');
+                    log('connectionLog', '请配置允许的Origin: *或http://localhost:5173', 'warning');
+                    log('connectionLog', '请配置允许的Header: *', 'warning');
+                } else {
+                    log('connectionLog', `CORS检查失败: ${error.message}`, 'error');
+                }
+            }
+        }
+
+        // 检查文件是否存在
+        async function checkFileExists() {
+            const boardId = document.getElementById('boardIdInput').value.trim();
+            if (!boardId) {
+                setStatus('fileStatus', '请输入白板ID', 'warning');
+                return;
+            }
+
+            if (!initOSS()) {
+                setStatus('fileStatus', 'OSS客户端未初始化', 'error');
+                return;
+            }
+
+            log('fileLog', `检查文件是否存在: whiteboards/${boardId}.json`, 'info');
+
+            try {
+                const key = `whiteboards/${boardId}.json`;
+                await ossClient.head(key);
+                
+                setStatus('fileStatus', `✅ 文件存在: ${boardId}`, 'success');
+                log('fileLog', `文件存在: ${key}`, 'success');
+                
+            } catch (error) {
+                if (error.code === 'NoSuchKey') {
+                    setStatus('fileStatus', `ℹ️ 文件不存在: ${boardId}`, 'warning');
+                    log('fileLog', `文件不存在: whiteboards/${boardId}.json`, 'warning');
+                } else {
+                    setStatus('fileStatus', `❌ 检查失败: ${error.message}`, 'error');
+                    log('fileLog', `检查失败: ${error.message}`, 'error');
+                }
+            }
+        }
+
+        // 列出所有文件
+        async function listAllFiles() {
+            if (!initOSS()) {
+                setStatus('fileStatus', 'OSS客户端未初始化', 'error');
+                return;
+            }
+
+            log('fileLog', '列出所有白板文件...', 'info');
+
+            try {
+                const result = await ossClient.list({
+                    prefix: 'whiteboards/',
+                    'max-keys': 100
+                });
+
+                if (result.objects && result.objects.length > 0) {
+                    setStatus('fileStatus', `找到 ${result.objects.length} 个文件`, 'success');
+                    
+                    result.objects.forEach(obj => {
+                        if (obj.name.endsWith('.json')) {
+                            const boardId = obj.name.replace('whiteboards/', '').replace('.json', '');
+                            log('fileLog', `📄 ${boardId} (${obj.size}字节, ${new Date(obj.lastModified).toLocaleString()})`, 'info');
+                        }
+                    });
+                } else {
+                    setStatus('fileStatus', 'ℹ️ 未找到任何白板文件', 'warning');
+                    log('fileLog', '白板目录为空', 'warning');
+                }
+                
+            } catch (error) {
+                setStatus('fileStatus', `❌ 列出文件失败: ${error.message}`, 'error');
+                log('fileLog', `列出文件失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 测试删除功能
+        async function testDelete() {
+            const boardId = document.getElementById('deleteIdInput').value.trim();
+            if (!boardId) {
+                setStatus('deleteStatus', '请输入要删除的白板ID', 'warning');
+                return;
+            }
+
+            if (!confirm(`确定要删除白板 "${boardId}" 吗？此操作不可撤销！`)) {
+                return;
+            }
+
+            if (!initOSS()) {
+                setStatus('deleteStatus', 'OSS客户端未初始化', 'error');
+                return;
+            }
+
+            log('deleteLog', `开始删除测试: ${boardId}`, 'info');
+
+            try {
+                const key = `whiteboards/${boardId}.json`;
+                
+                // 第一步：检查文件是否存在
+                try {
+                    await ossClient.head(key);
+                    log('deleteLog', '✅ 文件存在，可以删除', 'info');
+                } catch (error) {
+                    if (error.code === 'NoSuchKey') {
+                        setStatus('deleteStatus', `ℹ️ 文件不存在，无需删除`, 'warning');
+                        log('deleteLog', '文件不存在，删除操作视为成功', 'warning');
+                        return;
+                    }
+                }
+
+                // 第二步：执行删除
+                log('deleteLog', '正在执行删除操作...', 'info');
+                await ossClient.delete(key);
+                log('deleteLog', '✅ 删除操作执行完毕', 'success');
+
+                // 第三步：验证删除结果
+                try {
+                    await ossClient.head(key);
+                    setStatus('deleteStatus', '❌ 删除失败：文件仍然存在', 'error');
+                    log('deleteLog', '❌ 验证失败：文件仍然存在于云端', 'error');
+                } catch (error) {
+                    if (error.code === 'NoSuchKey') {
+                        setStatus('deleteStatus', '✅ 删除成功并已验证', 'success');
+                        log('deleteLog', '✅ 删除成功：文件已从云端移除', 'success');
+                    }
+                }
+
+            } catch (error) {
+                setStatus('deleteStatus', `❌ 删除失败: ${error.message}`, 'error');
+                log('deleteLog', `删除失败: ${error.message}`, 'error');
+
+                if (error.message.includes('CORS')) {
+                    log('deleteLog', '⚠️ CORS错误：需要配置OSS跨域规则允许DELETE请求', 'warning');
+                }
+            }
+        }
+
+        // 验证删除结果
+        async function verifyDeletion() {
+            const boardId = document.getElementById('deleteIdInput').value.trim();
+            if (!boardId) {
+                setStatus('deleteStatus', '请输入白板ID', 'warning');
+                return;
+            }
+
+            await checkFileExists();
+        }
+
+        // 运行完整测试
+        async function runFullTest() {
+            log('fullTestLog', '开始运行完整的取消分享流程测试...', 'info');
+            
+            const testBoardId = 'test_' + Date.now();
+            log('fullTestLog', `测试白板ID: ${testBoardId}`, 'info');
+
+            if (!initOSS()) {
+                setStatus('fullTestStatus', 'OSS客户端未初始化', 'error');
+                return;
+            }
+
+            try {
+                // 第一步：创建测试文件
+                log('fullTestLog', '步骤1: 创建测试文件...', 'info');
+                const testData = {
+                    id: testBoardId,
+                    title: '测试白板',
+                    nodes: [],
+                    connections: [],
+                    shareId: 'test_share_' + Date.now(),
+                    createdAt: new Date().toISOString()
+                };
+
+                const key = `whiteboards/${testBoardId}.json`;
+                const blob = new Blob([JSON.stringify(testData, null, 2)], { type: 'application/json' });
+                
+                await ossClient.put(key, blob);
+                log('fullTestLog', '✅ 测试文件创建成功', 'success');
+
+                // 第二步：验证文件存在
+                log('fullTestLog', '步骤2: 验证文件存在...', 'info');
+                await ossClient.head(key);
+                log('fullTestLog', '✅ 文件存在验证成功', 'success');
+
+                // 第三步：执行删除操作
+                log('fullTestLog', '步骤3: 执行删除操作...', 'info');
+                await ossClient.delete(key);
+                log('fullTestLog', '✅ 删除操作执行成功', 'success');
+
+                // 第四步：验证删除结果
+                log('fullTestLog', '步骤4: 验证删除结果...', 'info');
+                try {
+                    await ossClient.head(key);
+                    setStatus('fullTestStatus', '❌ 测试失败：删除后文件仍存在', 'error');
+                    log('fullTestLog', '❌ 删除验证失败：文件仍然存在', 'error');
+                } catch (error) {
+                    if (error.code === 'NoSuchKey') {
+                        setStatus('fullTestStatus', '✅ 完整测试通过', 'success');
+                        log('fullTestLog', '✅ 所有步骤完成：取消分享功能正常', 'success');
+                    }
+                }
+
+            } catch (error) {
+                setStatus('fullTestStatus', `❌ 测试失败: ${error.message}`, 'error');
+                log('fullTestLog', `测试失败: ${error.message}`, 'error');
+
+                if (error.message.includes('CORS')) {
+                    log('fullTestLog', '💡 建议：请检查OSS CORS配置', 'warning');
+                }
+            }
+        }
+
+        // 清理测试数据
+        async function clearTestData() {
+            if (!initOSS()) {
+                setStatus('fullTestStatus', 'OSS客户端未初始化', 'error');
+                return;
+            }
+
+            log('fullTestLog', '清理测试数据...', 'info');
+
+            try {
+                const result = await ossClient.list({
+                    prefix: 'whiteboards/test_',
+                    'max-keys': 100
+                });
+
+                if (result.objects && result.objects.length > 0) {
+                    for (const obj of result.objects) {
+                        await ossClient.delete(obj.name);
+                        log('fullTestLog', `已删除: ${obj.name}`, 'info');
+                    }
+                    setStatus('fullTestStatus', `✅ 已清理 ${result.objects.length} 个测试文件`, 'success');
+                } else {
+                    setStatus('fullTestStatus', 'ℹ️ 未找到测试文件', 'warning');
+                }
+
+            } catch (error) {
+                setStatus('fullTestStatus', `❌ 清理失败: ${error.message}`, 'error');
+                log('fullTestLog', `清理失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 检查本地分享状态
+        function checkLocalSharing() {
+            log('localLog', '检查本地存储中的分享状态...', 'info');
+            
+            const shareBoards = [];
+            let totalBoards = 0;
+
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith('whiteboard-data-')) {
+                    totalBoards++;
+                    try {
+                        const data = JSON.parse(localStorage.getItem(key));
+                        const boardId = key.replace('whiteboard-data-', '');
+                        
+                        if (data.shareId) {
+                            shareBoards.push({
+                                id: boardId,
+                                title: data.title || '未命名白板',
+                                shareId: data.shareId
+                            });
+                            log('localLog', `📤 ${boardId}: ${data.title || '未命名'} (shareId: ${data.shareId})`, 'info');
+                        } else {
+                            log('localLog', `📋 ${boardId}: ${data.title || '未命名'} (未分享)`, 'info');
+                        }
+                    } catch (error) {
+                        log('localLog', `❌ 解析失败: ${key}`, 'error');
+                    }
+                }
+            });
+
+            if (shareBoards.length > 0) {
+                setStatus('localStatus', `找到 ${shareBoards.length}/${totalBoards} 个已分享白板`, 'warning');
+            } else {
+                setStatus('localStatus', `✅ ${totalBoards} 个白板均未分享`, 'success');
+            }
+        }
+
+        // 清除所有本地shareId
+        function clearLocalShareIds() {
+            if (!confirm('确定要清除所有本地分享标记吗？这将影响分享状态显示。')) {
+                return;
+            }
+
+            log('localLog', '清除所有本地shareId...', 'info');
+            
+            let clearedCount = 0;
+
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith('whiteboard-data-')) {
+                    try {
+                        const data = JSON.parse(localStorage.getItem(key));
+                        if (data.shareId) {
+                            delete data.shareId;
+                            localStorage.setItem(key, JSON.stringify(data));
+                            clearedCount++;
+                            log('localLog', `🧹 已清除: ${key}`, 'info');
+                        }
+                    } catch (error) {
+                        log('localLog', `❌ 处理失败: ${key}`, 'error');
+                    }
+                }
+            });
+
+            if (clearedCount > 0) {
+                setStatus('localStatus', `✅ 已清除 ${clearedCount} 个分享标记`, 'success');
+            } else {
+                setStatus('localStatus', 'ℹ️ 未找到需要清除的分享标记', 'warning');
+            }
+        }
+
+        // 页面加载时的初始化
+        window.onload = function() {
+            log('connectionLog', '取消分享功能调试工具已加载', 'info');
+            
+            // 检查是否有ali-oss SDK
+            if (!window.OSS) {
+                log('connectionLog', '⚠️ 注意：未检测到ali-oss SDK，正在尝试加载...', 'warning');
+            }
+        };
+    </script>
+
+    <!-- 动态加载阿里云OSS SDK -->
+    <script>
+        // 尝试动态加载OSS SDK
+        if (!window.OSS) {
+            const script = document.createElement('script');
+            script.src = 'https://gosspublic.alicdn.com/aliyun-oss-sdk-6.17.1.min.js';
+            script.onload = function() {
+                console.log('✅ 阿里云OSS SDK加载成功');
+                log('connectionLog', '✅ OSS SDK已加载，可以开始测试', 'success');
+            };
+            script.onerror = function() {
+                console.error('❌ 阿里云OSS SDK加载失败');
+                log('connectionLog', '❌ OSS SDK加载失败，请检查网络连接', 'error');
+            };
+            document.head.appendChild(script);
+        }
+    </script>
+</body>
+</html> 

@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>白板存储实时监控器</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #ffffff;
+        }
+        .container {
+            background: #2d2d2d;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #00ff88;
+            border-bottom: 2px solid #00ff88;
+            padding-bottom: 10px;
+        }
+        .monitor-section {
+            margin: 20px 0;
+            padding: 16px;
+            background: #3a3a3a;
+            border-radius: 8px;
+            border-left: 4px solid #00ff88;
+        }
+        .log-container {
+            height: 300px;
+            overflow-y: auto;
+            background: #1a1a1a;
+            border: 1px solid #555;
+            border-radius: 4px;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        .log-entry {
+            margin: 4px 0;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        .log-entry.read {
+            background: #001a33;
+            color: #66ccff;
+        }
+        .log-entry.write {
+            background: #1a3300;
+            color: #88ff66;
+        }
+        .log-entry.delete {
+            background: #330000;
+            color: #ff6666;
+        }
+        .log-entry.conflict {
+            background: #331100;
+            color: #ffaa00;
+            font-weight: bold;
+        }
+        .controls {
+            display: flex;
+            gap: 12px;
+            margin: 16px 0;
+        }
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            background: #007AFF;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button.danger {
+            background: #ff3b30;
+        }
+        button.danger:hover {
+            background: #d70015;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-indicator.active {
+            background: #00ff88;
+            box-shadow: 0 0 6px #00ff88;
+        }
+        .status-indicator.inactive {
+            background: #666;
+        }
+        .data-preview {
+            background: #1a1a1a;
+            border: 1px solid #555;
+            border-radius: 4px;
+            padding: 12px;
+            margin-top: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .storage-key {
+            color: #ffaa00;
+            font-weight: bold;
+        }
+        .timestamp {
+            color: #888;
+            font-size: 11px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 白板存储实时监控器</h1>
+        
+        <div class="monitor-section">
+            <h3>
+                <span class="status-indicator" id="monitorStatus"></span>
+                监控状态
+            </h3>
+            <div class="controls">
+                <button onclick="startMonitoring()">开始监控</button>
+                <button onclick="stopMonitoring()">停止监控</button>
+                <button onclick="clearLogs()">清空日志</button>
+                <button onclick="checkConflicts()" class="danger">检查冲突</button>
+                <button onclick="exportLogs()">导出日志</button>
+            </div>
+        </div>
+
+        <div class="monitor-section">
+            <h3>📋 实时操作日志</h3>
+            <div class="log-container" id="logContainer">
+                <div class="log-entry">等待监控开始...</div>
+            </div>
+        </div>
+
+        <div class="monitor-section">
+            <h3>💾 当前存储状态</h3>
+            <button onclick="refreshStorageState()">刷新存储状态</button>
+            <div class="data-preview" id="storageState">
+                点击"刷新存储状态"查看当前所有白板数据...
+            </div>
+        </div>
+
+        <div class="monitor-section">
+            <h3>⚠️ 冲突检测结果</h3>
+            <div class="data-preview" id="conflictResults">
+                点击"检查冲突"开始检测...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isMonitoring = false;
+        let originalSetItem = localStorage.setItem;
+        let originalGetItem = localStorage.getItem;
+        let originalRemoveItem = localStorage.removeItem;
+        let logEntries = [];
+
+        // 更新监控状态指示器
+        function updateMonitorStatus() {
+            const indicator = document.getElementById('monitorStatus');
+            if (isMonitoring) {
+                indicator.className = 'status-indicator active';
+            } else {
+                indicator.className = 'status-indicator inactive';
+            }
+        }
+
+        // 添加日志条目
+        function addLogEntry(type, key, value = null, extra = '') {
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = {
+                timestamp,
+                type,
+                key,
+                value,
+                extra
+            };
+            logEntries.push(entry);
+
+            const logContainer = document.getElementById('logContainer');
+            const logElement = document.createElement('div');
+            logElement.className = `log-entry ${type}`;
+            
+            let logText = `[${timestamp}] ${type.toUpperCase()}: ${key}`;
+            if (extra) logText += ` ${extra}`;
+            if (value && type === 'write') {
+                try {
+                    const data = JSON.parse(value);
+                    const nodeCount = data.nodes ? data.nodes.length : 0;
+                    logText += ` (${nodeCount} nodes)`;
+                } catch {}
+            }
+            
+            logElement.textContent = logText;
+            logContainer.appendChild(logElement);
+            logContainer.scrollTop = logContainer.scrollHeight;
+
+            // 检测冲突
+            if (key.startsWith('whiteboard-')) {
+                detectRealTimeConflict(key, type);
+            }
+        }
+
+        // 实时冲突检测
+        function detectRealTimeConflict(key, type) {
+            if (type === 'write') {
+                // 检查是否有多个写入操作在短时间内发生
+                const recentWrites = logEntries.filter(entry => 
+                    entry.key === key && 
+                    entry.type === 'write' && 
+                    Date.now() - new Date(entry.timestamp).getTime() < 1000
+                );
+                
+                if (recentWrites.length > 1) {
+                    addLogEntry('conflict', key, null, '检测到快速重复写入!');
+                }
+            }
+        }
+
+        // 开始监控
+        function startMonitoring() {
+            if (isMonitoring) return;
+            
+            isMonitoring = true;
+            updateMonitorStatus();
+            
+            // 拦截localStorage操作
+            localStorage.setItem = function(key, value) {
+                addLogEntry('write', key, value);
+                return originalSetItem.call(this, key, value);
+            };
+            
+            localStorage.getItem = function(key) {
+                const value = originalGetItem.call(this, key);
+                if (key.startsWith('whiteboard-')) {
+                    addLogEntry('read', key, value);
+                }
+                return value;
+            };
+            
+            localStorage.removeItem = function(key) {
+                addLogEntry('delete', key);
+                return originalRemoveItem.call(this, key);
+            };
+            
+            addLogEntry('write', 'SYSTEM', null, '监控已开始');
+        }
+
+        // 停止监控
+        function stopMonitoring() {
+            if (!isMonitoring) return;
+            
+            isMonitoring = false;
+            updateMonitorStatus();
+            
+            // 恢复原始函数
+            localStorage.setItem = originalSetItem;
+            localStorage.getItem = originalGetItem;
+            localStorage.removeItem = originalRemoveItem;
+            
+            addLogEntry('write', 'SYSTEM', null, '监控已停止');
+        }
+
+        // 清空日志
+        function clearLogs() {
+            logEntries = [];
+            document.getElementById('logContainer').innerHTML = '<div class="log-entry">日志已清空</div>';
+        }
+
+        // 刷新存储状态
+        function refreshStorageState() {
+            const storageState = document.getElementById('storageState');
+            let html = '';
+            
+            const allKeys = Object.keys(localStorage).filter(key => key.startsWith('whiteboard-'));
+            
+            if (allKeys.length === 0) {
+                html = '没有找到白板相关数据';
+            } else {
+                allKeys.forEach(key => {
+                    try {
+                        const value = localStorage.getItem(key);
+                        const data = JSON.parse(value);
+                        const nodeCount = data.nodes ? data.nodes.length : 0;
+                        const title = data.title || '未命名';
+                        const lastSaved = data.lastSavedAt || '未知';
+                        
+                        html += `<div>
+                            <span class="storage-key">${key}</span><br>
+                            标题: ${title} | 节点数: ${nodeCount} | 最后保存: ${lastSaved}
+                        </div><br>`;
+                    } catch (e) {
+                        html += `<div>
+                            <span class="storage-key">${key}</span><br>
+                            <span style="color: #ff6666;">数据解析错误: ${e.message}</span>
+                        </div><br>`;
+                    }
+                });
+            }
+            
+            storageState.innerHTML = html;
+        }
+
+        // 检查冲突
+        function checkConflicts() {
+            const results = document.getElementById('conflictResults');
+            let conflicts = [];
+            
+            // 检查重复的shareId
+            const shareIds = new Map();
+            const boardIds = [];
+            
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith('whiteboard-data-')) {
+                    const boardId = key.replace('whiteboard-data-', '');
+                    boardIds.push(boardId);
+                    
+                    try {
+                        const data = JSON.parse(localStorage.getItem(key));
+                        if (data.shareId) {
+                            if (shareIds.has(data.shareId)) {
+                                conflicts.push(`重复的shareId: ${data.shareId} (${shareIds.get(data.shareId)} 和 ${boardId})`);
+                            } else {
+                                shareIds.set(data.shareId, boardId);
+                            }
+                        }
+                    } catch {}
+                }
+            });
+            
+            // 检查persist存储冲突
+            const persistKeys = ['whiteboard-storage', 'whiteboard-current-board'];
+            persistKeys.forEach(key => {
+                if (localStorage.getItem(key)) {
+                    conflicts.push(`发现persist存储: ${key}`);
+                }
+            });
+            
+            // 检查是否有孤立的数据
+            const writeOperations = logEntries.filter(e => e.type === 'write' && e.key.startsWith('whiteboard-'));
+            const rapidWrites = {};
+            
+            writeOperations.forEach(op => {
+                if (!rapidWrites[op.key]) rapidWrites[op.key] = 0;
+                rapidWrites[op.key]++;
+            });
+            
+            Object.entries(rapidWrites).forEach(([key, count]) => {
+                if (count > 5) {
+                    conflicts.push(`频繁写入: ${key} (${count} 次)`);
+                }
+            });
+            
+            if (conflicts.length === 0) {
+                results.innerHTML = '<div style="color: #00ff88;">✅ 未发现冲突</div>';
+            } else {
+                results.innerHTML = conflicts.map(c => `<div style="color: #ffaa00;">⚠️ ${c}</div>`).join('');
+            }
+        }
+
+        // 导出日志
+        function exportLogs() {
+            const dataStr = JSON.stringify(logEntries, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `whiteboard-storage-logs-${Date.now()}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // 页面加载时初始化
+        window.addEventListener('load', () => {
+            updateMonitorStatus();
+            refreshStorageState();
+        });
+    </script>
+</body>
+</html> 

@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文字边距修复验证</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+            margin: 0;
+        }
+        
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #2563eb;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .test-section {
+            margin-bottom: 40px;
+            padding: 20px;
+            border: 2px dashed #e5e7eb;
+            border-radius: 8px;
+        }
+        
+        .test-title {
+            font-weight: bold;
+            color: #374151;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
+        .mock-card {
+            width: 200px;
+            height: 120px;
+            margin: 20px auto;
+            border: 2px dashed #000;
+            border-radius: 8px;
+            position: relative;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .mock-editor-old {
+            width: 100%;
+            height: 100%;
+            border: none;
+            outline: none;
+            resize: none;
+            padding: 8px; /* 旧的padding方式 */
+            box-sizing: border-box;
+            background: transparent;
+            font-family: inherit;
+            line-height: 1.5;
+        }
+        
+        .mock-editor-new {
+            width: 100%;
+            height: 100%;
+            border: none;
+            outline: none;
+            resize: none;
+            padding: 8px 20px 8px 8px; /* 新的padding方式：右边增加12px */
+            box-sizing: border-box;
+            background: transparent;
+            font-family: inherit;
+            line-height: 1.5;
+        }
+        
+        .comparison {
+            display: flex;
+            gap: 40px;
+            justify-content: center;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+        
+        .comparison-item {
+            text-align: center;
+        }
+        
+        .status {
+            margin-top: 10px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .status.problem {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+        
+        .status.fixed {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+        
+        .instructions {
+            background: #f3f4f6;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        
+        .instructions h3 {
+            margin-top: 0;
+            color: #374151;
+        }
+        
+        .instructions ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+        }
+        
+        .test-text {
+            color: #6b7280;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+        
+        .highlight {
+            background: #fef3c7;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔧 文字边距修复验证</h1>
+        
+        <div class="instructions">
+            <h3>📋 测试说明</h3>
+            <ul>
+                <li>下面展示了修复前后的对比效果</li>
+                <li>在文本框中输入较长文字，观察右边缘是否会被截断</li>
+                <li>修复前：文字可能紧贴右边缘，容易被截断</li>
+                <li>修复后：右边增加了 <span class="highlight">8px额外空间</span>，文字不会被截断</li>
+            </ul>
+        </div>
+        
+        <div class="test-section">
+            <div class="test-title">🔍 编辑状态文字边距对比测试</div>
+            
+            <div class="comparison">
+                <div class="comparison-item">
+                    <h4>修复前（padding: 8px）</h4>
+                    <div class="mock-card">
+                        <textarea 
+                            class="mock-editor-old" 
+                            placeholder="输入较长文字测试右边距..."
+                            value="这是一段比较长的文字内容，用来测试在编辑状态下是否会被右边缘截断问题！"
+                        ></textarea>
+                    </div>
+                    <div class="status problem">❌ 文字可能被截断</div>
+                    <div class="test-text">右边距不够，文字紧贴边缘</div>
+                </div>
+                
+                <div class="comparison-item">
+                    <h4>修复后（padding: 8px 20px 8px 8px）</h4>
+                    <div class="mock-card">
+                        <textarea 
+                            class="mock-editor-new" 
+                            placeholder="输入较长文字测试右边距..."
+                            value="这是一段比较长的文字内容，用来测试在编辑状态下是否会被右边缘截断问题！"
+                        ></textarea>
+                    </div>
+                    <div class="status fixed">✅ 文字完整显示</div>
+                    <div class="test-text">右边增加8px空间，文字不被截断</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <div class="test-title">🎯 实际修复内容</div>
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; font-family: monospace; font-size: 14px;">
+                <div style="color: #dc2626; margin-bottom: 10px;">
+                    <strong>修复前：</strong><br>
+                    padding: 8px
+                </div>
+                <div style="color: #16a34a; margin-bottom: 15px;">
+                    <strong>第一次修复（效果不够）：</strong><br>
+                    padding: '8px 16px 8px 8px' // 右边增加8px额外空间
+                </div>
+                <div style="color: #059669;">
+                    <strong>第二次修复（加强版）：</strong><br>
+                    padding: '8px 20px 8px 8px' // 右边增加12px额外空间<br><br>
+                    <strong>架构优化：</strong><br>
+                    - 将padding应用到RichTextEditor的外层容器<br>
+                    - Editable组件不再有padding，避免重复应用<br>
+                    - 确保padding真正生效到文字渲染层
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <div class="test-title">📝 测试步骤</div>
+            <ol style="padding-left: 20px;">
+                <li>在白板应用中创建一个新卡片</li>
+                <li>双击进入编辑状态</li>
+                <li>输入较长的文字内容</li>
+                <li>观察文字右边缘是否有足够的空间</li>
+                <li>尝试调整卡片大小，确认在各种尺寸下文字都不会被截断</li>
+                <li>测试正面和背面编辑状态</li>
+            </ol>
+        </div>
+        
+        <div class="test-section">
+            <div class="test-title">✨ 修复效果预期</div>
+            <ul style="padding-left: 20px;">
+                <li>✅ 编辑状态下文字右边有充足空间</li>
+                <li>✅ 文字不会被卡片右边缘截断</li>
+                <li>✅ 正面和背面编辑都有相同的修复</li>
+                <li>✅ 保持左边距不变，只增加右边距</li>
+                <li>✅ 不影响非编辑状态的显示</li>
+            </ul>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px; color: #6b7280;">
+            <p>🎉 文字边距修复完成！现在编辑卡片时文字不会被截断了。</p>
+        </div>
+    </div>
+
+    <script>
+        // 让文本框可以实时编辑，方便测试
+        document.querySelectorAll('textarea').forEach(textarea => {
+            textarea.addEventListener('input', function() {
+                // 实时更新文字，方便观察边距效果
+                console.log('文字内容:', this.value);
+            });
+        });
+        
+        // 添加一些测试文字建议
+        const testTexts = [
+            "这是一段比较长的文字内容，用来测试在编辑状态下是否会被右边缘截断问题！",
+            "Testing very long text that might be truncated at the right edge of the card!",
+            "很长很长很长很长很长很长很长很长很长很长的文字",
+            "1234567890abcdefghijklmnopqrstuvwxyz测试文字边距问题",
+            "边距修复测试：这段文字应该在右边有足够的空间不被截断"
+        ];
+        
+        let currentIndex = 0;
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                // 切换测试文字
+                currentIndex = (currentIndex + 1) % testTexts.length;
+                document.querySelectorAll('textarea').forEach(textarea => {
+                    textarea.value = testTexts[currentIndex];
+                });
+            }
+        });
+        
+        console.log('💡 提示：按Tab键可以切换不同的测试文字');
+    </script>
+</body>
+</html> 

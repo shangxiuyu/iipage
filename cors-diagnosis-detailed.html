@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 阿里云OSS CORS配置详细诊断工具</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .warning { background: #fff3cd; color: #856404; }
+        .info { background: #d1ecf1; color: #0c5460; }
+
+        .test-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 4px solid #007bff;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .config-example {
+            background: #f4f4f4;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: monospace;
+            border-left: 4px solid #28a745;
+            white-space: pre-wrap;
+        }
+
+        .step-guide {
+            background: #fffbf0;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 4px solid #ffc107;
+        }
+
+        .critical {
+            background: #ffebee;
+            border: 2px solid #f44336;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .headers-display {
+            background: #e8f5e8;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            border-left: 3px solid #4caf50;
+        }
+
+        .screenshot-guide {
+            background: #f0f8ff;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            border-left: 4px solid #2196f3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 阿里云OSS CORS配置详细诊断工具</h1>
+        
+        <div class="critical">
+            <h3>🚨 当前问题确认</h3>
+            <p><strong>错误信息：</strong><code>No 'Access-Control-Allow-Origin' header is present on the requested resource</code></p>
+            <p><strong>问题确认：</strong>✅ CORS配置确实没有生效</p>
+            <p><strong>当前域名：</strong><span id="currentDomain"></span></p>
+        </div>
+
+        <div class="test-section">
+            <h3>🔬 实时CORS状态检测</h3>
+            <button onclick="testCurrentCORS()">检测当前CORS状态</button>
+            <button onclick="testDELETEMethod()">专门测试DELETE方法</button>
+            <div id="corsTestResult"></div>
+        </div>
+
+        <div class="step-guide">
+            <h3>📋 正确的CORS配置</h3>
+            <p>请确保您在阿里云OSS控制台中的配置完全匹配以下内容：</p>
+            
+            <div class="config-example">来源(Origin): *
+方法(Method): GET, POST, PUT, DELETE, HEAD, OPTIONS
+允许Headers: *
+暴露Headers: ETag, x-oss-request-id
+缓存时间: 300</div>
+
+            <div class="critical">
+                <h4>⚠️ 重要检查点</h4>
+                <ul>
+                    <li><strong>存储桶选择</strong>：必须是 <code>my-whiteboard-images</code></li>
+                    <li><strong>方法必须包含</strong>：DELETE 和 OPTIONS</li>
+                    <li><strong>来源设置</strong>：* 或 http://localhost:5173,http://localhost:5174</li>
+                    <li><strong>保存确认</strong>：配置后必须点击"确定"保存</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="screenshot-guide">
+            <h3>📸 详细配置步骤截图指导</h3>
+            <p>请按照以下精确步骤重新配置：</p>
+            <ol>
+                <li><strong>登录阿里云控制台</strong>：<a href="https://oss.console.aliyun.com/" target="_blank">https://oss.console.aliyun.com/</a></li>
+                <li><strong>确认存储桶</strong>：必须选择 <code>my-whiteboard-images</code></li>
+                <li><strong>进入跨域设置</strong>：左侧菜单 → 数据管理 → 跨域设置</li>
+                <li><strong>创建新规则</strong>：点击"设置" → "创建规则"</li>
+                <li><strong>精确填写配置</strong>：按照上方的标准配置填写</li>
+                <li><strong>保存规则</strong>：点击"确定"并确认保存成功</li>
+                <li><strong>验证规则</strong>：在规则列表中看到新创建的规则</li>
+            </ol>
+        </div>
+
+        <div class="test-section">
+            <h3>🔧 配置验证</h3>
+            <button onclick="validateConfiguration()">验证配置是否生效</button>
+            <button onclick="testRealScenario()">测试真实删除场景</button>
+            <div id="validationResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🆘 如果配置仍然无效</h3>
+            <button onclick="showTroubleshooting()">显示故障排除方案</button>
+            <div id="troubleshootResult"></div>
+        </div>
+    </div>
+
+    <script>
+        const ossEndpoint = 'https://my-whiteboard-images.oss-cn-beijing.aliyuncs.com';
+        const currentOrigin = window.location.origin;
+        
+        // 显示当前域名
+        document.getElementById('currentDomain').textContent = currentOrigin;
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = `[${timestamp}] ${message}`;
+            return div;
+        }
+
+        async function testCurrentCORS() {
+            const resultDiv = document.getElementById('corsTestResult');
+            resultDiv.innerHTML = '';
+            
+            resultDiv.appendChild(log('🔍 开始检测CORS配置状态...'));
+            
+            // 测试OPTIONS预检请求
+            try {
+                const response = await fetch(`${ossEndpoint}/cors-test`, {
+                    method: 'OPTIONS',
+                    headers: {
+                        'Origin': currentOrigin,
+                        'Access-Control-Request-Method': 'DELETE',
+                        'Access-Control-Request-Headers': 'content-type'
+                    }
+                });
+                
+                const allowOrigin = response.headers.get('Access-Control-Allow-Origin');
+                const allowMethods = response.headers.get('Access-Control-Allow-Methods');
+                
+                if (allowOrigin) {
+                    resultDiv.appendChild(log(`✅ CORS配置已生效！允许来源: ${allowOrigin}`, 'success'));
+                    
+                    if (allowMethods && allowMethods.includes('DELETE')) {
+                        resultDiv.appendChild(log('✅ DELETE方法已允许', 'success'));
+                    } else {
+                        resultDiv.appendChild(log('❌ DELETE方法未允许', 'error'));
+                    }
+                } else {
+                    resultDiv.appendChild(log('❌ CORS配置未生效，缺少 Access-Control-Allow-Origin', 'error'));
+                }
+                
+            } catch (error) {
+                resultDiv.appendChild(log('❌ CORS测试失败: ' + error.message, 'error'));
+                resultDiv.appendChild(log('🔧 这确认CORS配置有问题，需要重新配置', 'warning'));
+            }
+        }
+
+        async function testDELETEMethod() {
+            const resultDiv = document.getElementById('corsTestResult');
+            
+            resultDiv.appendChild(log('🗑️ 专门测试DELETE方法...'));
+            
+            try {
+                // 先测试预检
+                const preflightResponse = await fetch(`${ossEndpoint}/delete-preflight-test`, {
+                    method: 'OPTIONS',
+                    headers: {
+                        'Origin': currentOrigin,
+                        'Access-Control-Request-Method': 'DELETE'
+                    }
+                });
+                
+                resultDiv.appendChild(log('✅ DELETE预检通过', 'success'));
+                
+                // 再测试实际DELETE
+                const deleteResponse = await fetch(`${ossEndpoint}/whiteboards/test-${Date.now()}.json`, {
+                    method: 'DELETE'
+                });
+                
+                resultDiv.appendChild(log('🎉 DELETE请求成功！CORS已修复', 'success'));
+                
+            } catch (error) {
+                resultDiv.appendChild(log('❌ DELETE测试失败: ' + error.message, 'error'));
+                
+                if (error.message.includes('CORS') || error.message.includes('Access-Control-Allow-Origin')) {
+                    resultDiv.appendChild(log('🚨 确认：这是CORS配置问题！', 'error'));
+                    resultDiv.appendChild(log('💡 请重新检查阿里云OSS控制台的CORS配置', 'warning'));
+                }
+            }
+        }
+
+        async function validateConfiguration() {
+            const resultDiv = document.getElementById('validationResult');
+            resultDiv.innerHTML = '';
+            
+            resultDiv.appendChild(log('🔍 验证CORS配置...'));
+            
+            // 测试多个方法
+            const methods = ['GET', 'PUT', 'DELETE'];
+            const results = {};
+            
+            for (const method of methods) {
+                try {
+                    const response = await fetch(`${ossEndpoint}/validate-${method.toLowerCase()}`, {
+                        method: method,
+                        mode: 'cors'
+                    });
+                    results[method] = { success: true };
+                    resultDiv.appendChild(log(`✅ ${method}: 成功`, 'success'));
+                } catch (error) {
+                    results[method] = { success: false, error: error.message };
+                    resultDiv.appendChild(log(`❌ ${method}: 失败`, 'error'));
+                }
+            }
+            
+            if (results.DELETE?.success) {
+                resultDiv.appendChild(log('🎊 验证完成！DELETE方法工作正常，取消分享功能已修复', 'success'));
+            } else {
+                resultDiv.appendChild(log('⚠️ DELETE方法仍有问题，需要重新配置CORS', 'warning'));
+            }
+        }
+
+        async function testRealScenario() {
+            const resultDiv = document.getElementById('validationResult');
+            
+            resultDiv.appendChild(log('🎭 模拟真实取消分享场景...'));
+            
+            const testId = 'cors-test-' + Date.now();
+            const testUrl = `${ossEndpoint}/whiteboards/${testId}.json`;
+            
+            try {
+                // 1. 创建测试文件
+                const createResponse = await fetch(testUrl, {
+                    method: 'PUT',
+                    body: JSON.stringify({ test: true, timestamp: Date.now() }),
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                if (createResponse.ok) {
+                    resultDiv.appendChild(log('1️⃣ 创建测试文件成功', 'success'));
+                    
+                    // 2. 删除测试文件
+                    const deleteResponse = await fetch(testUrl, {
+                        method: 'DELETE'
+                    });
+                    
+                    if (deleteResponse.ok || deleteResponse.status === 204) {
+                        resultDiv.appendChild(log('2️⃣ 删除测试成功！', 'success'));
+                        resultDiv.appendChild(log('🎉 真实场景验证通过！取消分享功能正常', 'success'));
+                    } else {
+                        resultDiv.appendChild(log(`2️⃣ 删除失败，状态码: ${deleteResponse.status}`, 'error'));
+                    }
+                } else {
+                    resultDiv.appendChild(log('1️⃣ 创建测试文件失败', 'error'));
+                }
+                
+            } catch (error) {
+                resultDiv.appendChild(log('❌ 真实场景测试失败: ' + error.message, 'error'));
+                
+                if (error.message.includes('CORS')) {
+                    resultDiv.appendChild(log('🔧 确认是CORS问题，请重新配置', 'warning'));
+                }
+            }
+        }
+
+        function showTroubleshooting() {
+            const resultDiv = document.getElementById('troubleshootResult');
+            resultDiv.innerHTML = '';
+            
+            const solutions = document.createElement('div');
+            solutions.innerHTML = `
+                <div class="status warning">
+                    <h4>🔧 故障排除步骤</h4>
+                    
+                    <h5>步骤1: 重新配置CORS</h5>
+                    <ol>
+                        <li>登录阿里云OSS控制台</li>
+                        <li>确认选择存储桶：<strong>my-whiteboard-images</strong></li>
+                        <li>删除现有CORS规则（如果有）</li>
+                        <li>重新创建规则，使用以下配置：</li>
+                    </ol>
+                    
+                    <div style="background: #f0f0f0; padding: 10px; border-radius: 5px; font-family: monospace;">
+来源: *<br>
+方法: GET,POST,PUT,DELETE,HEAD,OPTIONS<br>
+允许Headers: *<br>
+暴露Headers: ETag,x-oss-request-id<br>
+缓存时间: 300
+                    </div>
+                    
+                    <h5>步骤2: 等待生效</h5>
+                    <ul>
+                        <li>保存配置后等待2-3分钟</li>
+                        <li>清除浏览器缓存</li>
+                        <li>使用无痕模式重新测试</li>
+                    </ul>
+                    
+                    <h5>步骤3: 临时解决方案</h5>
+                    <p>如果CORS仍然无法配置，可以修改应用逻辑：</p>
+                    <ul>
+                        <li>即使云端删除失败，也清理本地分享状态</li>
+                        <li>提示用户"本地分享已取消，云端数据稍后清理"</li>
+                    </ul>
+                </div>
+            `;
+            resultDiv.appendChild(solutions);
+            
+            // 添加快速复制按钮
+            const copyBtn = document.createElement('button');
+            copyBtn.textContent = '📋 复制CORS配置';
+                         copyBtn.onclick = function() {
+                 const config = `来源: *
+方法: GET,POST,PUT,DELETE,HEAD,OPTIONS
+允许Headers: *
+暴露Headers: ETag,x-oss-request-id
+缓存时间: 300`;
+                 
+                 navigator.clipboard.writeText(config).then(() => {
+                     alert('✅ CORS配置已复制！请粘贴到阿里云控制台');
+                 });
+             };
+            resultDiv.appendChild(copyBtn);
+        }
+
+        // 页面加载时自动开始检测
+        window.addEventListener('load', function() {
+            setTimeout(testCurrentCORS, 1000);
+        });
+    </script>
+</body>
+</html> 
