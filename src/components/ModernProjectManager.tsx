@@ -1270,13 +1270,12 @@ const ModernProjectManager: React.FC<ModernProjectManagerProps & { onShowAI?: ()
                   overflow: 'auto',
                   padding: '8px',
                 }}>
-                  <List
-                    height={400} // 可根据实际高度调整
-                    itemCount={filteredBoards.length}
-                    itemSize={56} // 单个白板项高度
-                    width={220}
-                  >
-                    {({ index, style }: { index: number; style: React.CSSProperties }) => {
+                  {React.createElement(List, {
+                    height: 400,
+                    itemCount: filteredBoards.length,
+                    itemSize: 56,
+                    width: 220,
+                    children: ({ index, style }: { index: number; style: React.CSSProperties }) => {
                       const board = filteredBoards[index];
                       return (
                         <div key={board.id} style={{ ...style, marginBottom: 4 }}>
@@ -1465,8 +1464,8 @@ const ModernProjectManager: React.FC<ModernProjectManagerProps & { onShowAI?: ()
                           </div>
                         </div>
                       );
-                    }}
-                  </List>
+                    }
+                  })}
 
                   {/* 空状态 */}
                   {filteredBoards.length === 0 && (

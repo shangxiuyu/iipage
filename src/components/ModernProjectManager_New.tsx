@@ -217,19 +217,17 @@ const ModernProjectManager: React.FC<ModernProjectManagerProps> = ({ isOpen, onC
   // 获取标签
   const getAllTags = (): Tag[] => {
     const tagMap = new Map<string, { count: number; color: string }>();
-    
     nodes.forEach(node => {
       const tags = extractTags(node.content);
       tags.forEach(tag => {
-        const existing = tagMap.get(tag.name);
+        const existing = tagMap.get(tag);
         if (existing) {
           existing.count++;
         } else {
-          tagMap.set(tag.name, { count: 1, color: tag.color });
+          tagMap.set(tag, { count: 1, color: '' }); // color 可后续补充
         }
       });
     });
-    
     return Array.from(tagMap.entries()).map(([name, data]) => ({
       id: name,
       name,
@@ -262,10 +260,9 @@ const ModernProjectManager: React.FC<ModernProjectManagerProps> = ({ isOpen, onC
   // 获取选中标签的节点
   const getSelectedTagNodes = () => {
     if (!selectedTagId) return nodes;
-    
     return nodes.filter(node => {
       const tags = extractTags(node.content);
-      return tags.some(tag => tag.name === selectedTagId);
+      return tags.includes(selectedTagId);
     });
   };
 
@@ -625,15 +622,10 @@ const ModernProjectManager: React.FC<ModernProjectManagerProps> = ({ isOpen, onC
                       <div className="flex flex-wrap gap-1">
                         {extractTags(node.content).slice(0, 3).map((tag) => (
                           <span
-                            key={tag.name}
-                            className="text-xs px-2 py-1 rounded-full"
-                            style={{ 
-                              backgroundColor: tag.color + '20', 
-                              color: tag.color,
-                              border: `1px solid ${tag.color}40`
-                            }}
+                            key={tag}
+                            className="text-xs px-2 py-1 rounded-full bg-gray-200 text-gray-700 border border-gray-300"
                           >
-                            #{tag.name}
+                            #{tag}
                           </span>
                         ))}
                       </div>

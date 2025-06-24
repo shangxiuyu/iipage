@@ -176,11 +176,11 @@ const ModernProjectManager: React.FC<ModernProjectManagerProps> = ({ isOpen, onC
     nodes.forEach(node => {
       const tags = extractTags(node.content);
       tags.forEach(tag => {
-        const existing = tagMap.get(tag.name);
+        const existing = tagMap.get(tag);
         if (existing) {
           existing.count++;
         } else {
-          tagMap.set(tag.name, { count: 1, color: tag.color });
+          tagMap.set(tag, { count: 1, color: '' });
         }
       });
     });
@@ -220,7 +220,7 @@ const ModernProjectManager: React.FC<ModernProjectManagerProps> = ({ isOpen, onC
     
     return nodes.filter(node => {
       const tags = extractTags(node.content);
-      return tags.some(tag => tag.name === selectedTagId);
+      return tags.includes(selectedTagId);
     });
   };
 
@@ -501,15 +501,10 @@ const ModernProjectManager: React.FC<ModernProjectManagerProps> = ({ isOpen, onC
                       <div className="flex flex-wrap gap-1">
                         {extractTags(node.content).slice(0, 3).map((tag) => (
                           <span
-                            key={tag.name}
+                            key={tag}
                             className="text-xs px-2 py-1 rounded-full"
-                            style={{ 
-                              backgroundColor: tag.color + '20', 
-                              color: tag.color,
-                              border: `1px solid ${tag.color}40`
-                            }}
                           >
-                            #{tag.name}
+                            #{tag}
                           </span>
                         ))}
                       </div>

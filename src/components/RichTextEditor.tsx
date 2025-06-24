@@ -7,7 +7,7 @@ import ReactDOM from 'react-dom';
 import { ThemeContext } from '../App';
 import type { BaseEditor } from 'slate';
 import type { ReactEditor as SlateReactEditor } from 'slate-react';
-import type { BaseElement } from 'slate';
+import type { BaseElement, BaseText } from 'slate';
 import WebPageRenderer from './WebPageRenderer';
 import { aliCloudStorage } from '../services/aliCloudStorageService';
 import { detectMarkdown, isLikelyMarkdown } from '../utils/markdownDetector';
@@ -676,7 +676,7 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
                   Transforms.select(editor, currentSelection);
                 }
                 
-                const imageNode = { type: 'image', url: imageUrl, children: [{ text: '' }] };
+                const imageNode = { type: 'image', url: imageUrl, children: [{ text: '' }] } as any;
                 Transforms.insertNodes(editor, [imageNode, { type: 'paragraph', children: [{ text: '' }] }]);
                 console.log(`✅ 图片插入完成!`);
               } catch (error) {
@@ -753,7 +753,7 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
                   Transforms.select(editor, currentSelection);
                 }
                 
-                const videoNode = { type: 'video', url: videoUrl, children: [{ text: '' }] };
+                const videoNode = { type: 'video', url: videoUrl, children: [{ text: '' }] } as any;
                 Transforms.insertNodes(editor, [videoNode, { type: 'paragraph', children: [{ text: '' }] }]);
                 console.log(`✅ 视频插入完成!`);
               } catch (error) {
@@ -790,23 +790,23 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
         case 'bulleted-list':
         case 'numbered-list':
         case 'todo-list':
-          newBlock = { type: cmd.type, children: [{ text: '' }] };
+          newBlock = { type: cmd.type, children: [{ text: '' }] } as any;
           break;
         case 'divider':
         case 'dashed-divider': {
-          newBlock = { type: cmd.type, children: [{ text: '' }] };
+          newBlock = { type: cmd.type, children: [{ text: '' }] } as any;
           // 4. 用新块替换当前 block
           Transforms.removeNodes(editor, { at: blockPath });
           Transforms.insertNodes(editor, newBlock, { at: blockPath });
           // 在分割线后插入空段落
           const nextPath = Path.next(blockPath);
-          Transforms.insertNodes(editor, { type: 'paragraph', children: [{ text: '' }] }, { at: nextPath });
+          Transforms.insertNodes(editor, { type: 'paragraph', children: [{ text: '' }] } as any, { at: nextPath });
           // 光标移动到新段落
           Transforms.select(editor, Editor.start(editor, nextPath));
           return;
         }
         default:
-          newBlock = { type: 'paragraph', children: [{ text: '' }] };
+          newBlock = { type: 'paragraph', children: [{ text: '' }] } as any;
       }
       // 4. 用新块替换当前 block
       if (newBlock) {
@@ -827,7 +827,7 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
     // 新增：暴露插入图片节点的方法
     const insertImage = useCallback((url: string) => {
       if (!editor) return;
-      const imageNode = { type: 'image', url, children: [{ text: '' }] };
+      const imageNode = { type: 'image', url, children: [{ text: '' }] } as any;
       Transforms.insertNodes(editor, [imageNode, { type: 'paragraph', children: [{ text: '' }] }]);
     }, [editor]);
 
@@ -1536,14 +1536,14 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
                         }
                       }
                       // 插入内联图标节点（作为image类型，但标记为icon）
-                      const iconNode = { type: 'image', url: icon.url, isIcon: true, children: [{ text: '' }] };
+                      const iconNode = { type: 'image', url: icon.url, isIcon: true, children: [{ text: '' }] } as any;
                       Transforms.insertNodes(editor, iconNode);
                       setShowIconPicker(false);
                       return;
                     }
                     ReactEditor.focus(editor as ReactEditor);
                     // 兜底：直接插入内联图标节点
-                    const iconNode = { type: 'image', url: icon.url, isIcon: true, children: [{ text: '' }] };
+                    const iconNode = { type: 'image', url: icon.url, isIcon: true, children: [{ text: '' }] } as any;
                     Transforms.insertNodes(editor, iconNode);
                     setShowIconPicker(false);
                   }}

@@ -11,7 +11,7 @@ import {
   usePerformanceMonitor,
   useVirtualization
 } from '../stores';
-import NodeCard from 'NodeCard';
+import NodeCard from './NodeCard';
 
 interface OptimizedCanvasProps {
   width: number;

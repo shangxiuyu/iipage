@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
+    // "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo", // 需配合 incremental/composite 使用，暂时注释
     "target": "ES2022",
     "lib": ["ES2023"],
     "module": "ESNext",
@@ -17,9 +17,9 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "erasableSyntaxOnly": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    // "erasableSyntaxOnly": true, // 非官方配置，已移除
+    "noFallthroughCasesInSwitch": true
+    // "noUncheckedSideEffectImports": true // 非官方配置，已移除
   },
   "include": ["vite.config.ts"]
 }

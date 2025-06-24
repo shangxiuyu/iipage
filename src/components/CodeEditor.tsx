@@ -159,10 +159,10 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
         }}>
           <span>{SUPPORTED_LANGUAGES.find(l => l.id === selectedLanguage)?.name || selectedLanguage}</span>
         </div>
-        <SyntaxHighlighter 
-          language={selectedLanguage} 
-          style={tomorrow}
-          customStyle={{
+        {React.createElement(SyntaxHighlighter, {
+          language: selectedLanguage,
+          style: tomorrow,
+          customStyle: {
             margin: 0,
             borderBottomLeftRadius: '4px',
             borderBottomRightRadius: '4px',
@@ -171,10 +171,8 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
             fontSize: '14px',
             padding: '12px',
             overflow: 'auto'
-          }}
-        >
-          {value || '// 空代码块'}
-        </SyntaxHighlighter>
+          }
+        }, value || '// 空代码块')}
       </div>
     );
   }
