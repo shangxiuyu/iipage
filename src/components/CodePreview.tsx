@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useContext } from 'react';
+//@ts-ignore: prismjs 没有完整的类型声明，忽略类型检查
 import Prism from 'prismjs';
 import 'prismjs/themes/prism.css';
 // 主流前端语言高亮支持
