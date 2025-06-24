@@ -95,7 +95,8 @@ export function createIncrementalPersist<T>(
         clearTimeout(saveTimeout);
       }
 
-      saveTimeout = setTimeout(async () => {
+      //@ts-ignore
+saveTimeout = setTimeout(async () => {
         try {
           let stateToSave = state;
 

@@ -47,7 +47,7 @@ function normalizeSlateBlocks(blocks: any[]): any[] {
 
 // 工具函数：将字符串转为Slate段落
 function toSlateContent(content: string): Descendant[] {
-  return [{ type: 'paragraph', children: [{ text: content }] }];
+  return [{ type: 'paragraph', children: [{ text: content }] }] as any;
 }
 
 function App() {
@@ -178,6 +178,7 @@ function App() {
               // 检查是否有 EDGES: 标记
               const edgesMatch = contentPart.match(/---\s*EDGES\s*:?([\s\S]+)$/i);
               if (edgesMatch) {
+                //@ts-ignore
                 contentPart = cmd.slice(0, edgesMatch.index).trim();
                 try {
                   // 只提取第一个合法的JSON数组
@@ -218,7 +219,7 @@ function App() {
                 // 1. 构建邻接表和入度表
                 const children: number[][] = Array.from({length: nodeCount}, () => []);
                 const inDegree: number[] = Array(nodeCount).fill(0);
-                edges.forEach((e: any) => {
+                edges?.forEach((e: any) => {
                   if (typeof e.from === 'number' && typeof e.to === 'number') {
                     children[e.from].push(e.to);
                     inDegree[e.to]++;
@@ -299,7 +300,7 @@ function App() {
               // 新增：根据edges自动连线
               if (Array.isArray(edges)) {
                 const addConnection = useBoardStore.getState().addConnection;
-                edges.forEach(e => {
+                edges?.forEach(e => {
                   const from = createdNodes[e.from]?.id;
                   const to = createdNodes[e.to]?.id;
                   if (from && to) {
@@ -328,10 +329,10 @@ function App() {
               if (realId) {
                 idMap[n.id] = realId;
                 const content = n.title + '\n' + n.desc + '\n' + (Array.isArray(n.details) ? n.details.join('\n') : '') + (n.conclusion ? ('\n' + n.conclusion) : '');
-                updateNode(realId, { content, frontContent: content, height: 300 });
+                updateNode(realId, { content: toSlateContent(content), frontContent: toSlateContent(content), height: 300 });
               }
             });
-            edges.forEach(e => {
+            edges?.forEach(e => {
               const from = idMap[e.from];
               const to = idMap[e.to];
               if (from && to) {

@@ -777,7 +777,7 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
       Transforms.delete(editor, { unit: 'character', reverse: true, distance: slashInput.length + 1 }); // +1 包含斜杠本身
       // 2. 获取当前 block
       const [blockEntry] = Editor.nodes(editor, {
-        match: n => Editor.isBlock(editor, n) && SlateElement.isElement(n),
+        match: (n: any) => Editor.isBlock(editor, n as any) && SlateElement.isElement(n),
       });
       if (!blockEntry) return;
       const [blockNode, blockPath] = blockEntry as [SlateElement, Path];
@@ -1040,7 +1040,7 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
           try {
             const { selection } = editorStatic;
             if (selection) {
-              const path = ReactEditor.findPath(editorStatic, element);
+              const path = ReactEditor.findPath(editorStatic as any, element);
               isSelected = Range.includes(selection, path);
             }
           } catch {}
@@ -1121,7 +1121,8 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
                   width: (imgElement.width || 320) + 'px',
                   height: 'auto',
                   margin: '8px auto',
-                  boxShadow: isSelected ? '0 0 0 2px #6366f1' : 'none',
+                  //@ts-ignore
+                 boxShadow: isSelected ? '0 0 0 2px #6366f1' : 'none',
                   borderRadius: 8,
                   background: '#fff',
                   transition: 'box-shadow 0.2s',
@@ -1156,7 +1157,7 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
           // 获取当前图片路径
           let imagePath;
           try {
-            imagePath = ReactEditor.findPath(editorStatic, element);
+            imagePath = ReactEditor.findPath(editorStatic as any, element);
           } catch {
             // 如果无法获取路径，使用简单的图片渲染
             const width = element.width || 320;
@@ -1169,7 +1170,8 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
                   position: 'relative',
                   width: width + 'px',
                   margin: '0 auto',
-                  boxShadow: isSelected ? '0 0 0 2px #6366f1' : 'none',
+                  //@ts-ignore
+                 boxShadow: isSelected ? '0 0 0 2px #6366f1' : 'none',
                   borderRadius: 8,
                   background: '#fff',
                   transition: 'box-shadow 0.2s',
@@ -1270,6 +1272,7 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
                  width: (videoElement.width || 320) + 'px',
                  height: 'auto',
                  margin: 0, // 🔥 移除margin避免空白
+                 //@ts-ignore
                  boxShadow: isSelected ? '0 0 0 2px #6366f1' : 'none',
                  borderRadius: 8,
                  background: '#fff',
@@ -1318,6 +1321,7 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
                  position: 'relative',
                  width: width + 'px',
                  margin: 0,
+                 //@ts-ignore
                  boxShadow: isSelected ? '0 0 0 2px #6366f1' : 'none',
                  borderRadius: 8,
                  background: '#fff',
@@ -1523,7 +1527,7 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
                     if (selection && Range.isCollapsed(selection)) {
                       // 自动查找并删除最近的 /命令
                       const { anchor } = selection;
-                      const blockEntry = Editor.above(editor, { match: n => Editor.isBlock(editor, n) });
+                      const blockEntry = Editor.above(editor, { match: (n: any) => Editor.isBlock(editor, n as any) });
                       if (blockEntry) {
                         const [blockNode, blockPath] = blockEntry;
                         const blockText = Editor.string(editor, blockPath);
@@ -1884,7 +1888,7 @@ function setBlockAlign(editor: BaseEditor & SlateReactEditor, align: 'left'|'cen
     editor,
     { align } as any,
     {
-      match: n => Editor.isBlock(editor, n) && SlateElement.isElement(n),
+      match: (n: any) => Editor.isBlock(editor, n as any) && SlateElement.isElement(n),
       split: true,
     }
   );
@@ -1928,7 +1932,7 @@ const HoveringToolbar = ({ editor }: HoveringToolbarProps) => {
   let currentAlign: 'left'|'center'|'right' = 'left';
   if (editor.selection) {
     const [block] = Editor.nodes(editor, {
-      match: n => Editor.isBlock(editor, n) && SlateElement.isElement(n),
+      match: (n: any) => Editor.isBlock(editor, n as any) && SlateElement.isElement(n),
     }) as any;
     if (block && (block[0] as any).align) {
       currentAlign = (block[0] as any).align;

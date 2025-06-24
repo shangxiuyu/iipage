@@ -159,7 +159,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
         }}>
           <span>{SUPPORTED_LANGUAGES.find(l => l.id === selectedLanguage)?.name || selectedLanguage}</span>
         </div>
-        {React.createElement(SyntaxHighlighter, {
+        {React.createElement(SyntaxHighlighter as any, {
           language: selectedLanguage,
           style: tomorrow,
           customStyle: {

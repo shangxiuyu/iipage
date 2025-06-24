@@ -26,7 +26,7 @@ const ProjectManager: React.FC<ProjectManagerProps> = ({ isOpen, onClose }) => {
     renameProject,
     duplicateProject,
     exportProject,
-  } = useBoardStore();
+  } = useBoardStore() as any;
 
   if (!isOpen) return null;
 
@@ -59,7 +59,7 @@ const ProjectManager: React.FC<ProjectManagerProps> = ({ isOpen, onClose }) => {
   };
 
   const handleRename = (projectId: string, newName: string) => {
-    if (newName.trim() && newName.trim() !== projectList.find(p => p.id === projectId)?.name) {
+    if (newName.trim() && newName.trim() !== projectList.find((p: any) => p.id === projectId)?.name) {
       renameProject(projectId, newName.trim());
       setRenamingProjectId(null);
       setRenameValue('');

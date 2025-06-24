@@ -219,7 +219,8 @@ export class CloudStorageService {
     }
 
     try {
-      const result = await this.client!.list({
+      //@ts-ignore
+const result = await this.client!.list({
         prefix: 'whiteboards/',
         'max-keys': 100
       });

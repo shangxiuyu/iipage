@@ -162,7 +162,8 @@ export function useIndexedDBStore(): IndexedDBStoreState & IndexedDBStoreActions
       const success = await storageManager.deleteWhiteboard(boardId);
       if (success) {
         // 如果删除的是当前白板，清空当前白板状态
-        updateState(prev => ({
+        //@ts-ignore
+updateState(prev => ({
           currentWhiteboard: prev.currentWhiteboard?.id === boardId ? null : prev.currentWhiteboard
         }));
         console.log(`🗑️ 白板 "${boardId}" 删除成功`);

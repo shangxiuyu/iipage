@@ -1707,10 +1707,10 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
                 // 如果点击位置在编辑器范围内，尝试设置光标位置
                 if (relativeX >= 0 && relativeX <= editorRect.width && 
                     relativeY >= 0 && relativeY <= editorRect.height) {
-                  // 使用document.caretPositionFromPoint或document.caretRangeFromPoint
+                  // 使用(document as any).caretPositionFromPoint或document.caretRangeFromPoint
                   let range = null;
-                  if (document.caretPositionFromPoint) {
-                    const caretPos = document.caretPositionFromPoint(pendingFocusPos.x, pendingFocusPos.y);
+                  if ((document as any).caretPositionFromPoint) {
+                    const caretPos = (document as any).caretPositionFromPoint(pendingFocusPos.x, pendingFocusPos.y);
                     if (caretPos) {
                       range = document.createRange();
                       range.setStart(caretPos.offsetNode, caretPos.offset);

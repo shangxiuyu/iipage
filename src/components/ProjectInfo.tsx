@@ -6,7 +6,7 @@ interface ProjectInfoProps {
 }
 
 const ProjectInfo: React.FC<ProjectInfoProps> = ({ isDarkMode }) => {
-  const { currentProjectName, nodes } = useBoardStore();
+  const { currentProjectName, nodes } = useBoardStore() as any;
 
   return (
     <div style={{

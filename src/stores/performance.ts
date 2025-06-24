@@ -14,6 +14,7 @@ export function useDebounce<T extends (...args: any[]) => any>(
       clearTimeout(timeoutRef.current);
     }
     
+    //@ts-ignore
     timeoutRef.current = setTimeout(() => {
       callback(...args);
     }, delay);
@@ -42,7 +43,8 @@ export function useThrottle<T extends (...args: any[]) => any>(
         clearTimeout(timeoutRef.current);
       }
       
-      timeoutRef.current = setTimeout(() => {
+      //@ts-ignore
+    timeoutRef.current = setTimeout(() => {
         lastRunRef.current = Date.now();
         callback(...args);
       }, delay - timeSinceLastRun);

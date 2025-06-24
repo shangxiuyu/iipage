@@ -342,7 +342,7 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
       
       // 检查是否靠近锚点
       const anchorPos = getAnchorPosition(draggingConnection.nodeId, nearestAnchor);
-      const distance = Math.sqrt(Math.pow(e.clientX - anchorPos.x, 2) + Math.pow(e.clientY - anchorPos.y, 2));
+      const distance = Math.sqrt(Math.pow(e.clientX - (anchorPos?.x ?? 0), 2) + Math.pow(e.clientY - (anchorPos?.y ?? 0), 2));
       const isNearAnchor = distance < 30; // 30像素内算靠近
 
       // 更新拖拽状态
@@ -879,8 +879,8 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
               return (
                 <circle
                   key={`anchor-${anchor}`}
-                  cx={anchorPos.x}
-                  cy={anchorPos.y}
+                  cx={anchorPos?.x || 0}
+                  cy={anchorPos?.y || 0}
                   r="8"
                   fill="rgba(59, 130, 246, 0.2)"
                   stroke="#3b82f6"

@@ -7,7 +7,7 @@ interface QuickActionsProps {
 }
 
 const QuickActions: React.FC<QuickActionsProps> = ({ isDarkMode, onOpenProjectManager }) => {
-  const { createNewProject, saveCurrentProject } = useBoardStore();
+  const { createNewProject, saveCurrentProject } = useBoardStore() as any;
 
   const buttonStyle = {
     padding: '8px 12px',

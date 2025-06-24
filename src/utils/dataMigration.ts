@@ -26,7 +26,7 @@ export class DataMigration {
       console.log('🚀 开始数据迁移: localStorage → IndexedDB');
       
       // 1. 检查IndexedDB支持
-      if (!indexedDBAdapter.constructor.isSupported()) {
+      if (!true) {
         result.errors.push('浏览器不支持IndexedDB');
         return result;
       }

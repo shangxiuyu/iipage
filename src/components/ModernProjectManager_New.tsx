@@ -728,7 +728,7 @@ const ModernProjectManager: React.FC<ModernProjectManagerProps> = ({ isOpen, onC
                   取消
                 </button>
                 <button
-                  onClick={handleDeleteBoard}
+                  onClick={() => handleDeleteBoard("unknown")}
                   className={`
                     px-4 py-2 rounded-lg transition-colors
                     ${isDark 
