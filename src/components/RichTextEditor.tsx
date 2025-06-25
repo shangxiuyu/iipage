@@ -13,7 +13,7 @@ import { aliCloudStorage } from '../services/aliCloudStorageService';
 import { detectMarkdown, isLikelyMarkdown } from '../utils/markdownDetector';
 
 // 动态导入 PNG icons
-const iconModules = import.meta.glob('/src/assets/icons/*.png', { query: '?url', import: 'default', eager: true });
+const iconModules = import.meta.glob('../assets/icons/*.png', { query: '?url', import: 'default', eager: true });
 const iconList = Object.entries(iconModules).map(([path, url]) => ({
   name: path.split('/').pop()?.replace('.png', '') || '',
   url: url as string

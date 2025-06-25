@@ -15,11 +15,11 @@ const getAvailableIcons = (): string[] => {
   
   try {
     // 获取所有图标文件的模块
-    const iconModules = import.meta.glob('/src/assets/icons/*.png', { query: '?url', import: 'default', eager: true });
+    const iconModules = import.meta.glob('../assets/icons/*.png', { query: '?url', import: 'default', eager: true });
     
     // 提取文件名
     const iconNames = Object.keys(iconModules).map(path => {
-      // 从路径 '/src/assets/icons/filename.png' 提取 'filename.png'
+      // 从路径 '../assets/icons/filename.png' 提取 'filename.png'
       return path.split('/').pop() || '';
     }).filter(name => name && name !== '.DS_Store');
     
@@ -74,7 +74,8 @@ const getRandomIcon = (): string => {
 
 // 获取图标的完整路径
 const getIconPath = (iconFileName: string): string => {
-  return `/src/assets/icons/${iconFileName}`;
+  // 在生产环境中，使用相对路径访问 assets 目录
+  return new URL(`../assets/icons/${iconFileName}`, import.meta.url).href;
 };
 
 interface ModernProjectManagerProps {
