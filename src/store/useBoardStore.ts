@@ -141,7 +141,7 @@ export const BACKGROUND_COLORS = [
     id: 'default',
     name: '默认白色',
     bgColor: '#ffffff',
-    gridColor: '#d1d5db', // 浅色灰
+    gridColor: '#e5e7eb', // 更浅的灰色
     darkBgColor: '#232a36',
     darkGridColor: '#4b5563', // 深色灰
   },
