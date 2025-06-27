@@ -141,43 +141,57 @@ export const BACKGROUND_COLORS = [
     id: 'default',
     name: '默认白色',
     bgColor: '#ffffff',
-    gridColor: '#e0e0e0'
+    gridColor: '#e0e0e0',
+    darkBgColor: '#232a36',
+    darkGridColor: '#374151',
   },
   {
     id: 'soft-blue',
     name: '柔和蓝',
     bgColor: '#f0f4ff',
-    gridColor: '#d1ddf7'
+    gridColor: '#d1ddf7',
+    darkBgColor: '#1e293b',
+    darkGridColor: '#334155',
   },
   {
     id: 'warm-cream',
     name: '温暖米色',
     bgColor: '#fefbf3',
-    gridColor: '#ede4d3'
+    gridColor: '#ede4d3',
+    darkBgColor: '#2d2a25',
+    darkGridColor: '#6b5e4e',
   },
   {
     id: 'mint-green',
     name: '薄荷绿',
     bgColor: '#f0fff4',
-    gridColor: '#d0f0d8'
+    gridColor: '#d0f0d8',
+    darkBgColor: '#1a2e22',
+    darkGridColor: '#3b5d46',
   },
   {
     id: 'lavender',
     name: '薰衣草紫',
     bgColor: '#faf5ff',
-    gridColor: '#e9d5ff'
+    gridColor: '#e9d5ff',
+    darkBgColor: '#2e223a',
+    darkGridColor: '#5b437a',
   },
   {
     id: 'peach',
     name: '桃色粉',
     bgColor: '#fff7ed',
-    gridColor: '#fed7aa'
+    gridColor: '#fed7aa',
+    darkBgColor: '#3b2c25',
+    darkGridColor: '#a97c5b',
   },
   {
     id: 'cool-gray',
     name: '冷灰色',
     bgColor: '#f8fafc',
-    gridColor: '#cbd5e1'
+    gridColor: '#cbd5e1',
+    darkBgColor: '#181c23',
+    darkGridColor: '#283040',
   }
 ];
 
@@ -188,6 +202,25 @@ export const defaultContent: Descendant[] = [
     children: [{ text: '' }],
   },
 ] as any;
+
+// 撤销栈类型
+interface UndoState {
+  nodes: NodeData[];
+  connections: Connection[];
+  backgroundFrames: BackgroundFrame[];
+  currentBackground: string;
+  showGrid: boolean;
+  backgroundMode: BackgroundMode;
+  videoBackgroundUrl: string | null;
+  imageBackgroundUrl: string | null;
+  imageBlurLevel: number;
+  builtinBackgroundPath: string | null;
+  interactiveTheme: InteractiveTheme;
+  scale: number;
+  panX: number;
+  panY: number;
+  defaultCardConfig: BoardState['defaultCardConfig'];
+}
 
 interface BoardState {
   nodes: NodeData[];
@@ -389,6 +422,11 @@ interface BoardState {
   pasteNodes: () => void; // 粘贴多个卡片
 
   addNodeWithMarkdown: (markdown: string) => void;
+
+  // 撤销相关方法
+  undoStack: UndoState[];
+  pushUndo: () => void;
+  undo: () => void;
 }
 
 export const useBoardStore = create<BoardState>()(
@@ -541,11 +579,12 @@ export const useBoardStore = create<BoardState>()(
         console.log('🗑️ 白板已清空');
       },
       
-      addNode: (x, y) =>
+      addNode: (x, y) => {
+        get().pushUndo();
+        // 创建完全独立的初始内容对象
+        const createEmptyContent = () => [{ type: 'paragraph', children: [{ text: '' }] } as any];
+        
         set((state) => {
-          // 创建完全独立的初始内容对象
-          const createEmptyContent = () => [{ type: 'paragraph', children: [{ text: '' }] } as any];
-          
           return {
             nodes: [
               ...state.nodes.map(n => ({ ...n, editing: false, selected: false })),
@@ -577,15 +616,38 @@ export const useBoardStore = create<BoardState>()(
             ],
             selectedNodes: [],
           };
-        }),
-        
-      updateNode: (id, data) =>
-        set((state) => ({
-          nodes: state.nodes.map((n) =>
+        });
+      },
+      
+      updateNode: (id, data) => {
+        get().pushUndo();
+        set((state) => {
+          let updatedNodes = state.nodes.map((n) =>
             n.id === id ? { ...n, ...data } : n
-          ),
-        })),
-        
+          );
+          // 检查是否需要自动调整背景框或移出背景框
+          const node = updatedNodes.find(n => n.id === id);
+          let updatedFrames = state.backgroundFrames;
+          if (node && node.containerId) {
+            const frame = state.backgroundFrames.find(f => f.id === node.containerId);
+            if (frame) {
+              // 如果卡片已不在背景框内，移出背景框
+              if (!isNodeInsideFrame(node, frame)) {
+                updatedNodes = updatedNodes.map(n =>
+                  n.id === id ? { ...n, containerId: undefined } : n
+                );
+              } else if (isFrameOverflowed(updatedNodes, frame)) {
+                updatedFrames = autoResizeFrame(state.backgroundFrames, updatedNodes, node.containerId);
+              }
+            }
+          }
+          return {
+            nodes: updatedNodes,
+            backgroundFrames: updatedFrames,
+          };
+        });
+      },
+      
       setNodeEditing: (id, editing) =>
         set((state) => ({
           nodes: state.nodes.map((n) =>
@@ -593,16 +655,17 @@ export const useBoardStore = create<BoardState>()(
           ),
         })),
         
-      // 删除单个节点
-      deleteNode: (id) =>
+      deleteNode: (id) => {
+        get().pushUndo();
         set((state) => ({
           nodes: state.nodes.filter(n => n.id !== id),
           selectedNodes: state.selectedNodes.filter(nodeId => nodeId !== id),
           connections: state.connections.filter(c => c.from !== id && c.to !== id),
-        })),
+        }));
+      },
         
-      // 删除所有选中的节点
-      deleteSelectedNodes: () =>
+      deleteSelectedNodes: () => {
+        get().pushUndo();
         set((state) => {
           const nodesToDelete = new Set(state.selectedNodes);
           return {
@@ -610,7 +673,8 @@ export const useBoardStore = create<BoardState>()(
             selectedNodes: [],
             connections: state.connections.filter(c => !nodesToDelete.has(c.from) && !nodesToDelete.has(c.to)),
           };
-        }),
+        });
+      },
         
       // 强制保存编辑中的节点
       saveEditingNodes: () =>
@@ -717,13 +781,43 @@ export const useBoardStore = create<BoardState>()(
         
       // 移动选中的节点
       moveSelectedNodes: (deltaX, deltaY) => {
-        set((state) => ({
-          nodes: state.nodes.map(node => 
+        set((state) => {
+          let updatedNodes = state.nodes.map(node =>
             state.selectedNodes.includes(node.id)
               ? { ...node, x: node.x + deltaX, y: node.y + deltaY }
               : node
-          )
-        }));
+          );
+          // 找出所有受影响的背景框
+          const affectedFrameIds = Array.from(new Set(
+            state.selectedNodes
+              .map(id => state.nodes.find(n => n.id === id)?.containerId)
+              .filter(Boolean)
+          ));
+          let updatedFrames = state.backgroundFrames;
+          for (const frameId of affectedFrameIds) {
+            const frame = state.backgroundFrames.find(f => f.id === frameId);
+            if (frame) {
+              // 检查每个属于该 frame 的被移动节点
+              state.selectedNodes.forEach(nodeId => {
+                const node = updatedNodes.find(n => n.id === nodeId);
+                if (node && node.containerId === frameId) {
+                  if (!isNodeInsideFrame(node, frame)) {
+                    // 移出背景框
+                    updatedNodes = updatedNodes.map(n =>
+                      n.id === nodeId ? { ...n, containerId: undefined } : n
+                    );
+                  } else if (isFrameOverflowed(updatedNodes, frame)) {
+                    updatedFrames = autoResizeFrame(updatedFrames, updatedNodes, frameId!);
+                  }
+                }
+              });
+            }
+          }
+          return {
+            nodes: updatedNodes,
+            backgroundFrames: updatedFrames,
+          };
+        });
         // 移动完成后优化连接
         setTimeout(() => {
           get().optimizeConnections();
@@ -1350,11 +1444,41 @@ export const useBoardStore = create<BoardState>()(
       },
 
       updateBackgroundFrame: (id: string, data: Partial<BackgroundFrame>) => {
-        set((state) => ({
-          backgroundFrames: state.backgroundFrames.map((frame) =>
-            frame.id === id ? { ...frame, ...data } : frame
-          ),
-        }));
+        set((state) => {
+          const frame = state.backgroundFrames.find((f) => f.id === id);
+          if (!frame) return { backgroundFrames: state.backgroundFrames };
+          // 计算所有属于该 frame 的卡片的最小包裹范围
+          const frameNodes = state.nodes.filter((n) => n.containerId === id);
+          let minX = frame.x, minY = frame.y, maxX = frame.x + frame.width, maxY = frame.y + frame.height;
+          if (frameNodes.length > 0) {
+            minX = Math.min(...frameNodes.map(n => n.x));
+            minY = Math.min(...frameNodes.map(n => n.y));
+            maxX = Math.max(...frameNodes.map(n => n.x + (n.width || 200)));
+            maxY = Math.max(...frameNodes.map(n => n.y + (n.height || 80)));
+          }
+          const padding = 20;
+          // 允许的最小包裹区域
+          const minFrameX = minX - padding;
+          const minFrameY = minY - padding;
+          const minFrameWidth = (maxX - minX) + padding * 2;
+          const minFrameHeight = (maxY - minY) + padding * 2;
+          // 计算用户想要设置的新位置和尺寸
+          let newX = data.x !== undefined ? data.x : frame.x;
+          let newY = data.y !== undefined ? data.y : frame.y;
+          let newWidth = data.width !== undefined ? data.width : frame.width;
+          let newHeight = data.height !== undefined ? data.height : frame.height;
+          // 限制不能小于最小包裹区域
+          if (newX > minFrameX) newX = minFrameX;
+          if (newY > minFrameY) newY = minFrameY;
+          if (newWidth < minFrameWidth) newWidth = minFrameWidth;
+          if (newHeight < minFrameHeight) newHeight = minFrameHeight;
+          return {
+            ...state,
+            backgroundFrames: state.backgroundFrames.map((f) =>
+              f.id === id ? { ...f, ...data, x: newX, y: newY, width: newWidth, height: newHeight } : f
+            ),
+          };
+        });
       },
 
       deleteBackgroundFrame: (id: string) => {
@@ -1486,11 +1610,18 @@ export const useBoardStore = create<BoardState>()(
               : f
           );
 
-          console.log(`✅ 卡片 ${nodeId} 已成功添加到背景框 ${frameId}，当前节点列表:`, updatedFrames.find(f => f.id === frameId)?.nodeIds);
+          // 判断是否需要扩展背景框
+          let finalFrames = updatedFrames;
+          const newFrame = updatedFrames.find(f => f.id === frameId);
+          if (newFrame && isFrameOverflowed(updatedNodes, newFrame)) {
+            finalFrames = autoResizeFrame(updatedFrames, updatedNodes, frameId);
+          }
+
+          console.log(`✅ 卡片 ${nodeId} 已成功添加到背景框 ${frameId}，当前节点列表:`, finalFrames.find(f => f.id === frameId)?.nodeIds);
 
           return {
             nodes: updatedNodes,
-            backgroundFrames: updatedFrames,
+            backgroundFrames: finalFrames,
           };
         });
       },
@@ -1539,6 +1670,53 @@ export const useBoardStore = create<BoardState>()(
 
       clearAllFrameHighlights: () => {
         set({ frameHighlights: {} });
+      },
+
+      // 撤销相关方法
+      undoStack: [],
+      pushUndo: () => {
+        const state = get();
+        const snapshot: UndoState = {
+          nodes: JSON.parse(JSON.stringify(state.nodes)),
+          connections: JSON.parse(JSON.stringify(state.connections)),
+          backgroundFrames: JSON.parse(JSON.stringify(state.backgroundFrames)),
+          currentBackground: state.currentBackground,
+          showGrid: state.showGrid,
+          backgroundMode: state.backgroundMode,
+          videoBackgroundUrl: state.videoBackgroundUrl,
+          imageBackgroundUrl: state.imageBackgroundUrl,
+          imageBlurLevel: state.imageBlurLevel,
+          builtinBackgroundPath: state.builtinBackgroundPath,
+          interactiveTheme: state.interactiveTheme,
+          scale: state.scale,
+          panX: state.panX,
+          panY: state.panY,
+          defaultCardConfig: JSON.parse(JSON.stringify(state.defaultCardConfig)),
+        };
+        set((s) => ({ undoStack: [...s.undoStack, snapshot] }));
+      },
+      undo: () => {
+        const state = get();
+        if (state.undoStack.length === 0) return;
+        const last = state.undoStack[state.undoStack.length - 1];
+        set({
+          nodes: JSON.parse(JSON.stringify(last.nodes)),
+          connections: JSON.parse(JSON.stringify(last.connections)),
+          backgroundFrames: JSON.parse(JSON.stringify(last.backgroundFrames)),
+          currentBackground: last.currentBackground,
+          showGrid: last.showGrid,
+          backgroundMode: last.backgroundMode,
+          videoBackgroundUrl: last.videoBackgroundUrl,
+          imageBackgroundUrl: last.imageBackgroundUrl,
+          imageBlurLevel: last.imageBlurLevel,
+          builtinBackgroundPath: last.builtinBackgroundPath,
+          interactiveTheme: last.interactiveTheme,
+          scale: last.scale,
+          panX: last.panX,
+          panY: last.panY,
+          defaultCardConfig: JSON.parse(JSON.stringify(last.defaultCardConfig)),
+          undoStack: state.undoStack.slice(0, -1),
+        });
       },
     }),
     {
@@ -1652,4 +1830,55 @@ if (typeof window !== 'undefined') {
       clearTimeout(autoSaveTimer);
     }
   });
+}
+
+// 在 useBoardStore.ts 顶部或合适位置添加 autoResizeFrame 工具函数
+function autoResizeFrame(frames: BackgroundFrame[], nodes: NodeData[], frameId: string) {
+  const frame = frames.find(f => f.id === frameId);
+  if (!frame) return frames;
+  const frameNodes = nodes.filter(n => n.containerId === frameId);
+  if (frameNodes.length === 0) return frames;
+  const padding = 20;
+  const minX = Math.min(...frameNodes.map(n => n.x));
+  const minY = Math.min(...frameNodes.map(n => n.y));
+  const maxX = Math.max(...frameNodes.map(n => n.x + (n.width || 200)));
+  const maxY = Math.max(...frameNodes.map(n => n.y + (n.height || 80)));
+  const newX = minX - padding;
+  const newY = minY - padding;
+  const newWidth = (maxX - minX) + padding * 2;
+  const newHeight = (maxY - minY) + padding * 2;
+  return frames.map(f =>
+    f.id === frameId
+      ? { ...f, x: newX, y: newY, width: newWidth, height: newHeight }
+      : f
+  );
 } 
+
+// 工具函数：判断 frame 是否需要扩展包裹所有子卡片
+function isFrameOverflowed(nodes: NodeData[], frame: BackgroundFrame) {
+  const frameNodes = nodes.filter(n => n.containerId === frame.id);
+  if (frameNodes.length === 0) return false;
+  const minX = Math.min(...frameNodes.map(n => n.x));
+  const minY = Math.min(...frameNodes.map(n => n.y));
+  const maxX = Math.max(...frameNodes.map(n => n.x + (n.width || 200)));
+  const maxY = Math.max(...frameNodes.map(n => n.y + (n.height || 80)));
+  // 只要有一边超出当前 frame 范围（含 padding），就需要扩展
+  const padding = 20;
+  if (minX - padding < frame.x) return true;
+  if (minY - padding < frame.y) return true;
+  if (maxX + padding > frame.x + frame.width) return true;
+  if (maxY + padding > frame.y + frame.height) return true;
+  return false;
+} 
+
+// 工具函数：判断卡片是否在背景框内
+function isNodeInsideFrame(node: NodeData, frame: BackgroundFrame) {
+  const nodeRight = node.x + (node.width || 200);
+  const nodeBottom = node.y + (node.height || 80);
+  return (
+    node.x >= frame.x &&
+    node.y >= frame.y &&
+    nodeRight <= frame.x + frame.width &&
+    nodeBottom <= frame.y + frame.height
+  );
+}

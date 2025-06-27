@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import BoardCanvas from './components/BoardCanvas';
 import SaveLoadManager from './components/SaveLoadManager';
 import ProjectManager from './components/ProjectManager';
@@ -135,6 +135,32 @@ function App() {
       updateNode(node.id, { backgroundColor: nextColor.id });
     });
   }, [isDarkMode]);
+
+  const undo = useBoardStore(state => state.undo);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // 🔥 修复：如果事件来源于输入框、textarea或contenteditable，直接跳过
+      if (
+        e.target instanceof HTMLElement &&
+        (
+          e.target.tagName === 'INPUT' ||
+          e.target.tagName === 'TEXTAREA' ||
+          e.target.isContentEditable
+        )
+      ) {
+        return;
+      }
+      
+      // 支持Ctrl+Z和Command+Z
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        undo();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [undo]);
 
   return (
     <ThemeContext.Provider value={{ isDarkMode, toggleDarkMode }}>

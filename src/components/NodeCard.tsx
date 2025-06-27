@@ -3,7 +3,6 @@ import type { NodeData, BackgroundFrame } from '../store/useBoardStore';
 import { useBoardStore, defaultContent, LIGHT_CARD_COLORS, DARK_CARD_COLORS } from '../store/useBoardStore';
 import RichTextEditor from './RichTextEditor';
 import CardColorPicker from './CardColorPicker';
-import DeleteConfirmModal from './DeleteConfirmModal';
 
 import type { Descendant } from 'slate';
 import type { Element as SlateElement } from 'slate';
@@ -361,7 +360,6 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
   const [dragging, setDragging] = useState(false);
   const [resizing, setResizing] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [isEditing, setIsEditing] = useState(node.editing || false);
 
@@ -755,7 +753,6 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
 
   const handleConfirmDelete = () => {
     deleteNode(node.id);
-    setShowDeleteModal(false);
   };
 
   // 点击处理 - 确保单击能选中
@@ -765,7 +762,7 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
       selectNode(node.id, false);
       return;
     }
-    if (node.editing || showColorPicker || showDeleteModal) return;
+    if (node.editing || showColorPicker) return;
     
     e.stopPropagation(); // 阻止事件冒泡到BoardCanvas
     
@@ -820,7 +817,7 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
   // 拖拽逻辑
   const onMouseDown = (e: React.MouseEvent, dragCallbacks?: { onDragStart?: () => void, onDragEnd?: () => void }) => {
     if (readOnly) return;
-    if (node.editing || showColorPicker || showDeleteModal) return;
+    if (node.editing || showColorPicker) return;
     
     e.stopPropagation();
     e.preventDefault();
@@ -1069,7 +1066,6 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
     if (readOnly) return;
     e.stopPropagation();
     setShowColorPicker(false);
-    setShowDeleteModal(false);
     // 检查是否有其他正在编辑的节点，如果有则先保存并退出编辑状态
     const allNodes = useBoardStore.getState().nodes;
     const editingNode = allNodes.find(n => n.editing && n.id !== node.id);
@@ -1242,7 +1238,7 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
     if (readOnly) return;
     e.stopPropagation();
     e.preventDefault();
-    if (showColorPicker || showDeleteModal) return; // 移除对editing状态的限制
+    if (showColorPicker) return; // 已移除 showDeleteModal
     setResizing(true);
     const startX = e.clientX;
     const startY = e.clientY;
@@ -1427,8 +1423,34 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
     // 检测粘贴的内容是否为代码
     const pastedText = e.clipboardData.getData('text/plain');
     if (pastedText) {
-      // 导入代码检测工具
-      // 简单判断是否为代码的启发式规则
+      console.log('📋 NodeCard: 检测到粘贴文本，长度:', pastedText.length);
+      
+      // 🔥 关键优化：跳过长URL的代码检测
+      const trimmedText = pastedText.trim();
+      if (trimmedText.length > 1000) {
+        const hasSpacesOrNewlines = /[\s\n\r]/.test(trimmedText);
+        const looksLikeUrl = /^https?:\/\/[^\s]+$/i.test(trimmedText.substring(0, 100));
+        
+        if (!hasSpacesOrNewlines && looksLikeUrl) {
+          console.log('🚀 NodeCard: 检测到长URL，跳过代码检测');
+          return; // 跳过代码检测，使用默认粘贴行为
+        }
+      }
+
+      const minCodeLength = 15; // 最小代码长度，避免误判
+      
+      // 如果文本长度小于最小代码长度，不判断为代码
+      if (pastedText.length < minCodeLength) {
+        return;
+      }
+
+      // 🔥 对超长文本进行限制，避免正则表达式卡死
+      const maxTestLength = 5000; // 最大检测长度
+      const testText = pastedText.length > maxTestLength 
+        ? pastedText.substring(0, maxTestLength) 
+        : pastedText;
+
+      // 代码检测正则表达式
       const codePatterns = [
         /function\s+\w+\s*\(/,              // 函数定义
         /class\s+\w+\s*\{/,                 // 类定义
@@ -1456,7 +1478,7 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
         /throw\s+new\s+/,                   // throw语句
         /console\.\w+\(/,                   // 控制台输出
         /document\.\w+/,                   // DOM操作
-        /window\.\w+/,                      // 浏览器窗口操作
+        /window\.\w+/,
         /\$\('\w+'\)/,                      // jQuery选择器
         /addEventListener\(/,               // 事件监听器
         /setTimeout\(/,                     // 定时器
@@ -1467,16 +1489,17 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
         /\w+\.\w+\s*\(/,                    // 方法调用
         /\w+\[['"`]\w+['"`]\]/              // 对象属性访问
       ];
-
-      const minCodeLength = 15; // 最小代码长度，避免误判
       
-      // 如果文本长度小于最小代码长度，不判断为代码
-      if (pastedText.length < minCodeLength) {
-        return;
+      // 🔥 使用try-catch保护正则表达式检测
+      let isCode = false;
+      try {
+        console.log('🔍 NodeCard: 开始代码模式检测...');
+        isCode = codePatterns.some(pattern => pattern.test(testText));
+        console.log('🔍 NodeCard: 代码检测结果:', isCode);
+      } catch (error) {
+        console.error('❌ NodeCard: 代码检测过程中出错:', error);
+        return; // 出错时跳过代码检测
       }
-      
-      // 检查是否匹配代码模式
-      const isCode = codePatterns.some(pattern => pattern.test(pastedText));
       
       if (isCode) {
         e.preventDefault(); // 阻止默认粘贴行为
@@ -1492,7 +1515,7 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
         });
         
         // 显示一个通知消息
-        console.log('代码已识别，按ESC或点击外部以查看渲染效果');
+        console.log('✅ NodeCard: 代码已识别，按ESC或点击外部以查看渲染效果');
         
         return; // 处理完代码粘贴后不再继续处理其它内容
       }
@@ -1972,12 +1995,6 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
     setShowActionMenu(false);
   };
 
-  const handleShowDeleteModal = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setShowDeleteModal(true);
-    setShowActionMenu(false);
-  };
-
   // 工具函数：将代码片段拼接成完整 HTML 文档，并自动注入本地持久化脚本和全局变量代理
   function generateHtmlFromCode(codeInfo: { code: string, language: string }, nodeId: string) {
     if (!codeInfo) return '';
@@ -2447,7 +2464,7 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
           onFlipCard={handleFlipCard}
           onShowColorPicker={handleShowColorPicker}
           onTogglePin={handleTogglePin}
-          onShowDeleteModal={handleShowDeleteModal}
+          onShowDeleteModal={handleConfirmDelete} // 直接删除
           onOpenUrlInNewWindow={handleOpenUrlInNewWindow}
           detectedUrl={detectedUrl}
           isWebPageMode={isWebPageMode}
@@ -2465,16 +2482,6 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
       </div>
       
       {/* 确认删除对话框 */}
-      {showDeleteModal && (
-        <DeleteConfirmModal
-          isOpen={showDeleteModal}
-          nodeCount={1}
-          onCancel={() => setShowDeleteModal(false)}
-          onConfirm={handleConfirmDelete}
-        />
-      )}
-      
-      {/* 卡片外观设置弹出窗口 */}
       {showColorPicker && (
         <CardColorPicker
           position={colorPickerPosition}

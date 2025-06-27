@@ -347,56 +347,86 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
       }
 
       const pastedText = clipboardData.getData('text/plain');
-      console.log('RichTextEditor: Pasted text:', pastedText.substring(0, 100) + '...');
+      console.log('RichTextEditor: Pasted text length:', pastedText.length);
+      console.log('RichTextEditor: Pasted text preview:', pastedText.substring(0, 100) + '...');
 
       if (!pastedText || pastedText.length < 10) {
         console.log('RichTextEditor: Text too short for Markdown detection');
         return;
       }
 
-      // 检测是否为Markdown格式
-      const result = detectMarkdown(pastedText);
-      console.log('RichTextEditor: Markdown detection result:', result);
-
-      // 如果检测到Markdown且置信度较高，直接自动切换
-      if (result.isMarkdown && result.confidence > 0.4) {
-        console.log('RichTextEditor: Auto-switching to Markdown mode');
-        event.preventDefault(); // 阻止默认粘贴行为
+      // 🔥 关键优化：检测长URL，跳过Markdown检测
+      const trimmedText = pastedText.trim();
+      if (trimmedText.length > 500) {
+        // 检查是否是纯URL（没有空格、换行等）
+        const hasSpacesOrNewlines = /[\s\n\r]/.test(trimmedText);
+        const looksLikeUrl = /^https?:\/\/[^\s]+$/i.test(trimmedText.substring(0, 100));
         
-        // 直接调用回调函数，让卡片自动切换到Markdown模式
-        if (onMarkdownDetected) {
-          onMarkdownDetected(pastedText, result.confidence, result.features);
+        if (!hasSpacesOrNewlines && looksLikeUrl) {
+          console.log('🚀 检测到长URL，跳过Markdown检测以避免卡死');
+          return; // 直接返回，使用默认粘贴行为
         }
+        
+        // 如果是超长文本但不是URL，限制检测长度
+        console.log('📄 文本较长，使用优化检测');
+      }
+
+      // 检测是否为Markdown格式
+      try {
+        console.log('🔍 开始Markdown检测...');
+        const result = detectMarkdown(pastedText);
+        console.log('RichTextEditor: Markdown detection result:', result);
+
+        // 如果检测到Markdown且置信度较高，直接自动切换
+        if (result.isMarkdown && result.confidence > 0.4) {
+          console.log('RichTextEditor: Auto-switching to Markdown mode');
+          event.preventDefault(); // 阻止默认粘贴行为
+          
+          // 直接调用回调函数，让卡片自动切换到Markdown模式
+          if (onMarkdownDetected) {
+            onMarkdownDetected(pastedText, result.confidence, result.features);
+          }
+        }
+      } catch (error) {
+        console.error('❌ Markdown检测过程中出错:', error);
+        // 出错时不阻止默认粘贴行为
       }
     }, [onMarkdownDetected]);
 
-    const handleChange = React.useCallback((val: Descendant[]) => {
-      // 🔍 调试日志：编辑器内容变化
-      console.log('📝 编辑器内容发生变化，正在检测媒体文件删除...');
-      
-      // 检测媒体文件删除
-      if (previousValueRef.current && previousValueRef.current.length > 0) {
-        console.log('🔄 开始执行删除检测逻辑');
-        detectDeletedMediaFiles(previousValueRef.current, val);
-      } else {
-        console.log('ℹ️ 跳过删除检测：没有之前的内容或内容为空');
+    // 工具函数：递归拆分文本节点为标签节点和普通文本节点
+    function splitDescendantsToTags(descendants: any[]): any[] {
+      const tagRegex = /#([\u4e00-\u9fa5\w\-]+)/g;
+      const result: any[] = [];
+      for (const node of descendants) {
+        if (typeof node.text === 'string' && node.text.includes('#')) {
+          let lastIndex = 0;
+          let match;
+          const text = node.text;
+          while ((match = tagRegex.exec(text)) !== null) {
+            if (match.index > lastIndex) {
+              result.push({ ...node, text: text.slice(lastIndex, match.index) });
+            }
+            result.push({ type: 'tag', value: match[1], children: [{ text: '' }] });
+            lastIndex = match.index + match[0].length;
+          }
+          if (lastIndex < text.length) {
+            result.push({ ...node, text: text.slice(lastIndex) });
+          }
+        } else if (Array.isArray(node.children)) {
+          result.push({ ...node, children: splitDescendantsToTags(node.children) });
+        } else {
+          result.push(node);
+        }
       }
-      
-      // 更新引用值
-      previousValueRef.current = val;
-      
-      setLocalValue(val);
-      onChange(val);
-      
-      // 提取标签并通知父组件
-      if (onTagsChange) {
-        const tags = extractTags(val);
-        onTagsChange(tags);
-      }
-      
-      // 使用优化的更新机制
-      scheduleIndentUpdate();
-    }, [onChange, onTagsChange, scheduleIndentUpdate, detectDeletedMediaFiles]);
+      return result;
+    }
+
+    // 重写 handleChange，递归处理所有文本节点
+    const handleChange = (value: Descendant[]) => {
+      const newValue = splitDescendantsToTags(value as any);
+      setLocalValue(newValue);
+      onChange?.(newValue);
+    };
 
     // picker 状态
     const [showIconPicker, setShowIconPicker] = React.useState(false);
@@ -453,79 +483,36 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
         }
       }
       
-      // 处理Tab键缩进 - 直接在这里处理，可以访问forceUpdateIndentLines
+      // Tab/Shift+Tab 只做 blockquote 嵌套
       if (event.key === 'Tab') {
         event.preventDefault();
-        
-        // 保存当前选择位置
         const currentSelection = editor.selection;
-        
-        if (event.shiftKey) {
-          // Shift+Tab 减少缩进
-          if (currentSelection && Range.isCollapsed(currentSelection)) {
-            const [match] = Editor.nodes(editor, {
-              match: n => SlateElement.isElement(n),
-            }) as any;
-
-            if (match) {
-              const [node, path] = match;
-              const currentIndent = (node as any).indent || 0;
-              
-              if (currentIndent > 0) {
-                // 执行缩进减少
-                Transforms.setNodes(editor, { 
-                  ...node, 
-                  indent: currentIndent - 1 
-                } as any, { at: path });
-                
-                // 立即强制更新竖线 - 多重保险确保竖线立即消失
-                scheduleIndentUpdate();
+        if (currentSelection && Range.isCollapsed(currentSelection)) {
+          const [match] = Editor.nodes(editor, {
+            match: n => SlateElement.isElement(n),
+          }) as any;
+          if (match) {
+            const [node, path] = match;
+            const isBlockquote = node.type === 'blockquote';
+            const currentLevel = (node as any).blockquoteLevel || 0;
+            if (event.shiftKey) {
+              // Shift+Tab：减少嵌套
+              if (isBlockquote && currentLevel > 1) {
+                Transforms.setNodes(editor, { ...node, blockquoteLevel: currentLevel - 1 } as any, { at: path });
+              } else if (isBlockquote && currentLevel === 1) {
+                // 变回普通段落
+                Transforms.setNodes(editor, { type: 'paragraph', blockquoteLevel: undefined } as any, { at: path });
               }
-            }
-          }
-        } else {
-          // Tab 增加缩进
-          if (currentSelection && Range.isCollapsed(currentSelection)) {
-            const [match] = Editor.nodes(editor, {
-              match: n => SlateElement.isElement(n),
-            }) as any;
-
-            if (match) {
-              const [node, path] = match;
-              const currentIndent = (node as any).indent || 0;
-              
-              if (currentIndent < 4) {
-                // 执行缩进增加
-                Transforms.setNodes(editor, { 
-                  ...node, 
-                  indent: currentIndent + 1 
-                } as any, { at: path });
-                
-                // 立即强制更新竖线
-                scheduleIndentUpdate();
+            } else {
+              // Tab：增加嵌套
+              if (isBlockquote) {
+                Transforms.setNodes(editor, { ...node, blockquoteLevel: currentLevel + 1 } as any, { at: path });
+              } else {
+                Transforms.setNodes(editor, { type: 'blockquote', blockquoteLevel: 1 } as any, { at: path });
               }
             }
           }
         }
-        
-        // 恢复光标位置并重新聚焦
-        setTimeout(() => {
-          try {
-            if (currentSelection) {
-              Transforms.select(editor, currentSelection);
-            }
-            ReactEditor.focus(editor);
-          } catch (error) {
-            console.warn('Focus/selection error:', error);
-            // 备用方案：直接聚焦
-            try {
-              ReactEditor.focus(editor);
-            } catch (e) {
-              console.warn('Backup focus failed:', e);
-            }
-          }
-        }, 10);
-        
         return;
       }
       
@@ -574,6 +561,21 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
           setSlashInput(slashInput.slice(0, -1));
           return;
         }
+      }
+
+      // 实时标签识别：输入分隔符时立即触发 handleChange
+      if (
+        event.key === 'Enter' ||
+        event.key === ' ' ||
+        event.key === 'Spacebar' ||
+        event.key === '，' ||
+        event.key === ',' ||
+        event.key === '。' ||
+        event.key === '.'
+      ) {
+        setTimeout(() => {
+          handleChange(editor.children as any);
+        }, 0);
       }
     };
 
@@ -1347,7 +1349,24 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
          
          return <VideoResizer element={element} path={videoPath} />;
         }
-
+        case 'blockquote': {
+          const level = element.blockquoteLevel || 1;
+          return (
+            <blockquote
+              {...attributes}
+              style={{
+                borderLeft: `${level * 2}px solid #bdbdbd`,
+                margin: 0,
+                marginLeft: 0,
+                paddingLeft: 8 + (level - 1) * 10,
+                background: level > 1 ? '#f7f7fa' : 'transparent',
+                color: '#888',
+              }}
+            >
+              {children}
+            </blockquote>
+          );
+        }
         default:
           return wrapWithIndent(
             <div style={{ 
@@ -2433,13 +2452,25 @@ const TagElement: React.FC<any> = (props) => {
       setShowPicker(false);
     };
     const handleEsc = (e: KeyboardEvent) => {
+      // 🔥 修复：检查事件来源，如果是输入框则跳过
+      if (
+        e.target instanceof HTMLElement &&
+        (
+          e.target.tagName === 'INPUT' ||
+          e.target.tagName === 'TEXTAREA' ||
+          e.target.isContentEditable
+        )
+      ) {
+        return;
+      }
+      
       if (e.key === 'Escape') setShowPicker(false);
     };
     document.addEventListener('mousedown', handleClick, true);
-    document.addEventListener('keydown', handleEsc, true);
+    document.addEventListener('keydown', handleEsc, false); // 🔥 修复：移除事件捕获
     return () => {
       document.removeEventListener('mousedown', handleClick, true);
-      document.removeEventListener('keydown', handleEsc, true);
+      document.removeEventListener('keydown', handleEsc, false); // 🔥 修复：移除事件捕获
     };
   }, [showPicker]);
   return (

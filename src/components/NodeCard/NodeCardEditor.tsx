@@ -109,6 +109,7 @@ const NodeCardEditor: React.FC<NodeCardEditorProps> = ({
                 resize: 'none',
                 overflowY: 'auto',
                 touchAction: 'auto',
+                WebkitOverflowScrolling: 'touch'
               }}
               placeholder="请输入Markdown内容..."
             />

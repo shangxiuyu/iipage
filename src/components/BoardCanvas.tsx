@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useContext, useMemo } from 'react';
-import { useBoardStore } from '../store/useBoardStore';
+import { useBoardStore, BACKGROUND_COLORS } from '../store/useBoardStore';
 import NodeCard from './NodeCard';
 import DeleteConfirmModal from './DeleteConfirmModal';
 import ZoomControls from './ZoomControls';
@@ -12,6 +12,9 @@ import SimpleConnectionLayer from './SimpleConnectionLayer';
 import { ThemeContext } from '../App';
 import NodeConnection from './NodeCard/NodeConnection';
 import FrameStylePicker from './FrameStylePicker';
+
+// 兼容类型：扩展 BACKGROUND_COLORS 的类型定义
+import type { BACKGROUND_COLORS as BGCType } from '../store/useBoardStore';
 
 const GRID_SIZE = 20;
 
@@ -102,7 +105,6 @@ const BoardCanvas: React.FC<BoardCanvasProps> = ({ onOpenProjectCenter, readOnly
   const { isDarkMode } = useContext(ThemeContext);
 
   const [isDraggingCanvas, setIsDraggingCanvas] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isPanning, setIsPanning] = useState(false);
   const [lastPanPosition, setLastPanPosition] = useState({ x: 0, y: 0 });
   const [mouseDownTime, setMouseDownTime] = useState(0);
@@ -122,6 +124,32 @@ const BoardCanvas: React.FC<BoardCanvasProps> = ({ onOpenProjectCenter, readOnly
   const [hoveredFrameId, setHoveredFrameId] = useState<string | null>(null);
   const [resizingFrameId, setResizingFrameId] = useState<string | null>(null);
   
+  // 1. 新增 gridIntensity 状态
+  const [gridIntensity, setGridIntensity] = React.useState(3); // 0~10，初始为3
+  
+  // 当前背景色索引
+  const [bgIndex, setBgIndex] = React.useState(() => {
+    const current = useBoardStore.getState().currentBackground;
+    const idx = BACKGROUND_COLORS.findIndex(bg => bg.id === current);
+    return idx >= 0 ? idx : 0;
+  });
+
+  // 切换背景色
+  useEffect(() => {
+    const bg = BACKGROUND_COLORS[bgIndex];
+    if (bg) {
+      useBoardStore.getState().setBackground(bg.id);
+      if (!isDarkMode) {
+        document.body.style.setProperty('--grid-bg', bg.bgColor);
+        document.body.style.setProperty('--grid-line', bg.gridColor);
+      } else {
+        // 深色模式：优先用 darkBgColor/darkGridColor，否则用默认
+        document.body.style.setProperty('--grid-bg', bg.darkBgColor || '#181c23');
+        document.body.style.setProperty('--grid-line', bg.darkGridColor || '#283040');
+      }
+    }
+  }, [bgIndex, isDarkMode]);
+
   const saveEditingNodes = () => {
     nodes.forEach(node => {
       if (node.editing && nodeCardRefs.current[node.id] && typeof nodeCardRefs.current[node.id]?.finishEdit === 'function') {
@@ -186,6 +214,37 @@ const BoardCanvas: React.FC<BoardCanvasProps> = ({ onOpenProjectCenter, readOnly
     }
   };
 
+  // 新增：根据 gridIntensity 计算网格线颜色
+  useEffect(() => {
+    // 线性插值：0=最淡，10=最深
+    // 浅色模式：#f5f6fa(最淡) ~ #cbd5e1(最深)
+    // 深色模式：#232a36(最淡) ~ #e5e7eb(最深)
+    function lerpColor(a: string, b: string, t: number) {
+      // a, b: '#rrggbb'，t: 0~1
+      const ah = a.replace('#', '');
+      const bh = b.replace('#', '');
+      const ar = parseInt(ah.substring(0, 2), 16);
+      const ag = parseInt(ah.substring(2, 4), 16);
+      const ab = parseInt(ah.substring(4, 6), 16);
+      const br = parseInt(bh.substring(0, 2), 16);
+      const bg = parseInt(bh.substring(2, 4), 16);
+      const bb = parseInt(bh.substring(4, 6), 16);
+      const rr = Math.round(ar + (br - ar) * t);
+      const rg = Math.round(ag + (bg - ag) * t);
+      const rb = Math.round(ab + (bb - ab) * t);
+      return `#${rr.toString(16).padStart(2, '0')}${rg.toString(16).padStart(2, '0')}${rb.toString(16).padStart(2, '0')}`;
+    }
+    let color = '#e5e7eb';
+    if (!isDarkMode) {
+      // 浅色：0=#f5f6fa，10=#000000
+      color = lerpColor('#f5f6fa', '#000000', gridIntensity / 10);
+    } else {
+      // 深色：0=#232a36，10=#000000
+      color = lerpColor('#232a36', '#000000', gridIntensity / 10);
+    }
+    document.body.style.setProperty('--grid-line', color);
+  }, [gridIntensity, isDarkMode]);
+
   // 键盘事件处理
   useEffect(() => {
     if (readOnly) return;
@@ -206,7 +265,6 @@ const BoardCanvas: React.FC<BoardCanvasProps> = ({ onOpenProjectCenter, readOnly
         clearSelection();
         clearConnectionSelection();
         clearFrameSelection();
-        setShowDeleteModal(false);
         // 清除框选状态
         if (isSelecting) {
           endSelection();
@@ -244,22 +302,24 @@ const BoardCanvas: React.FC<BoardCanvasProps> = ({ onOpenProjectCenter, readOnly
       // Delete 键或 Backspace 键
       if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault();
-        // 如果有选中的节点，显示删除确认
-        if (selectedNodes.length > 0) {
-          setShowDeleteModal(true);
+        const hasSelectedNodes = selectedNodes.length > 0;
+        const hasSelectedFrames = selectedFrames.length > 0;
+        if (hasSelectedNodes || hasSelectedFrames) {
+          // 同时删除选中的卡片和背景框
+          if (hasSelectedNodes) {
+            deleteSelectedNodes();
+          }
+          if (hasSelectedFrames) {
+            selectedFrames.forEach(frameId => {
+              const { deleteBackgroundFrame } = useBoardStore.getState();
+              deleteBackgroundFrame(frameId);
+            });
+          }
+          // 删除后清空 selection
+          clearSelection();
+          clearFrameSelection();
         }
-        // 如果有选中的连线，直接删除
-        else if (selectedConnections.length > 0) {
-          deleteSelectedConnections();
-        }
-        // 如果有选中的背景框，直接删除
-        else if (selectedFrames.length > 0) {
-          selectedFrames.forEach(frameId => {
-            // 这里需要调用deleteBackgroundFrame，但需要从store中获取
-            const { deleteBackgroundFrame } = useBoardStore.getState();
-            deleteBackgroundFrame(frameId);
-          });
-        }
+        return;
       }
       
       // G键切换网格（在网格和点状背景模式下有效）
@@ -286,6 +346,26 @@ const BoardCanvas: React.FC<BoardCanvasProps> = ({ onOpenProjectCenter, readOnly
           pasteNode();
         }
       }
+
+      // 网格深浅调节
+      if (e.key === 'ArrowUp') {
+        setGridIntensity(intensity => Math.min(intensity + 1, 10));
+        return;
+      }
+      if (e.key === 'ArrowDown') {
+        setGridIntensity(intensity => Math.max(intensity - 1, 0));
+        return;
+      }
+
+      // ← → 切换背景色
+      if (e.key === 'ArrowLeft') {
+        setBgIndex(idx => (idx - 1 + BACKGROUND_COLORS.length) % BACKGROUND_COLORS.length);
+        return;
+      }
+      if (e.key === 'ArrowRight') {
+        setBgIndex(idx => (idx + 1) % BACKGROUND_COLORS.length);
+        return;
+      }
     };
 
     document.addEventListener('keydown', handleKeyDown);
@@ -297,7 +377,6 @@ const BoardCanvas: React.FC<BoardCanvasProps> = ({ onOpenProjectCenter, readOnly
     clearSelection, 
     clearConnectionSelection, 
     clearFrameSelection,
-    setShowDeleteModal, 
     isSelecting, 
     endSelection, 
     nodes, 
@@ -316,7 +395,10 @@ const BoardCanvas: React.FC<BoardCanvasProps> = ({ onOpenProjectCenter, readOnly
     isSelecting,
     selectionStart,
     selectionEnd,
-    createBackgroundFrame
+    createBackgroundFrame,
+    deleteSelectedNodes,
+    setGridIntensity,
+    setBgIndex
   ]);
 
   // 滚轮事件处理 - 只读模式下允许缩放
@@ -436,17 +518,6 @@ const BoardCanvas: React.FC<BoardCanvasProps> = ({ onOpenProjectCenter, readOnly
       }
     };
   }, [scale, panX, panY, setScale, setPan]);
-
-  // 确认删除
-  const handleConfirmDelete = () => {
-    deleteSelectedNodes();
-    setShowDeleteModal(false);
-  };
-
-  // 取消删除
-  const handleCancelDelete = () => {
-    setShowDeleteModal(false);
-  };
 
   // 双击空白区域创建节点
   const handleDoubleClick = (e: React.MouseEvent) => {
@@ -662,9 +733,28 @@ const BoardCanvas: React.FC<BoardCanvasProps> = ({ onOpenProjectCenter, readOnly
 
     // 如果有拖拽框选，结束框选
     if (isSelecting && moveDistance > 5) {
+      // 先结束框选
       endSelection();
+      // 框选结束后，选中被框选的背景框
+      if (selectionStart && selectionEnd) {
+        const minX = Math.min(selectionStart.x, selectionEnd.x);
+        const minY = Math.min(selectionStart.y, selectionEnd.y);
+        const maxX = Math.max(selectionStart.x, selectionEnd.x);
+        const maxY = Math.max(selectionStart.y, selectionEnd.y);
+        backgroundFrames.forEach(frame => {
+          if (frame.collapsed) return;
+          const frameRight = frame.x + frame.width;
+          const frameBottom = frame.y + frame.height;
+          // 判断背景框是否与框选区域有重叠
+          if (
+            frame.x < maxX && frameRight > minX &&
+            frame.y < maxY && frameBottom > minY
+          ) {
+            selectBackgroundFrame(frame.id, e.metaKey || e.ctrlKey);
+          }
+        });
+      }
     } else if (isSelecting) {
-      // 即使没有移动足够距离，也要重置框选状态
       endSelection();
     }
     
@@ -1196,27 +1286,6 @@ const BoardCanvas: React.FC<BoardCanvasProps> = ({ onOpenProjectCenter, readOnly
             }}
           />
         )}
-        
-        {/* 删除提示 - 已隐藏 */}
-        {/* {selectedNodes.length > 0 && !nodes.some(n => n.editing) && (
-          <div
-            style={{
-              position: 'fixed',
-              bottom: 80,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              background: 'rgba(0, 0, 0, 0.8)',
-              color: '#ffffff',
-              padding: '8px 16px',
-              borderRadius: 8,
-              fontSize: 12,
-              zIndex: 100,
-              pointerEvents: 'none',
-            }}
-          >
-            按 Delete 键删除选中的卡片
-          </div>
-        )} */}
       </div>
       
       {showFramePicker && editingFrameId && (
@@ -1306,14 +1375,6 @@ const BoardCanvas: React.FC<BoardCanvasProps> = ({ onOpenProjectCenter, readOnly
           </svg>
         </div>
       )}
-      
-      {/* 删除确认弹窗 */}
-      <DeleteConfirmModal
-        isOpen={showDeleteModal}
-        nodeCount={selectedNodes.length}
-        onConfirm={handleConfirmDelete}
-        onCancel={handleCancelDelete}
-      />
       
       {/* 视频背景组件 */}
       <VideoBackground 

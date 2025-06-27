@@ -202,6 +202,9 @@ body.dark-mode .markdown-body th {
   border-radius: inherit;
   box-shadow: none;
   padding: 0;
+  overflow: visible !important;
+  touch-action: pan-y !important;
+  pointer-events: auto !important;
 }
 .markdown-editor-linenumbers {
   position: absolute;
@@ -238,9 +241,43 @@ body.dark-mode .markdown-editor-linenumbers {
   width: 100%;
   height: 100%;
   resize: none;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y !important;
+  pointer-events: auto !important;
+  -webkit-user-select: text;
+  user-select: text;
+  scroll-behavior: smooth;
 }
 body.dark-mode .markdown-editor-textarea {
   background: transparent;
   border: none;
   color: inherit;
+}
+
+/* 🔥 新增：Markdown编辑器滚动条样式 */
+.markdown-editor-textarea::-webkit-scrollbar {
+  width: 4px;
+}
+
+.markdown-editor-textarea::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.markdown-editor-textarea::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 2px;
+}
+
+.markdown-editor-textarea::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+/* 深色模式下的Markdown编辑器滚动条 */
+body.dark-mode .markdown-editor-textarea::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+body.dark-mode .markdown-editor-textarea::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
 }

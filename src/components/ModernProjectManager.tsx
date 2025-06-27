@@ -7,6 +7,7 @@ import type { InteractiveTheme } from './InteractiveThemeBackground';
 import BackgroundImageSelector from './BackgroundImageSelector';
 import { cloudDataManager } from '../services/cloudDataManager';
 import { FixedSizeList as List } from 'react-window';
+import BoardRenameInput from './BoardRenameInput';
 
 // 动态获取可用的图标列表
 const getAvailableIcons = (): string[] => {
@@ -115,7 +116,20 @@ const ModernProjectManager: React.FC<ModernProjectManagerProps & { onShowAI?: ()
   
   // 白板标题相关状态
   const [boardTitle, setBoardTitle] = useState(() => {
-    // 默认标题为当前日期时间
+    // 🔥 修复：优先从localStorage读取ID为'current'的白板标题
+    try {
+      const currentBoardData = localStorage.getItem('whiteboard-data-current');
+      if (currentBoardData) {
+        const boardData = JSON.parse(currentBoardData);
+        if (boardData.title) {
+          return boardData.title;
+        }
+      }
+    } catch (error) {
+      console.warn('读取当前白板标题失败:', error);
+    }
+    
+    // 如果没有保存的标题，使用当前日期时间作为默认值
     const now = new Date();
     const year = now.getFullYear();
     const month = (now.getMonth() + 1).toString().padStart(2, '0');
@@ -744,22 +758,43 @@ const ModernProjectManager: React.FC<ModernProjectManagerProps & { onShowAI?: ()
     setShowDropdown(null); // 关闭下拉菜单
   };
 
-  const handleSaveRename = () => {
-    if (renamingBoardId && renamingTitle.trim()) {
+  const handleSaveRename = (newTitle?: string) => {
+    // 🔥 修复：使用传入的新标题，或者当前的 renamingTitle
+    const titleToUse = newTitle || renamingTitle;
+    
+    if (renamingBoardId && titleToUse.trim()) {
+      // 🔥 修复：如果重命名的是'current'白板，同步更新boardTitle状态
+      if (renamingBoardId === 'current') {
+        setBoardTitle(titleToUse.trim());
+      }
+      
       setBoardList(prev => prev.map(board =>
         board.id === renamingBoardId
-          ? { ...board, title: renamingTitle.trim() }
+          ? { ...board, title: titleToUse.trim() }
           : board
       ));
+      
       // 同步更新本地存储的 title
       const storageKey = `whiteboard-data-${renamingBoardId}`;
       const data = localStorage.getItem(storageKey);
       if (data) {
         try {
           const boardData = JSON.parse(data);
-          boardData.title = renamingTitle.trim();
+          boardData.title = titleToUse.trim();
           localStorage.setItem(storageKey, JSON.stringify(boardData));
         } catch {}
+      } else {
+        // 🔥 修复：如果localStorage中没有数据，创建新的数据（特别是'current'白板）
+        const newBoardData = {
+          title: titleToUse.trim(),
+          nodes: renamingBoardId === 'current' ? nodes : [],
+          connections: [],
+          backgroundFrames: [],
+          isActive: renamingBoardId === 'current',
+          createdAt: new Date(),
+          icon: getRandomIcon()
+        };
+        localStorage.setItem(storageKey, JSON.stringify(newBoardData));
       }
     }
     setRenamingBoardId(null);
@@ -1375,32 +1410,12 @@ const ModernProjectManager: React.FC<ModernProjectManagerProps & { onShowAI?: ()
                             {/* 白板标题 */}
                             {renamingBoardId === board.id ? (
                               <div style={{ marginBottom: 6 }}>
-                                <input
-                                  type="text"
-                                  value={renamingTitle}
-                                  onChange={(e) => setRenamingTitle(e.target.value)}
-                                  style={{
-                                    width: '100%',
-                                    padding: '2px 4px',
-                                    border: isDark ? '1px solid #4B5563' : '1px solid #D1D5DB',
-                                    borderRadius: '4px',
-                                    backgroundColor: isDark ? '#1F2937' : '#FFFFFF',
-                                    color: isDark ? '#F9FAFB' : '#111827',
-                                    fontSize: '12px',
-                                    fontWeight: 600,
-                                    outline: 'none',
-                                    boxSizing: 'border-box',
+                                <BoardRenameInput
+                                  initialValue={renamingTitle}
+                                  onSave={(newTitle) => {
+                                    handleSaveRename(newTitle);
                                   }}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                      handleSaveRename();
-                                    } else if (e.key === 'Escape') {
-                                      handleCancelRename();
-                                    }
-                                  }}
-                                  onBlur={handleSaveRename}
-                                  autoFocus
-                                  onClick={(e) => e.stopPropagation()}
+                                  onCancel={handleCancelRename}
                                 />
                               </div>
                             ) : (

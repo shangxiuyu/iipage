@@ -17,7 +17,22 @@ export interface UseImagePasteOptions {
 }
 
 function isImageUrl(url: string) {
-  return /^(https?:\/\/).+\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(url);
+  if (!url || typeof url !== 'string') return false;
+  
+  if (url.length > 2000) {
+    console.log('🖼️ URL过长，跳过图片检测');
+    return false;
+  }
+  
+  const hasImageExt = /\.(png|jpe?g|gif|webp|bmp|svg)(\?|#|$)/i.test(url);
+  if (!hasImageExt) return false;
+  
+  try {
+    return /^(https?:\/\/)[^\s]{1,1990}\.(png|jpe?g|gif|webp|bmp|svg)(\?[^\s]{0,200})?(#[^\s]{0,100})?$/i.test(url);
+  } catch (error) {
+    console.warn('⚠️ 图片URL检测出错:', error);
+    return false;
+  }
 }
 
 export function useImagePaste({ onInsertImage, uploadImage, editorRef }: UseImagePasteOptions) {
@@ -25,7 +40,6 @@ export function useImagePaste({ onInsertImage, uploadImage, editorRef }: UseImag
     const editor = editorRef.current;
     if (!editor) return;
 
-    // 粘贴事件
     const handlePaste = (e: ClipboardEvent) => {
       if (!e.clipboardData) return;
       const items = e.clipboardData.items;
@@ -37,7 +51,7 @@ export function useImagePaste({ onInsertImage, uploadImage, editorRef }: UseImag
           if (file) handleFile(file);
         } else if (item.kind === 'string') {
           item.getAsString((str) => {
-            if (isImageUrl(str)) {
+            if (str && str.length > 50 && str.length < 2000 && isImageUrl(str)) {
               e.preventDefault();
               onInsertImage({ url: str, status: 'done' });
             }
@@ -46,7 +60,6 @@ export function useImagePaste({ onInsertImage, uploadImage, editorRef }: UseImag
       }
     };
 
-    // 拖拽事件
     const handleDrop = (e: DragEvent) => {
       if (!e.dataTransfer) return;
       const files = e.dataTransfer.files;
@@ -59,17 +72,13 @@ export function useImagePaste({ onInsertImage, uploadImage, editorRef }: UseImag
       }
     };
 
-    // 处理图片文件
     const handleFile = (file: File) => {
-      // 先本地预览
       const localUrl = URL.createObjectURL(file);
       onInsertImage({ url: localUrl, status: 'loading', file });
-      // 读取为base64
       const reader = new FileReader();
       reader.onload = (event) => {
         const base64 = event.target?.result as string;
         if (uploadImage) {
-          // 可选：异步上传
           uploadImage(file)
             .then((remoteUrl) => {
               onInsertImage({ url: remoteUrl, status: 'done', file });

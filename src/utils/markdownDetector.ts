@@ -3,32 +3,32 @@
  * 用于自动识别用户粘贴的文本是否为Markdown格式
  */
 
-// Markdown语法特征模式
+// Markdown语法特征模式 - 优化版本，避免灾难性回溯
 const MARKDOWN_PATTERNS = [
   // 标题 (# ## ### #### ##### ######)
   /^#{1,6}\s+.+$/m,
   
-  // 代码块 (```code``` 或 ~~~code~~~)
-  /^```[\s\S]*?```$/m,
-  /^~~~[\s\S]*?~~~$/m,
+  // 代码块 (```code``` 或 ~~~code~~~) - 优化：限制长度，避免回溯
+  /^```[\s\S]{0,5000}?```$/m,
+  /^~~~[\s\S]{0,5000}?~~~$/m,
   
-  // 行内代码 (`code`)
-  /`[^`\n]+`/,
+  // 行内代码 (`code`) - 优化：限制长度
+  /`[^`\n]{1,200}`/,
   
-  // 粗体 (**text** 或 __text__)
-  /\*\*[^*\n]+\*\*/,
-  /__[^_\n]+__/,
+  // 粗体 (**text** 或 __text__) - 优化：使用否定字符集，限制长度
+  /\*\*[^*\n]{1,200}\*\*/,
+  /__[^_\n]{1,200}__/,
   
-  // 斜体 (*text* 或 _text_)
-  /\*[^*\n]+\*/,
-  /_[^_\n]+_/,
+  // 斜体 (*text* 或 _text_) - 优化：限制长度
+  /\*[^*\n]{1,200}\*/,
+  /_[^_\n]{1,200}_/,
   
-  // 链接 [text](url) 或 [text][ref]
-  /\[.+?\]\([^)]+\)/,
-  /\[.+?\]\[.+?\]/,
+  // 链接 [text](url) 或 [text][ref] - 优化：限制长度，避免回溯
+  /\[[^\]]{1,200}\]\([^)]{1,500}\)/,
+  /\[[^\]]{1,200}\]\[[^\]]{1,100}\]/,
   
-  // 图片 ![alt](url)
-  /!\[.*?\]\([^)]+\)/,
+  // 图片 ![alt](url) - 优化：限制长度
+  /!\[[^\]]{0,200}\]\([^)]{1,500}\)/,
   
   // 无序列表 (- item, * item, + item)
   /^[\s]*[-*+]\s+.+$/m,
@@ -46,8 +46,8 @@ const MARKDOWN_PATTERNS = [
   /^\|.+\|$/m,
   /^[\s]*\|?[\s]*:?-+:?[\s]*\|/m,
   
-  // 删除线 (~~text~~)
-  /~~.+?~~/,
+  // 删除线 (~~text~~) - 优化：限制长度
+  /~~[^~]{1,200}~~/,
   
   // 任务列表 (- [x] task, - [ ] task)
   /^[\s]*[-*+]\s+\[[x\s]\]\s+.+$/m,
@@ -81,23 +81,56 @@ export function detectMarkdown(text: string): {
     return { isMarkdown: false, confidence: 0, features: [] };
   }
 
+  // 🔥 关键优化：如果文本过长且看起来像单一URL，快速返回非Markdown
+  if (trimmedText.length > 1000) {
+    // 检查是否是纯URL（没有空格、换行等）
+    const hasSpacesOrNewlines = /[\s\n\r]/.test(trimmedText);
+    const looksLikeUrl = /^https?:\/\/[^\s]+$/i.test(trimmedText.substring(0, 100));
+    
+    if (!hasSpacesOrNewlines && looksLikeUrl) {
+      console.log('📎 检测到长URL，跳过Markdown检测');
+      return { isMarkdown: false, confidence: 0, features: ['长URL'] };
+    }
+    
+    // 对于超长文本，只检查前2000个字符，避免性能问题
+    console.log('📄 文本过长，仅检查前2000字符');
+    const limitedText = trimmedText.substring(0, 2000);
+    return detectMarkdownLimited(limitedText);
+  }
+
+  return detectMarkdownLimited(trimmedText);
+}
+
+/**
+ * 限制版本的Markdown检测，避免性能问题
+ */
+function detectMarkdownLimited(text: string): {
+  isMarkdown: boolean;
+  confidence: number;
+  features: string[];
+} {
   const features: string[] = [];
   let score = 0;
   
-  // 检测各种Markdown模式
+  // 检测各种Markdown模式 - 使用 try-catch 避免正则表达式错误
   for (const pattern of MARKDOWN_PATTERNS) {
-    if (pattern.test(trimmedText)) {
-      const match = trimmedText.match(pattern);
-      if (match) {
-        features.push(match[0].substring(0, 50)); // 限制特征长度
-        score += 1;
+    try {
+      if (pattern.test(text)) {
+        const match = text.match(pattern);
+        if (match) {
+          features.push(match[0].substring(0, 50)); // 限制特征长度
+          score += 1;
+        }
       }
+    } catch (error) {
+      console.warn('⚠️ 正则表达式执行出错:', error);
+      // 继续检测其他模式
     }
   }
   
   // 检测特殊字符指示器
   for (const indicator of MARKDOWN_INDICATORS) {
-    if (trimmedText.includes(indicator)) {
+    if (text.includes(indicator)) {
       score += 0.3;
       if (!features.includes(indicator)) {
         features.push(indicator);
@@ -106,7 +139,7 @@ export function detectMarkdown(text: string): {
   }
   
   // 检测换行格式（Markdown通常有特定的换行模式）
-  const lines = trimmedText.split('\n');
+  const lines = text.split('\n');
   if (lines.length > 1) {
     // 检查是否有空行分段（Markdown常见模式）
     const hasBlankLines = lines.some(line => line.trim() === '');
@@ -144,6 +177,11 @@ export function detectMarkdown(text: string): {
 export function isLikelyMarkdown(text: string): boolean {
   if (!text || text.length < 10) return false;
   
+  // 🔥 快速排除长URL
+  if (text.length > 500 && /^https?:\/\/[^\s]+$/i.test(text.substring(0, 100))) {
+    return false;
+  }
+  
   // 快速检测关键特征
   const quickPatterns = [
     /^#{1,6}\s+/, // 标题
@@ -154,7 +192,12 @@ export function isLikelyMarkdown(text: string): boolean {
     /^>\s+/m, // 引用
   ];
   
-  return quickPatterns.some(pattern => pattern.test(text));
+  try {
+    return quickPatterns.some(pattern => pattern.test(text));
+  } catch (error) {
+    console.warn('⚠️ 快速Markdown检测出错:', error);
+    return false;
+  }
 }
 
 /**
@@ -170,7 +213,9 @@ export function getMarkdownSummary(text: string): {
   hasLinks: boolean;
   lineCount: number;
 } {
-  const lines = text.split('\n');
+  // 🔥 对长文本进行限制处理
+  const limitedText = text.length > 5000 ? text.substring(0, 5000) : text;
+  const lines = limitedText.split('\n');
   const headings: string[] = [];
   
   // 提取标题
@@ -188,12 +233,24 @@ export function getMarkdownSummary(text: string): {
     }
   }
   
-  return {
-    title,
-    headings,
-    hasCodeBlocks: /```[\s\S]*?```/.test(text),
-    hasImages: /!\[.*?\]\([^)]+\)/.test(text),
-    hasLinks: /\[.+?\]\([^)]+\)/.test(text),
-    lineCount: lines.length
-  };
+  try {
+    return {
+      title,
+      headings,
+      hasCodeBlocks: /```[\s\S]{0,1000}?```/.test(limitedText), // 限制检测长度
+      hasImages: /!\[[^\]]{0,100}\]\([^)]{1,200}\)/.test(limitedText), // 限制检测长度
+      hasLinks: /\[[^\]]{1,100}\]\([^)]{1,200}\)/.test(limitedText), // 限制检测长度
+      lineCount: lines.length
+    };
+  } catch (error) {
+    console.warn('⚠️ Markdown摘要提取出错:', error);
+    return {
+      title,
+      headings,
+      hasCodeBlocks: false,
+      hasImages: false,
+      hasLinks: false,
+      lineCount: lines.length
+    };
+  }
 } 
