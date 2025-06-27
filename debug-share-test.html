@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>白板分享功能测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            border: 1px solid #ddd;
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .success { border-color: #4CAF50; background-color: #f9fff9; }
+        .error { border-color: #f44336; background-color: #fff9f9; }
+        .warning { border-color: #ff9800; background-color: #fff8f0; }
+        button {
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #005a8b; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 3px; overflow-x: auto; }
+        .loading { display: none; }
+    </style>
+</head>
+<body>
+    <h1>🖼️ 白板分享功能测试</h1>
+    
+    <div class="test-section">
+        <h2>📋 测试说明</h2>
+        <p>此页面用于诊断白板分享后其他用户无法看到的问题。</p>
+        <ul>
+            <li>检查网络连接</li>
+            <li>验证资源加载</li>
+            <li>测试模块导入</li>
+            <li>检查控制台错误</li>
+        </ul>
+    </div>
+
+    <div class="test-section" id="network-test">
+        <h2>🌐 网络连接测试</h2>
+        <button onclick="testNetworkConnection()">开始网络测试</button>
+        <div id="network-result"></div>
+    </div>
+
+    <div class="test-section" id="resource-test">
+        <h2>📦 资源加载测试</h2>
+        <button onclick="testResourceLoading()">测试资源加载</button>
+        <div id="resource-result"></div>
+    </div>
+
+    <div class="test-section" id="module-test">
+        <h2>🔧 模块导入测试</h2>
+        <button onclick="testModuleImport()">测试模块导入</button>
+        <div id="module-result"></div>
+    </div>
+
+    <div class="test-section" id="console-test">
+        <h2>🐛 控制台错误监控</h2>
+        <button onclick="startErrorMonitoring()">开始监控</button>
+        <div id="console-result"></div>
+    </div>
+
+    <script>
+        // 错误收集器
+        const errors = [];
+        
+        // 监听所有错误
+        window.addEventListener('error', function(e) {
+            errors.push({
+                type: 'script-error',
+                message: e.message,
+                filename: e.filename,
+                lineno: e.lineno,
+                colno: e.colno,
+                error: e.error
+            });
+            updateConsoleResult();
+        });
+
+        window.addEventListener('unhandledrejection', function(e) {
+            errors.push({
+                type: 'promise-rejection',
+                reason: e.reason,
+                promise: e.promise
+            });
+            updateConsoleResult();
+        });
+
+        function testNetworkConnection() {
+            const result = document.getElementById('network-result');
+            result.innerHTML = '<div class="loading">🔄 正在测试网络连接...</div>';
+            
+            // 测试基本连接
+            Promise.all([
+                fetch('/').then(r => ({ url: '/', status: r.status, ok: r.ok })),
+                fetch('/assets/').then(r => ({ url: '/assets/', status: r.status, ok: r.ok })).catch(e => ({ url: '/assets/', error: e.message })),
+                fetch('https://jsonplaceholder.typicode.com/posts/1').then(r => ({ url: '外部API', status: r.status, ok: r.ok })).catch(e => ({ url: '外部API', error: e.message }))
+            ]).then(results => {
+                const html = results.map(r => 
+                    `<div class="${r.error || !r.ok ? 'error' : 'success'}">
+                        ${r.url}: ${r.error || (r.ok ? '✅ 正常' : `❌ 错误 ${r.status}`)}
+                    </div>`
+                ).join('');
+                result.innerHTML = html;
+            }).catch(e => {
+                result.innerHTML = `<div class="error">❌ 网络测试失败: ${e.message}</div>`;
+            });
+        }
+
+        function testResourceLoading() {
+            const result = document.getElementById('resource-result');
+            result.innerHTML = '<div class="loading">🔄 正在测试资源加载...</div>';
+            
+            // 尝试加载常见的资源
+            const testResources = [
+                '/assets/index.css',
+                '/assets/index.js', 
+                '/vite.svg',
+                '/favicon.ico'
+            ];
+            
+            Promise.all(testResources.map(url => 
+                fetch(url).then(r => ({
+                    url,
+                    status: r.status,
+                    ok: r.ok,
+                    contentType: r.headers.get('content-type')
+                })).catch(e => ({
+                    url,
+                    error: e.message
+                }))
+            )).then(results => {
+                const html = results.map(r => 
+                    `<div class="${r.error || !r.ok ? 'error' : 'success'}">
+                        ${r.url}: ${r.error || (r.ok ? `✅ ${r.contentType || '未知类型'}` : `❌ ${r.status}`)}
+                    </div>`
+                ).join('');
+                result.innerHTML = html;
+            });
+        }
+
+        function testModuleImport() {
+            const result = document.getElementById('module-result');
+            result.innerHTML = '<div class="loading">🔄 正在测试模块导入...</div>';
+            
+            // 测试动态导入
+            const tests = [];
+            
+            // 测试 ES6 模块导入
+            try {
+                const script = document.createElement('script');
+                script.type = 'module';
+                script.innerHTML = `
+                    try {
+                        import('/assets/index.js').then(() => {
+                            window.moduleTestResult = { success: true };
+                        }).catch(e => {
+                            window.moduleTestResult = { error: e.message };
+                        });
+                    } catch(e) {
+                        window.moduleTestResult = { error: e.message };
+                    }
+                `;
+                document.head.appendChild(script);
+                
+                setTimeout(() => {
+                    const testResult = window.moduleTestResult || { error: '超时' };
+                    const html = testResult.success ? 
+                        '<div class="success">✅ ES6 模块导入正常</div>' :
+                        `<div class="error">❌ ES6 模块导入失败: ${testResult.error}</div>`;
+                    
+                    result.innerHTML = html;
+                }, 2000);
+                
+            } catch(e) {
+                result.innerHTML = `<div class="error">❌ 模块测试失败: ${e.message}</div>`;
+            }
+        }
+
+        function startErrorMonitoring() {
+            const result = document.getElementById('console-result');
+            result.innerHTML = '<div class="warning">🔍 开始监控控制台错误...</div>';
+            updateConsoleResult();
+        }
+
+        function updateConsoleResult() {
+            const result = document.getElementById('console-result');
+            if (errors.length === 0) {
+                result.innerHTML = '<div class="success">✅ 暂无错误</div>';
+            } else {
+                const html = errors.map((err, index) => 
+                    `<div class="error">
+                        <strong>错误 ${index + 1} (${err.type}):</strong><br>
+                        <pre>${JSON.stringify(err, null, 2)}</pre>
+                    </div>`
+                ).join('');
+                result.innerHTML = html;
+            }
+        }
+
+        // 页面加载完成后自动开始监控
+        document.addEventListener('DOMContentLoaded', function() {
+            startErrorMonitoring();
+            
+            // 自动运行网络测试
+            setTimeout(() => {
+                testNetworkConnection();
+            }, 1000);
+        });
+
+        // 添加一些有用的调试信息
+        console.log('🔧 调试信息:');
+        console.log('User Agent:', navigator.userAgent);
+        console.log('Location:', window.location.href);
+        console.log('Referrer:', document.referrer);
+        console.log('Cookie 支持:', navigator.cookieEnabled);
+        console.log('在线状态:', navigator.onLine);
+    </script>
+</body>
+</html> 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useContext, useMemo } from 'react';
-import { useBoardStore, BACKGROUND_COLORS } from '../store/useBoardStore';
+import { useBoardStore } from '../store/useBoardStore';
 import NodeCard from './NodeCard';
 import DeleteConfirmModal from './DeleteConfirmModal';
 import ZoomControls from './ZoomControls';
@@ -12,9 +12,6 @@ import SimpleConnectionLayer from './SimpleConnectionLayer';
 import { ThemeContext } from '../App';
 import NodeConnection from './NodeCard/NodeConnection';
 import FrameStylePicker from './FrameStylePicker';
-
-// 兼容类型：扩展 BACKGROUND_COLORS 的类型定义
-import type { BACKGROUND_COLORS as BGCType } from '../store/useBoardStore';
 
 const GRID_SIZE = 20;
 
@@ -124,33 +121,6 @@ const BoardCanvas: React.FC<BoardCanvasProps> = ({ onOpenProjectCenter, readOnly
   const [hoveredFrameId, setHoveredFrameId] = useState<string | null>(null);
   const [resizingFrameId, setResizingFrameId] = useState<string | null>(null);
   
-  // 1. 新增 gridIntensity 状态
-  const [gridIntensity, setGridIntensity] = React.useState(3); // 0~10，初始为3
-  
-  // 当前背景色索引
-  const [bgIndex, setBgIndex] = React.useState(() => {
-    // 优先用 currentBackground，若无则回退到 'default'
-    const current = useBoardStore.getState().currentBackground || 'default';
-    const idx = BACKGROUND_COLORS.findIndex(bg => bg.id === current);
-    return idx >= 0 ? idx : 0;
-  });
-
-  // 切换背景色
-  useEffect(() => {
-    const bg = BACKGROUND_COLORS[bgIndex];
-    if (bg) {
-      useBoardStore.getState().setBackground(bg.id);
-      if (!isDarkMode) {
-        document.body.style.setProperty('--grid-bg', bg.bgColor);
-        document.body.style.setProperty('--grid-line', bg.gridColor);
-      } else {
-        // 深色模式：优先用 darkBgColor/darkGridColor，否则用默认
-        document.body.style.setProperty('--grid-bg', bg.darkBgColor || '#181c23');
-        document.body.style.setProperty('--grid-line', bg.darkGridColor || '#283040');
-      }
-    }
-  }, [bgIndex, isDarkMode]);
-
   const saveEditingNodes = () => {
     nodes.forEach(node => {
       if (node.editing && nodeCardRefs.current[node.id] && typeof nodeCardRefs.current[node.id]?.finishEdit === 'function') {
@@ -214,37 +184,6 @@ const BoardCanvas: React.FC<BoardCanvasProps> = ({ onOpenProjectCenter, readOnly
         return 'var(--bg-color)';
     }
   };
-
-  // 新增：根据 gridIntensity 计算网格线颜色
-  useEffect(() => {
-    // 线性插值：0=最淡，10=最深
-    // 浅色模式：#f5f6fa(最淡) ~ #cbd5e1(最深)
-    // 深色模式：#232a36(最淡) ~ #e5e7eb(最深)
-    function lerpColor(a: string, b: string, t: number) {
-      // a, b: '#rrggbb'，t: 0~1
-      const ah = a.replace('#', '');
-      const bh = b.replace('#', '');
-      const ar = parseInt(ah.substring(0, 2), 16);
-      const ag = parseInt(ah.substring(2, 4), 16);
-      const ab = parseInt(ah.substring(4, 6), 16);
-      const br = parseInt(bh.substring(0, 2), 16);
-      const bg = parseInt(bh.substring(2, 4), 16);
-      const bb = parseInt(bh.substring(4, 6), 16);
-      const rr = Math.round(ar + (br - ar) * t);
-      const rg = Math.round(ag + (bg - ag) * t);
-      const rb = Math.round(ab + (bb - ab) * t);
-      return `#${rr.toString(16).padStart(2, '0')}${rg.toString(16).padStart(2, '0')}${rb.toString(16).padStart(2, '0')}`;
-    }
-    let color = '#e5e7eb';
-    if (!isDarkMode) {
-      // 浅色：0=#f5f6fa，10=#000000
-      color = lerpColor('#f5f6fa', '#000000', gridIntensity / 10);
-    } else {
-      // 深色：0=#232a36，10=#000000
-      color = lerpColor('#232a36', '#000000', gridIntensity / 10);
-    }
-    document.body.style.setProperty('--grid-line', color);
-  }, [gridIntensity, isDarkMode]);
 
   // 键盘事件处理
   useEffect(() => {
@@ -347,26 +286,6 @@ const BoardCanvas: React.FC<BoardCanvasProps> = ({ onOpenProjectCenter, readOnly
           pasteNode();
         }
       }
-
-      // 网格深浅调节
-      if (e.key === 'ArrowUp') {
-        setGridIntensity(intensity => Math.min(intensity + 1, 10));
-        return;
-      }
-      if (e.key === 'ArrowDown') {
-        setGridIntensity(intensity => Math.max(intensity - 1, 0));
-        return;
-      }
-
-      // ← → 切换背景色
-      if (e.key === 'ArrowLeft') {
-        setBgIndex(idx => (idx - 1 + BACKGROUND_COLORS.length) % BACKGROUND_COLORS.length);
-        return;
-      }
-      if (e.key === 'ArrowRight') {
-        setBgIndex(idx => (idx + 1) % BACKGROUND_COLORS.length);
-        return;
-      }
     };
 
     document.addEventListener('keydown', handleKeyDown);
@@ -397,9 +316,7 @@ const BoardCanvas: React.FC<BoardCanvasProps> = ({ onOpenProjectCenter, readOnly
     selectionStart,
     selectionEnd,
     createBackgroundFrame,
-    deleteSelectedNodes,
-    setGridIntensity,
-    setBgIndex
+    deleteSelectedNodes
   ]);
 
   // 滚轮事件处理 - 只读模式下允许缩放

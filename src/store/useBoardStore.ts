@@ -141,57 +141,43 @@ export const BACKGROUND_COLORS = [
     id: 'default',
     name: '默认白色',
     bgColor: '#ffffff',
-    gridColor: '#e5e7eb', // 更浅的灰色
-    darkBgColor: '#232a36',
-    darkGridColor: '#4b5563', // 深色灰
+    gridColor: '#e0e0e0'
   },
   {
     id: 'soft-blue',
     name: '柔和蓝',
     bgColor: '#f0f4ff',
-    gridColor: '#d1ddf7',
-    darkBgColor: '#1e293b',
-    darkGridColor: '#334155',
+    gridColor: '#d1ddf7'
   },
   {
     id: 'warm-cream',
     name: '温暖米色',
     bgColor: '#fefbf3',
-    gridColor: '#ede4d3',
-    darkBgColor: '#2d2a25',
-    darkGridColor: '#6b5e4e',
+    gridColor: '#ede4d3'
   },
   {
     id: 'mint-green',
     name: '薄荷绿',
     bgColor: '#f0fff4',
-    gridColor: '#d0f0d8',
-    darkBgColor: '#1a2e22',
-    darkGridColor: '#3b5d46',
+    gridColor: '#d0f0d8'
   },
   {
     id: 'lavender',
     name: '薰衣草紫',
     bgColor: '#faf5ff',
-    gridColor: '#e9d5ff',
-    darkBgColor: '#2e223a',
-    darkGridColor: '#5b437a',
+    gridColor: '#e9d5ff'
   },
   {
     id: 'peach',
     name: '桃色粉',
     bgColor: '#fff7ed',
-    gridColor: '#fed7aa',
-    darkBgColor: '#3b2c25',
-    darkGridColor: '#a97c5b',
+    gridColor: '#fed7aa'
   },
   {
     id: 'cool-gray',
     name: '冷灰色',
     bgColor: '#f8fafc',
-    gridColor: '#cbd5e1',
-    darkBgColor: '#181c23',
-    darkGridColor: '#283040',
+    gridColor: '#cbd5e1'
   }
 ];
 
@@ -564,7 +550,7 @@ export const useBoardStore = create<BoardState>()(
           connections: [],
           backgroundFrames: [], // 修复：切换/新建白板时清空backgroundFrames
           selectedNodes: [],
-          currentBackground: 'default', // 清空时也用 default
+          currentBackground: 'default',
           showGrid: true,
           backgroundMode: 'grid' as BackgroundMode,
           videoBackgroundUrl: null,

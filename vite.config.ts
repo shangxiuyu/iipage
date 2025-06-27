@@ -6,8 +6,6 @@ export default defineConfig({
   plugins: [react()],
   assetsInclude: ['**/*.png', '**/*.jpg', '**/*.jpeg', '**/*.gif', '**/*.svg'],
   build: {
-    outDir: 'dist',
-    sourcemap: false,
     rollupOptions: {
       output: {
         assetFileNames: (assetInfo) => {
@@ -19,9 +17,5 @@ export default defineConfig({
         }
       }
     }
-  },
-  server: {
-    port: 3000,
-    host: true
   }
 })
