@@ -141,9 +141,9 @@ export const BACKGROUND_COLORS = [
     id: 'default',
     name: '默认白色',
     bgColor: '#ffffff',
-    gridColor: '#e0e0e0',
+    gridColor: '#f0f0f0', // 浅色模式：更淡的网格线（图二效果）
     darkBgColor: '#232a36', // 深色默认背景
-    darkGridColor: '#374151', // 深色默认网格
+    darkGridColor: '#2d3748', // 深色模式：图三中的网格线颜色
   },
   {
     id: 'soft-blue',
