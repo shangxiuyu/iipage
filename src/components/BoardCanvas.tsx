@@ -129,7 +129,8 @@ const BoardCanvas: React.FC<BoardCanvasProps> = ({ onOpenProjectCenter, readOnly
   
   // 当前背景色索引
   const [bgIndex, setBgIndex] = React.useState(() => {
-    const current = useBoardStore.getState().currentBackground;
+    // 优先用 currentBackground，若无则回退到 'default'
+    const current = useBoardStore.getState().currentBackground || 'default';
     const idx = BACKGROUND_COLORS.findIndex(bg => bg.id === current);
     return idx >= 0 ? idx : 0;
   });

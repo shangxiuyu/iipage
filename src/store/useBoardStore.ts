@@ -142,8 +142,8 @@ export const BACKGROUND_COLORS = [
     name: '默认白色',
     bgColor: '#ffffff',
     gridColor: '#e0e0e0',
-    darkBgColor: '#232a36',
-    darkGridColor: '#374151',
+    darkBgColor: '#232a36', // 深色默认背景
+    darkGridColor: '#374151', // 深色默认网格
   },
   {
     id: 'soft-blue',
@@ -564,7 +564,7 @@ export const useBoardStore = create<BoardState>()(
           connections: [],
           backgroundFrames: [], // 修复：切换/新建白板时清空backgroundFrames
           selectedNodes: [],
-          currentBackground: 'default',
+          currentBackground: 'default', // 清空时也用 default
           showGrid: true,
           backgroundMode: 'grid' as BackgroundMode,
           videoBackgroundUrl: null,
