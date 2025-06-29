@@ -12,6 +12,7 @@ import SimpleConnectionLayer from './SimpleConnectionLayer';
 import { ThemeContext } from '../App';
 import NodeConnection from './NodeCard/NodeConnection';
 import FrameStylePicker from './FrameStylePicker';
+import BackgroundFrameImagePreview from './BackgroundFrameImagePreview';
 
 const GRID_SIZE = 20;
 
@@ -120,6 +121,11 @@ const BoardCanvas: React.FC<BoardCanvasProps> = ({ onOpenProjectCenter, readOnly
   const [editingFrameId, setEditingFrameId] = useState<string | null>(null);
   const [hoveredFrameId, setHoveredFrameId] = useState<string | null>(null);
   const [resizingFrameId, setResizingFrameId] = useState<string | null>(null);
+  
+  // 背景框复制为图片相关状态
+  const [showFrameImagePreview, setShowFrameImagePreview] = useState(false);
+  const [frameImagePreviewPosition, setFrameImagePreviewPosition] = useState({ x: 0, y: 0 });
+  const [copyingFrameId, setCopyingFrameId] = useState<string | null>(null);
   
   const saveEditingNodes = () => {
     nodes.forEach(node => {
@@ -248,13 +254,13 @@ const BoardCanvas: React.FC<BoardCanvasProps> = ({ onOpenProjectCenter, readOnly
           // 同时删除选中的卡片和背景框
           if (hasSelectedNodes) {
             deleteSelectedNodes();
-          }
+        }
           if (hasSelectedFrames) {
-            selectedFrames.forEach(frameId => {
-              const { deleteBackgroundFrame } = useBoardStore.getState();
-              deleteBackgroundFrame(frameId);
-            });
-          }
+          selectedFrames.forEach(frameId => {
+            const { deleteBackgroundFrame } = useBoardStore.getState();
+            deleteBackgroundFrame(frameId);
+          });
+        }
           // 删除后清空 selection
           clearSelection();
           clearFrameSelection();
@@ -659,18 +665,28 @@ const BoardCanvas: React.FC<BoardCanvasProps> = ({ onOpenProjectCenter, readOnly
         const minY = Math.min(selectionStart.y, selectionEnd.y);
         const maxX = Math.max(selectionStart.x, selectionEnd.x);
         const maxY = Math.max(selectionStart.y, selectionEnd.y);
-        backgroundFrames.forEach(frame => {
-          if (frame.collapsed) return;
+        // 收集所有被框选的背景框 id
+        const selectedFrameIds = backgroundFrames.filter(frame => {
+          if (frame.collapsed) return false;
           const frameRight = frame.x + frame.width;
           const frameBottom = frame.y + frame.height;
           // 判断背景框是否与框选区域有重叠
-          if (
+          return (
             frame.x < maxX && frameRight > minX &&
             frame.y < maxY && frameBottom > minY
-          ) {
-            selectBackgroundFrame(frame.id, e.metaKey || e.ctrlKey);
-          }
-        });
+          );
+        }).map(frame => frame.id);
+        // 一次性批量设置选中
+        if (selectedFrameIds.length > 0) {
+          // 直接批量设置 selectedFrames
+          useBoardStore.setState(state => ({
+            selectedFrames: selectedFrameIds,
+            backgroundFrames: state.backgroundFrames.map(frame => ({
+              ...frame,
+              selected: selectedFrameIds.includes(frame.id),
+            })),
+          }));
+        }
       }
     } else if (isSelecting) {
       endSelection();
@@ -1236,6 +1252,23 @@ const BoardCanvas: React.FC<BoardCanvasProps> = ({ onOpenProjectCenter, readOnly
             if (frame) {
               updateBackgroundFrame(editingFrameId, { title: newTitle });
             }
+          }}
+          onCopyAsImage={() => {
+            setCopyingFrameId(editingFrameId);
+            setFrameImagePreviewPosition(pickerPosition);
+            setShowFrameImagePreview(true);
+          }}
+        />
+      )}
+      
+      {/* 背景框复制为图片预览 */}
+      {showFrameImagePreview && copyingFrameId && (
+        <BackgroundFrameImagePreview
+          frame={backgroundFrames.find(f => f.id === copyingFrameId)!}
+          position={frameImagePreviewPosition}
+          onClose={() => {
+            setShowFrameImagePreview(false);
+            setCopyingFrameId(null);
           }}
         />
       )}

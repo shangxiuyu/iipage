@@ -567,9 +567,9 @@ export const useBoardStore = create<BoardState>()(
       
       addNode: (x, y) => {
         get().pushUndo();
-        // 创建完全独立的初始内容对象
-        const createEmptyContent = () => [{ type: 'paragraph', children: [{ text: '' }] } as any];
-        
+          // 创建完全独立的初始内容对象
+          const createEmptyContent = () => [{ type: 'paragraph', children: [{ text: '' }] } as any];
+          
         set((state) => {
           return {
             nodes: [
@@ -604,7 +604,7 @@ export const useBoardStore = create<BoardState>()(
           };
         });
       },
-      
+        
       updateNode: (id, data) => {
         get().pushUndo();
         set((state) => {
@@ -633,7 +633,7 @@ export const useBoardStore = create<BoardState>()(
           };
         });
       },
-      
+        
       setNodeEditing: (id, editing) =>
         set((state) => ({
           nodes: state.nodes.map((n) =>
@@ -1436,24 +1436,25 @@ export const useBoardStore = create<BoardState>()(
           // 计算所有属于该 frame 的卡片的最小包裹范围
           const frameNodes = state.nodes.filter((n) => n.containerId === id);
           let minX = frame.x, minY = frame.y, maxX = frame.x + frame.width, maxY = frame.y + frame.height;
+          let minFrameWidth = 80, minFrameHeight = 80; // 默认最小宽高
+          let minFrameX = frame.x, minFrameY = frame.y;
+          const padding = 20;
           if (frameNodes.length > 0) {
             minX = Math.min(...frameNodes.map(n => n.x));
             minY = Math.min(...frameNodes.map(n => n.y));
             maxX = Math.max(...frameNodes.map(n => n.x + (n.width || 200)));
             maxY = Math.max(...frameNodes.map(n => n.y + (n.height || 80)));
+            minFrameX = minX - padding;
+            minFrameY = minY - padding;
+            minFrameWidth = (maxX - minX) + padding * 2;
+            minFrameHeight = (maxY - minY) + padding * 2;
           }
-          const padding = 20;
-          // 允许的最小包裹区域
-          const minFrameX = minX - padding;
-          const minFrameY = minY - padding;
-          const minFrameWidth = (maxX - minX) + padding * 2;
-          const minFrameHeight = (maxY - minY) + padding * 2;
           // 计算用户想要设置的新位置和尺寸
           let newX = data.x !== undefined ? data.x : frame.x;
           let newY = data.y !== undefined ? data.y : frame.y;
           let newWidth = data.width !== undefined ? data.width : frame.width;
           let newHeight = data.height !== undefined ? data.height : frame.height;
-          // 限制不能小于最小包裹区域
+          // 限制不能小于最小包裹区域或默认最小值
           if (newX > minFrameX) newX = minFrameX;
           if (newY > minFrameY) newY = minFrameY;
           if (newWidth < minFrameWidth) newWidth = minFrameWidth;
@@ -1816,7 +1817,7 @@ if (typeof window !== 'undefined') {
       clearTimeout(autoSaveTimer);
     }
   });
-}
+} 
 
 // 在 useBoardStore.ts 顶部或合适位置添加 autoResizeFrame 工具函数
 function autoResizeFrame(frames: BackgroundFrame[], nodes: NodeData[], frameId: string) {
@@ -1833,9 +1834,14 @@ function autoResizeFrame(frames: BackgroundFrame[], nodes: NodeData[], frameId: 
   const newY = minY - padding;
   const newWidth = (maxX - minX) + padding * 2;
   const newHeight = (maxY - minY) + padding * 2;
+  // 只允许变大，不允许缩小
+  const finalX = newX < frame.x ? newX : frame.x;
+  const finalY = newY < frame.y ? newY : frame.y;
+  const finalWidth = Math.max(frame.width, (maxX - (finalX)) + padding * 2);
+  const finalHeight = Math.max(frame.height, (maxY - (finalY)) + padding * 2);
   return frames.map(f =>
     f.id === frameId
-      ? { ...f, x: newX, y: newY, width: newWidth, height: newHeight }
+      ? { ...f, x: finalX, y: finalY, width: finalWidth, height: finalHeight }
       : f
   );
 } 
@@ -1867,4 +1873,4 @@ function isNodeInsideFrame(node: NodeData, frame: BackgroundFrame) {
     nodeRight <= frame.x + frame.width &&
     nodeBottom <= frame.y + frame.height
   );
-}
+} 

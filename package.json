@@ -18,6 +18,7 @@
     "@milkdown/react": "^7.14.0",
     "@milkdown/theme-nord": "^7.14.0",
     "@supabase/supabase-js": "^2.50.0",
+    "@types/html2canvas": "^0.5.35",
     "@types/react-virtualized-auto-sizer": "^1.0.8",
     "@types/uuid": "^10.0.0",
     "@uiw/react-markdown-preview": "^5.1.4",

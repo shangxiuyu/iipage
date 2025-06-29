@@ -35,6 +35,7 @@ interface FrameStylePickerProps {
   onTitleChange: (title: string) => void;
   onClose: () => void;
   position: { x: number; y: number };
+  onCopyAsImage?: () => void;
 }
 
 const FrameStylePicker: React.FC<FrameStylePickerProps> = ({
@@ -46,6 +47,7 @@ const FrameStylePicker: React.FC<FrameStylePickerProps> = ({
   onTitleChange,
   onClose,
   position,
+  onCopyAsImage,
 }) => {
   const [hoveredColor, setHoveredColor] = useState<string | null>(null);
   const [adjustedPosition, setAdjustedPosition] = useState(position);
@@ -249,6 +251,46 @@ const FrameStylePicker: React.FC<FrameStylePickerProps> = ({
             </div>
           </div>
         </div>
+        
+        {/* 复制为图片按钮 */}
+        {onCopyAsImage && (
+          <div style={{ 
+            marginTop: '12px', 
+            paddingTop: '8px', 
+            borderTop: `1px solid ${isDarkMode ? '#4A5568' : '#E2E8F0'}` 
+          }}>
+            <button
+              onClick={() => {
+                onCopyAsImage();
+                onClose();
+              }}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                background: isDarkMode ? '#4A5568' : '#F7FAFC',
+                border: `1px solid ${isDarkMode ? '#718096' : '#E2E8F0'}`,
+                borderRadius: '6px',
+                color: isDarkMode ? '#E2E8F0' : '#2D3748',
+                fontSize: '13px',
+                fontWeight: 500,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = isDarkMode ? '#718096' : '#EDF2F7';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = isDarkMode ? '#4A5568' : '#F7FAFC';
+              }}
+            >
+              📷 复制为图片
+            </button>
+          </div>
+        )}
       </div>
     </>,
     document.body

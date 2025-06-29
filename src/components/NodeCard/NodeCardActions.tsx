@@ -11,6 +11,7 @@ interface NodeCardActionsProps {
   onTogglePin: (e: React.MouseEvent) => void;
   onShowDeleteModal: (e: React.MouseEvent) => void;
   onOpenUrlInNewWindow?: (e: React.MouseEvent) => void;
+  onCopyAsImage?: (e: React.MouseEvent) => void;
   detectedUrl?: string | null;
   isWebPageMode?: boolean;
   hasBackContent?: boolean;
@@ -26,6 +27,7 @@ const NodeCardActions: React.FC<NodeCardActionsProps> = ({
   onTogglePin,
   onShowDeleteModal,
   onOpenUrlInNewWindow,
+  onCopyAsImage,
   detectedUrl,
   isWebPageMode = false,
   hasBackContent = false,
@@ -431,13 +433,58 @@ const NodeCardActions: React.FC<NodeCardActionsProps> = ({
                 </svg>
               </button>
 
+              {/* 复制为图片按钮 */}
+              {onCopyAsImage && (
+                <button
+                  onClick={onCopyAsImage}
+                  style={{
+                    position: 'absolute',
+                    top: -32,
+                    right: 132,
+                    width: 28,
+                    height: 28,
+                    borderRadius: 14,
+                    border: `2px solid #ffffff`,
+                    background: '#10b981',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: `0 3px 12px rgba(16,185,129,0.3)`,
+                    transition: 'all 0.3s ease',
+                    animation: 'slideIn 0.2s ease-out 0.15s both',
+                    zIndex: 995,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.1)';
+                    e.currentTarget.style.boxShadow = '0 4px 16px rgba(16,185,129,0.4)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.boxShadow = '0 3px 12px rgba(16,185,129,0.3)';
+                  }}
+                  title="复制为图片"
+                >
+                  <div
+                    style={{
+                      color: '#ffffff',
+                      fontSize: 14,
+                      fontWeight: 'bold',
+                      lineHeight: 1,
+                    }}
+                  >
+                    📷
+                  </div>
+                </button>
+              )}
+
               {/* 翻转按钮 */}
               <button
                 onClick={onFlipCard}
                 style={{
                   position: 'absolute',
                   top: -32,
-                  right: 132,
+                  right: 164,
                   width: 28,
                   height: 28,
                   borderRadius: 14,

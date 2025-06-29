@@ -102,6 +102,7 @@ const NodeCardContent: React.FC<NodeCardContentProps> = ({
             width: '100%',
             padding: 0,
             margin: 0,
+            boxSizing: 'border-box',
           }}>
             <ErrorBoundary fallback={<div style={{ padding: 4, color: '#666', fontSize: '14px' }}>内容加载失败</div>}>
               <RichTextEditor
@@ -221,6 +222,7 @@ const NodeCardContent: React.FC<NodeCardContentProps> = ({
       width: '100%',
       padding: 0,
       margin: 0,
+      boxSizing: 'border-box',
     }}>
       <ErrorBoundary fallback={<div style={{ padding: 4, color: '#666', fontSize: '14px' }}>内容加载失败</div>}>
         <RichTextEditor

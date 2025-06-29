@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>卡片复制为图片功能测试验证</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            background: #f8fafc;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .test-section {
+            margin-bottom: 30px;
+            padding: 25px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .test-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .status-success {
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .status-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .status-error {
+            background: #fecaca;
+            color: #991b1b;
+        }
+        
+        .test-steps {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+            margin: 15px 0;
+        }
+        
+        .step {
+            margin-bottom: 12px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        
+        .step-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            background: #3b82f6;
+            color: white;
+            border-radius: 50%;
+            font-size: 12px;
+            font-weight: 600;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        
+        .expected-result {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        
+        .expected-title {
+            font-weight: 600;
+            color: #15803d;
+            margin-bottom: 8px;
+        }
+        
+        .issue-item {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        
+        .issue-title {
+            font-weight: 600;
+            color: #dc2626;
+            margin-bottom: 8px;
+        }
+        
+        .solution {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+        
+        .solution-title {
+            font-weight: 600;
+            color: #1d4ed8;
+            margin-bottom: 8px;
+        }
+        
+        .feature-highlight {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .code {
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📷 卡片复制为图片功能</h1>
+        <p>测试验证指南 - 确保功能正常工作</p>
+    </div>
+
+    <div class="feature-highlight">
+        <h2 style="margin: 0 0 10px 0;">🎯 功能目标</h2>
+        <p style="margin: 0;">将白板卡片内容转换为高质量图片，保持原有样式和排版，支持复制到剪贴板并在其他应用中使用。</p>
+    </div>
+
+    <div class="test-section">
+        <div class="test-title">
+            ✅ 测试1：基本功能验证
+            <span class="status-badge status-pending">待测试</span>
+        </div>
+        
+        <div class="test-steps">
+            <div class="step">
+                <span class="step-number">1</span>
+                <div>
+                    在白板中创建一个新卡片，输入文字内容<br>
+                    <small>建议输入：多行文字、包含格式化内容</small>
+                </div>
+            </div>
+            <div class="step">
+                <span class="step-number">2</span>
+                <div>选中卡片，点击右上角的 <span class="code">...</span> 菜单按钮</div>
+            </div>
+            <div class="step">
+                <span class="step-number">3</span>
+                <div>在弹出菜单中找到 <span class="code">📷</span> 图标按钮并点击</div>
+            </div>
+            <div class="step">
+                <span class="step-number">4</span>
+                <div>等待图片生成完成，查看预览效果</div>
+            </div>
+            <div class="step">
+                <span class="step-number">5</span>
+                <div>点击 <span class="code">复制图片</span> 按钮</div>
+            </div>
+            <div class="step">
+                <span class="step-number">6</span>
+                <div>在其他应用（微信、QQ、邮件、Notion等）中粘贴测试</div>
+            </div>
+        </div>
+        
+        <div class="expected-result">
+            <div class="expected-title">✅ 预期结果：</div>
+            <ul>
+                <li>📷 按钮正常显示在操作菜单中</li>
+                <li>点击后弹出预览窗口</li>
+                <li>图片生成成功，显示卡片内容</li>
+                <li>样式和排版与原卡片一致</li>
+                <li>复制按钮可点击，复制成功</li>
+                <li>能在其他应用中正常粘贴</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <div class="test-title">
+            🐛 常见问题排查
+            <span class="status-badge status-error">需注意</span>
+        </div>
+        
+        <div class="issue-item">
+            <div class="issue-title">问题1：一直显示"生成图片中..."</div>
+            <p>现象：预览窗口卡在加载状态，无法生成图片</p>
+            <div class="solution">
+                <div class="solution-title">🔧 解决方案：</div>
+                <ul>
+                    <li>打开浏览器开发者工具(F12) → Console选项卡</li>
+                    <li>查看是否有错误信息输出</li>
+                    <li>确认html2canvas库是否正确加载</li>
+                    <li>尝试刷新页面重新测试</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="issue-item">
+            <div class="issue-title">问题2：复制按钮无法点击</div>
+            <p>现象：复制按钮呈灰色状态，无法点击</p>
+            <div class="solution">
+                <div class="solution-title">🔧 解决方案：</div>
+                <ul>
+                    <li>确认图片已成功生成（显示在预览窗口中）</li>
+                    <li>检查浏览器是否支持Clipboard API</li>
+                    <li>确认网站运行在HTTPS或localhost环境</li>
+                    <li>尝试在Chrome/Safari最新版本中测试</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="issue-item">
+            <div class="issue-title">问题3：生成的图片样式不对</div>
+            <p>现象：图片中的文字排版、颜色与原卡片不一致</p>
+            <div class="solution">
+                <div class="solution-title">🔧 解决方案：</div>
+                <ul>
+                    <li>检查卡片是否使用了特殊样式（透明背景、圆形等）</li>
+                    <li>确认文字对齐方式是否正确应用</li>
+                    <li>检查是否有自定义CSS影响渲染</li>
+                    <li>尝试不同的卡片样式进行测试</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <div class="test-title">
+            🧪 高级测试场景
+            <span class="status-badge status-pending">待验证</span>
+        </div>
+        
+        <div class="test-steps">
+            <h4>场景A：长文本内容</h4>
+            <p>创建包含大量文字的卡片，确认图片能显示完整内容</p>
+            
+            <h4>场景B：格式化文本</h4>
+            <p>测试粗体、斜体、下划线、代码等格式是否正确显示</p>
+            
+            <h4>场景C：不同背景色</h4>
+            <p>测试各种背景色和透明背景的图片生成效果</p>
+            
+            <h4>场景D：圆形卡片</h4>
+            <p>测试圆形卡片的图片生成是否保持圆形外观</p>
+            
+            <h4>场景E：卡片翻转</h4>
+            <p>翻转到背面后测试背面内容的图片生成</p>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <div class="test-title">
+            🔍 调试信息检查
+            <span class="status-badge status-pending">开发模式</span>
+        </div>
+        
+        <p>如果功能出现问题，请按以下步骤收集调试信息：</p>
+        
+        <div class="test-steps">
+            <div class="step">
+                <span class="step-number">1</span>
+                <div>按F12打开开发者工具，切换到Console选项卡</div>
+            </div>
+            <div class="step">
+                <span class="step-number">2</span>
+                <div>执行复制图片操作，观察控制台输出</div>
+            </div>
+            <div class="step">
+                <span class="step-number">3</span>
+                <div>寻找以下关键信息：
+                    <ul>
+                        <li><span class="code">CardImagePreview: 开始生成图片流程</span></li>
+                        <li><span class="code">CardImagePreview: DOM元素存在，开始html2canvas生成</span></li>
+                        <li><span class="code">CardImagePreview: 图片生成成功</span></li>
+                        <li>任何错误信息（红色文字）</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="step">
+                <span class="step-number">4</span>
+                <div>记录错误信息并反馈给开发团队</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <div class="test-title">
+            📋 测试检查清单
+            <span class="status-badge status-success">完成后勾选</span>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px;">
+            <div>
+                <h4>基础功能 ✅</h4>
+                <label><input type="checkbox"> 📷 按钮正常显示</label><br>
+                <label><input type="checkbox"> 预览窗口能打开</label><br>
+                <label><input type="checkbox"> 图片生成成功</label><br>
+                <label><input type="checkbox"> 复制按钮可点击</label><br>
+                <label><input type="checkbox"> 能在其他应用粘贴</label>
+            </div>
+            
+            <div>
+                <h4>样式保真 🎨</h4>
+                <label><input type="checkbox"> 文字内容完整</label><br>
+                <label><input type="checkbox"> 背景色正确</label><br>
+                <label><input type="checkbox"> 文字颜色正确</label><br>
+                <label><input type="checkbox"> 对齐方式正确</label><br>
+                <label><input type="checkbox"> 无边框显示</label>
+            </div>
+            
+            <div>
+                <h4>特殊场景 🧪</h4>
+                <label><input type="checkbox"> 长文本处理</label><br>
+                <label><input type="checkbox"> 透明背景</label><br>
+                <label><input type="checkbox"> 圆形卡片</label><br>
+                <label><input type="checkbox"> 背面内容</label><br>
+                <label><input type="checkbox"> 格式化文本</label>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 页面加载完成后的提示
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🧪 卡片复制为图片功能测试页面已加载');
+            console.log('请按照测试步骤进行功能验证');
+            
+            // 添加复选框交互
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const section = this.closest('div');
+                    const allCheckboxes = section.querySelectorAll('input[type="checkbox"]');
+                    const checkedCount = section.querySelectorAll('input[type="checkbox"]:checked').length;
+                    
+                    if (checkedCount === allCheckboxes.length) {
+                        console.log(`✅ ${section.querySelector('h4').textContent} 部分测试完成！`);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html> 

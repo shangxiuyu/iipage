@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片生成测试</title>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            padding: 20px;
+        }
+        
+        .test-card {
+            width: 250px;
+            min-height: 150px;
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 16px;
+            color: #000000;
+            border: none;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin: 20px 0;
+        }
+        
+        .controls {
+            margin: 20px 0;
+        }
+        
+        button {
+            padding: 8px 16px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+        }
+        
+        .error {
+            color: #ef4444;
+        }
+        
+        .success {
+            color: #10b981;
+        }
+    </style>
+</head>
+<body>
+    <h1>html2canvas 图片生成测试</h1>
+    
+    <div class="test-card" id="testCard">
+        这是一个测试卡片的内容。
+        <br><br>
+        包含多行文字内容，用于测试图片生成功能是否正常工作。
+    </div>
+    
+    <div class="controls">
+        <button onclick="generateImage()">生成图片</button>
+        <button onclick="copyImage()" id="copyBtn" disabled>复制图片</button>
+    </div>
+    
+    <div class="result" id="result">
+        点击"生成图片"按钮开始测试...
+    </div>
+    
+    <div id="imageContainer" style="margin-top: 20px;"></div>
+    
+    <script>
+        let generatedImageUrl = null;
+        
+        async function generateImage() {
+            const resultDiv = document.getElementById('result');
+            const copyBtn = document.getElementById('copyBtn');
+            const imageContainer = document.getElementById('imageContainer');
+            
+            resultDiv.innerHTML = '<div style="color: #6b7280;">生成图片中...</div>';
+            copyBtn.disabled = true;
+            
+            try {
+                console.log('开始生成图片...');
+                
+                const element = document.getElementById('testCard');
+                if (!element) {
+                    throw new Error('找不到测试卡片元素');
+                }
+                
+                const canvas = await html2canvas(element, {
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: true,
+                    logging: true,
+                    backgroundColor: null,
+                });
+                
+                generatedImageUrl = canvas.toDataURL('image/png');
+                
+                resultDiv.innerHTML = '<div class="success">✅ 图片生成成功！</div>';
+                copyBtn.disabled = false;
+                
+                // 显示生成的图片
+                imageContainer.innerHTML = `
+                    <h3>生成的图片：</h3>
+                    <img src="${generatedImageUrl}" style="max-width: 100%; border: 1px solid #e5e7eb; border-radius: 8px;" />
+                `;
+                
+                console.log('图片生成成功');
+                
+            } catch (error) {
+                console.error('生成图片失败:', error);
+                resultDiv.innerHTML = `<div class="error">❌ 生成图片失败: ${error.message}</div>`;
+                copyBtn.disabled = true;
+                imageContainer.innerHTML = '';
+            }
+        }
+        
+        async function copyImage() {
+            if (!generatedImageUrl) {
+                alert('没有可复制的图片');
+                return;
+            }
+            
+            try {
+                const response = await fetch(generatedImageUrl);
+                const blob = await response.blob();
+                
+                await navigator.clipboard.write([
+                    new ClipboardItem({
+                        'image/png': blob
+                    })
+                ]);
+                
+                alert('图片已复制到剪贴板！');
+                
+            } catch (error) {
+                console.error('复制图片失败:', error);
+                alert('复制失败: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html> 

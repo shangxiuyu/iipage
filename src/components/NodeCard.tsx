@@ -3,6 +3,7 @@ import type { NodeData, BackgroundFrame } from '../store/useBoardStore';
 import { useBoardStore, defaultContent, LIGHT_CARD_COLORS, DARK_CARD_COLORS } from '../store/useBoardStore';
 import RichTextEditor from './RichTextEditor';
 import CardColorPicker from './CardColorPicker';
+import CardImagePreview from './CardImagePreview';
 
 import type { Descendant } from 'slate';
 import type { Element as SlateElement } from 'slate';
@@ -362,6 +363,8 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [isEditing, setIsEditing] = useState(node.editing || false);
+  const [showImagePreview, setShowImagePreview] = useState(false);
+  const [imagePreviewPosition, setImagePreviewPosition] = useState({ x: 0, y: 0 });
 
   const [colorPickerPosition, setColorPickerPosition] = useState({ x: 0, y: 0 });
   
@@ -1934,8 +1937,23 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
   const handleOpenUrlInNewWindow = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (detectedUrl) {
-      window.open(detectedUrl, '_blank', 'noopener,noreferrer');
+      window.open(detectedUrl, '_blank');
     }
+  };
+
+  const handleCopyAsImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    // 计算预览弹窗的位置
+    const rect = e.currentTarget.getBoundingClientRect();
+    const position = {
+      x: rect.left + rect.width + 10,
+      y: rect.top
+    };
+    
+    setImagePreviewPosition(position);
+    setShowImagePreview(true);
+    setShowActionMenu(false);
   };
 
   const handleShowColorPicker = (e: React.MouseEvent) => {
@@ -2466,6 +2484,7 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
           onTogglePin={handleTogglePin}
           onShowDeleteModal={handleConfirmDelete} // 直接删除
           onOpenUrlInNewWindow={handleOpenUrlInNewWindow}
+          onCopyAsImage={handleCopyAsImage}
           detectedUrl={detectedUrl}
           isWebPageMode={isWebPageMode}
           hasBackContent={!!(node.backContent && Array.isArray(node.backContent) && getTextContent(node.backContent).trim() !== '')}
@@ -2501,6 +2520,15 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
           onTextAlignChange={(align) => updateNode(node.id, { textAlign: align })}
           textVerticalAlign={node.textVerticalAlign}
           onTextVerticalAlignChange={(align) => updateNode(node.id, { textVerticalAlign: align })}
+        />
+      )}
+
+      {/* 图片预览对话框 */}
+      {showImagePreview && (
+        <CardImagePreview
+          node={node}
+          position={imagePreviewPosition}
+          onClose={() => setShowImagePreview(false)}
         />
       )}
       

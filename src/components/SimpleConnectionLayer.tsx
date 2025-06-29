@@ -706,6 +706,25 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
            const uniqueKey = `${connectionId}-${index}`; // 使用索引确保唯一性
            const optimal = getOptimalAnchors(connection.from, connection.to);
            if (!optimal) return null;
+           
+           // 新增：检查连线的起点和终点是否在折叠的背景框内
+           const fromEntity = getEntityById(connection.from);
+           const toEntity = getEntityById(connection.to);
+           
+           // 如果起点或终点是背景框内的卡片，且该背景框已折叠，则不显示连线
+           if (fromEntity?.type === 'node' && fromEntity.containerId) {
+             const fromFrame = backgroundFrames.find(f => f.id === fromEntity.containerId);
+             if (fromFrame && fromFrame.collapsed) return null;
+           }
+           if (toEntity?.type === 'node' && toEntity.containerId) {
+             const toFrame = backgroundFrames.find(f => f.id === toEntity.containerId);
+             if (toFrame && toFrame.collapsed) return null;
+           }
+           
+           // 如果起点或终点本身就是折叠的背景框，也不显示连线
+           if (fromEntity?.type === 'frame' && fromEntity.collapsed) return null;
+           if (toEntity?.type === 'frame' && toEntity.collapsed) return null;
+           
            const fromAnchor = (connection.fromAnchor ?? optimal.fromAnchor) as 'top' | 'right' | 'bottom' | 'left';
            const toAnchor = (connection.toAnchor ?? optimal.toAnchor) as 'top' | 'right' | 'bottom' | 'left';
 
@@ -830,31 +849,43 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
         })}
         
         {/* 临时连线（拖拽时显示） */}
-        {isConnecting && tempConnection && (
-          <g>
-            {/* 简单的直线临时连线 */}
-            <line
-              x1={tempConnection.fromX}
-              y1={tempConnection.fromY}
-              x2={tempConnection.toX}
-              y2={tempConnection.toY}
-              stroke="#3b82f6"
-              strokeWidth="3"
-              strokeDasharray="5,5"
-              opacity="0.8"
-              style={{ pointerEvents: 'none' }}
-            />
-            {/* 终点圆圈 */}
-            <circle
-              cx={tempConnection.toX}
-              cy={tempConnection.toY}
-              r="6"
-              fill="#3b82f6"
-              opacity="0.8"
-              style={{ pointerEvents: 'none' }}
-            />
-          </g>
-        )}
+        {isConnecting && tempConnection && (() => {
+          // 检查连线起点是否在折叠的背景框内
+          if (connectingFrom) {
+            const fromEntity = getEntityById(connectingFrom);
+            if (fromEntity?.type === 'node' && fromEntity.containerId) {
+              const fromFrame = backgroundFrames.find(f => f.id === fromEntity.containerId);
+              if (fromFrame && fromFrame.collapsed) return null; // 如果起点在折叠的背景框内，不显示临时连线
+            }
+            if (fromEntity?.type === 'frame' && fromEntity.collapsed) return null; // 如果起点本身是折叠的背景框，不显示临时连线
+          }
+          
+          return (
+            <g>
+              {/* 简单的直线临时连线 */}
+              <line
+                x1={tempConnection.fromX}
+                y1={tempConnection.fromY}
+                x2={tempConnection.toX}
+                y2={tempConnection.toY}
+                stroke="#3b82f6"
+                strokeWidth="3"
+                strokeDasharray="5,5"
+                opacity="0.8"
+                style={{ pointerEvents: 'none' }}
+              />
+              {/* 终点圆圈 */}
+              <circle
+                cx={tempConnection.toX}
+                cy={tempConnection.toY}
+                r="6"
+                fill="#3b82f6"
+                opacity="0.8"
+                style={{ pointerEvents: 'none' }}
+              />
+            </g>
+          );
+        })()}
         
         {/* 调试：显示连线状态 */}
         {false && isConnecting && (
@@ -898,6 +929,25 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
       {connections.map((connection, index) => {
         const connectionId = `${connection.from}-${connection.to}`;
         if (!connection.label) return null;
+        
+        // 新增：检查连线的起点和终点是否在折叠的背景框内
+        const fromEntity = getEntityById(connection.from);
+        const toEntity = getEntityById(connection.to);
+        
+        // 如果起点或终点是背景框内的卡片，且该背景框已折叠，则不显示标签
+        if (fromEntity?.type === 'node' && fromEntity.containerId) {
+          const fromFrame = backgroundFrames.find(f => f.id === fromEntity.containerId);
+          if (fromFrame && fromFrame.collapsed) return null;
+        }
+        if (toEntity?.type === 'node' && toEntity.containerId) {
+          const toFrame = backgroundFrames.find(f => f.id === toEntity.containerId);
+          if (toFrame && toFrame.collapsed) return null;
+        }
+        
+        // 如果起点或终点本身就是折叠的背景框，也不显示标签
+        if (fromEntity?.type === 'frame' && fromEntity.collapsed) return null;
+        if (toEntity?.type === 'frame' && toEntity.collapsed) return null;
+        
         const optimal = getOptimalAnchors(connection.from, connection.to);
         if (!optimal) return null;
         const fromAnchor = (connection.fromAnchor ?? optimal.fromAnchor) as 'top' | 'right' | 'bottom' | 'left';
