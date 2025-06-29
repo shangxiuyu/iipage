@@ -32,6 +32,9 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.50.0
         version: 2.50.0
+      '@types/html2canvas':
+        specifier: ^0.5.35
+        version: 0.5.35
       '@types/react-virtualized-auto-sizer':
         specifier: ^1.0.8
         version: 1.0.8(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -1041,8 +1044,14 @@ packages:
   '@types/hoist-non-react-statics@3.3.6':
     resolution: {integrity: sha512-lPByRJUer/iN/xa4qpyL0qmL11DqNW81iU/IG1S3uvRUq4oKagz8VCxZjiWkumgt66YT3vOdDgZ0o32sGKtCEw==}
 
+  '@types/html2canvas@0.5.35':
+    resolution: {integrity: sha512-1A2dtWZbOIZ+rUK8jmAx1We/EiNV+5vScpphU3AF14Vby6COIazi/9StosrvlVCqlQegRhsEgZf7QYOuWbwuuA==}
+
   '@types/is-url@1.2.32':
     resolution: {integrity: sha512-46VLdbWI8Sc+hPexQ6NLNR2YpoDyDZIpASHkJQ2Yr+Kf9Giw6LdCTkwOdsnHKPQeh7xTjTmSnxbE8qpxYuCiHA==}
+
+  '@types/jquery@3.5.32':
+    resolution: {integrity: sha512-b9Xbf4CkMqS02YH8zACqN1xzdxc3cO735Qe5AbSUFmyOiaWAbcpqh9Wna+Uk0vgACvoQHpWDg2rGdHkYPLmCiQ==}
 
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
@@ -1132,6 +1141,9 @@ packages:
 
   '@types/react@19.1.2':
     resolution: {integrity: sha512-oxLPMytKchWGbnQM9O7D67uPa9paTNxO7jVoNMXgkkErULBPhPARCfkKL9ytcIJJRGjbsVwW4ugJzyFFvm/Tiw==}
+
+  '@types/sizzle@2.3.9':
+    resolution: {integrity: sha512-xzLEyKB50yqCUPUJkIsrVvoWNfFUbIZI+RspLWt8u+tIW/BetMBZtgV2LY/2o+tYH8dRvQ+eoPf3NdhQCcLE2w==}
 
   '@types/slate-react@0.50.1':
     resolution: {integrity: sha512-Mm0KKNRYAj+vHrNXSjICzOgNXgm66rbh9NaSf1WvBBL6oRIeoJJeceMenZP7NDVwLokd7fBuRsn7jSRzT9Z/4Q==}
@@ -4845,7 +4857,15 @@ snapshots:
       '@types/react': 19.1.2
       hoist-non-react-statics: 3.3.2
 
+  '@types/html2canvas@0.5.35':
+    dependencies:
+      '@types/jquery': 3.5.32
+
   '@types/is-url@1.2.32': {}
+
+  '@types/jquery@3.5.32':
+    dependencies:
+      '@types/sizzle': 2.3.9
 
   '@types/json-schema@7.0.15': {}
 
@@ -4950,6 +4970,8 @@ snapshots:
   '@types/react@19.1.2':
     dependencies:
       csstype: 3.1.3
+
+  '@types/sizzle@2.3.9': {}
 
   '@types/slate-react@0.50.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(slate-dom@0.116.0(slate@0.117.0))(slate@0.117.0)':
     dependencies:
