@@ -413,8 +413,8 @@ const ModernProjectManager: React.FC<ModernProjectManagerProps & { onShowAI?: ()
           const allTags = new Set<string>();
           [node.content, node.frontContent, node.backContent]
             .filter(content => content && Array.isArray(content))
-            .forEach(content => {
-              extractTags(content as any).forEach(tag => allTags.add(tag));
+            .forEach((content) => {
+              extractTags(content as any).forEach((tag) => allTags.add(tag));
             });
           // 只要这张卡片有该标签，cardCount 只加一次
           allTags.forEach(tag => {
