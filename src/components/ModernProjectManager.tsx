@@ -1803,11 +1803,11 @@ const ModernProjectManager: React.FC<ModernProjectManagerProps & { onShowAI?: ()
                                 if (nodeWithBoard._boardId && nodeWithBoard._boardId !== boardList.find(b => b.isActive)?.id) {
                                   handleSwitchBoard(nodeWithBoard._boardId);
                                   setTimeout(() => {
-                                    setNodeEditing(node.id);
+                                    setNodeEditing(node.id, true);
                                     onClose();
                                   }, 100);
                                 } else {
-                                  setNodeEditing(node.id);
+                                  setNodeEditing(node.id, true);
                                   onClose();
                                 }
                               }}
