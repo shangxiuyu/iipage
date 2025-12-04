@@ -31,6 +31,31 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
     selectedNodes,
   } = useBoardStore();
 
+  // 计算左侧边栏偏移量
+  const [leftOffset, setLeftOffset] = useState(0);
+  
+  useEffect(() => {
+    const checkSidebarWidth = () => {
+      // 查找左侧边栏元素
+      const sidebar = document.querySelector('[style*="width: 280px"]');
+      setLeftOffset(sidebar ? 280 : 0);
+    };
+    
+    // 初始检查
+    checkSidebarWidth();
+    
+    // 使用MutationObserver监听DOM变化
+    const observer = new MutationObserver(checkSidebarWidth);
+    observer.observe(document.body, { 
+      childList: true, 
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['style']
+    });
+    
+    return () => observer.disconnect();
+  }, []);
+
   // 连线标签编辑状态
   const [editingConnection, setEditingConnection] = useState<string | null>(null);
   const [labelText, setLabelText] = useState('');
@@ -223,8 +248,8 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
       entityWidth = entity.width || 324;
       entityHeight = entity.height || 200;
     } else {
-      // 普通卡片和背景框需要应用缩放和平移变换
-      entityX = entity.x * scale + panX;
+      // 普通卡片和背景框需要应用缩放和平移变换，同时考虑左侧偏移
+      entityX = entity.x * scale + panX + leftOffset;
       entityY = entity.y * scale + panY;
       entityWidth = (entity.width || 324) * scale;
       entityHeight = (entity.height || 200) * scale;
@@ -493,8 +518,8 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
       entityWidth = entity.width || 324;
       entityHeight = entity.height || 200;
     } else {
-      // 普通卡片和背景框需要应用缩放和平移变换
-      entityX = entity.x * scale + panX;
+      // 普通卡片和背景框需要应用缩放和平移变换，同时考虑左侧偏移
+      entityX = entity.x * scale + panX + leftOffset;
       entityY = entity.y * scale + panY;
       entityWidth = (entity.width || 324) * scale;
       entityHeight = (entity.height || 200) * scale;
@@ -528,7 +553,7 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
       fromX = (entity.pinnedX || 100) + (entity.width || 324) / 2;
       fromY = (entity.pinnedY || 100) + (entity.height || 200) / 2;
     } else {
-      fromX = entity.x * scale + panX + (entity.width || 324) * scale / 2;
+      fromX = entity.x * scale + panX + leftOffset + (entity.width || 324) * scale / 2;
       fromY = entity.y * scale + panY + (entity.height || 200) * scale / 2;
     }
 
@@ -537,7 +562,7 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
       toX = (toEntity.pinnedX || 100) + (toEntity.width || 324) / 2;
       toY = (toEntity.pinnedY || 100) + (toEntity.height || 200) / 2;
     } else {
-      toX = toEntity.x * scale + panX + (toEntity.width || 324) * scale / 2;
+      toX = toEntity.x * scale + panX + leftOffset + (toEntity.width || 324) * scale / 2;
       toY = toEntity.y * scale + panY + (toEntity.height || 200) * scale / 2;
     }
 
@@ -1313,4 +1338,4 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
   );
 };
 
-export default SimpleConnectionLayer; 
+export default SimpleConnectionLayer;

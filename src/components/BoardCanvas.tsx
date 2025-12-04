@@ -18,10 +18,11 @@ const GRID_SIZE = 20;
 
 interface BoardCanvasProps {
   onOpenProjectCenter?: () => void;
+  onOpenAIChat?: () => void;
   readOnly?: boolean;
 }
 
-const BoardCanvas: React.FC<BoardCanvasProps> = ({ onOpenProjectCenter, readOnly = false }) => {
+const BoardCanvas: React.FC<BoardCanvasProps> = ({ onOpenProjectCenter, onOpenAIChat, readOnly = false }) => {
   const { 
     nodes, 
     addNode, 
@@ -1272,58 +1273,75 @@ const BoardCanvas: React.FC<BoardCanvasProps> = ({ onOpenProjectCenter, readOnly
           }}
         />
       )}
-      
-      {/* 左下角项目中心浮动按钮 */}
-      {onOpenProjectCenter && (
+
+      {/* 右下角AI思维洞察触发区域 */}
+      {onOpenAIChat && (
         <div
-          onClick={onOpenProjectCenter}
-          style={{
-            position: 'fixed',
-            bottom: 16,
-            left: 16,
-            width: 80,
-            height: 80,
-            backgroundColor: 'transparent',
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            zIndex: 9999,
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'scale(1.1)';
-            e.currentTarget.style.backgroundColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+            const btn = e.currentTarget.querySelector('[data-ai-button]') as HTMLElement;
+            if (btn) {
+              btn.style.opacity = '1';
+              btn.style.transform = 'scale(1)';
+            }
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'scale(1)';
-            e.currentTarget.style.backgroundColor = 'transparent';
+            const btn = e.currentTarget.querySelector('[data-ai-button]') as HTMLElement;
+            if (btn) {
+              btn.style.opacity = '0';
+              btn.style.transform = 'scale(0.5)';
+            }
           }}
-          title="打开项目中心"
+          style={{
+            position: 'fixed',
+            bottom: 0,
+            right: 0,
+            width: 120,
+            height: 120,
+            pointerEvents: 'none',
+            zIndex: 9999,
+          }}
         >
-          <svg 
-            width="48" 
-            height="48" 
-            viewBox="0 0 100 100" 
-            style={{ color: isDarkMode ? '#ffffff' : '#555555' }}
+          <div
+            data-ai-button="true"
+            onClick={onOpenAIChat}
+            style={{
+              position: 'absolute',
+              bottom: 20,
+              right: 20,
+              width: 48,
+              height: 48,
+              backgroundColor: isDarkMode ? '#1a1d29' : '#ffffff',
+              borderRadius: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              pointerEvents: 'auto',
+              opacity: 0,
+              transform: 'scale(0.5)',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              boxShadow: isDarkMode 
+                ? '0 4px 16px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1)'
+                : '0 4px 16px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.06)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = isDarkMode ? '#23272f' : '#f9fafb';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = isDarkMode ? '#1a1d29' : '#ffffff';
+            }}
+            title="思维洞察"
           >
-            <g stroke="currentColor" strokeWidth="3" fill="none">
-              {/* 灯泡主体轮廓 */}
-              <path d="M25 35 C25 20, 35 10, 50 10 C65 10, 75 20, 75 35 C75 45, 70 50, 65 55 L65 65 L35 65 L35 55 C30 50, 25 45, 25 35 Z" />
-              
-              {/* 右上角折叠 */}
-              <path d="M65 20 L65 10 L75 20 Z" />
-              
-              {/* 灯泡底部螺纹 */}
-              <line x1="35" y1="70" x2="65" y2="70" />
-              <ellipse cx="50" cy="75" rx="10" ry="3" fill="currentColor" />
-              
-              {/* 中心信息符号 */}
-              <circle cx="50" cy="30" r="3" fill="currentColor" />
-              <rect x="47" y="38" width="6" height="15" fill="currentColor" />
-            </g>
-          </svg>
+            {/* 极简图标：三个点连接成三角形，代表思维连接 */}
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="6" r="2" fill={isDarkMode ? '#e5e7eb' : '#111827'} />
+              <circle cx="7" cy="16" r="2" fill={isDarkMode ? '#e5e7eb' : '#111827'} />
+              <circle cx="17" cy="16" r="2" fill={isDarkMode ? '#e5e7eb' : '#111827'} />
+              <line x1="12" y1="8" x2="8.5" y2="14" stroke={isDarkMode ? '#6b7280' : '#9ca3af'} strokeWidth="1.5" strokeLinecap="round" />
+              <line x1="12" y1="8" x2="15.5" y2="14" stroke={isDarkMode ? '#6b7280' : '#9ca3af'} strokeWidth="1.5" strokeLinecap="round" />
+              <line x1="9" y1="16" x2="15" y2="16" stroke={isDarkMode ? '#6b7280' : '#9ca3af'} strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </div>
         </div>
       )}
       
@@ -1357,4 +1375,4 @@ const BoardCanvas: React.FC<BoardCanvasProps> = ({ onOpenProjectCenter, readOnly
   );
 };
 
-export default BoardCanvas; 
+export default BoardCanvas;

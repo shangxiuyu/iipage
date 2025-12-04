@@ -652,7 +652,8 @@ const ModernProjectManager: React.FC<ModernProjectManagerProps & { onShowAI?: ()
     setShowNewBoardDialog(false);
     setNewBoardName('');
     
-    onClose();
+    // 不再自动关闭面板，让用户看到新建的白板
+    // onClose();
     
     console.log('创建新白板:', newBoard);
   };
@@ -1073,16 +1074,9 @@ const ModernProjectManager: React.FC<ModernProjectManagerProps & { onShowAI?: ()
       <div style={{
         flex: 1,
         display: 'flex',
+        flexDirection: 'column',
         height: '100%',
       }}>
-        {/* 左侧面板 */}
-        <div style={{
-          width: '220px',
-          backgroundColor: isDark ? '#1F2937' : '#F9FAFB',
-          borderRight: isDark ? '1px solid #374151' : '1px solid #E5E7EB',
-          display: 'flex',
-          flexDirection: 'column',
-        }}>
           {/* Tab切换区域 */}
           <div style={{
             borderBottom: isDark ? '1px solid #374151' : '1px solid #E5E7EB',
@@ -1164,67 +1158,67 @@ const ModernProjectManager: React.FC<ModernProjectManagerProps & { onShowAI?: ()
             flex: 1,
             display: 'flex',
             flexDirection: 'column',
+            minHeight: 0,
           }}>
             {activeTab === 'boards' ? (
               /* 白板模块内容 */
               <>
                 {/* 白板标题栏 */}
                 <div style={{
-                  padding: '16px',
-                  borderBottom: isDark ? '1px solid #374151' : '1px solid #E5E7EB',
+                  padding: '16px 16px 12px 16px',
+                  borderBottom: isDark ? '1px solid rgba(55, 65, 81, 0.5)' : '1px solid rgba(229, 231, 235, 0.8)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'flex-end', // 改为右对齐，因为移除了标题
-                  gap: 12,
+                  justifyContent: 'flex-end',
+                  gap: 10,
                 }}>
                   
-                  {/* 搜索框 - 优化样式 */}
+                  {/* 搜索框 */}
                   <div style={{ 
                     position: 'relative', 
                     flex: 1,
-                    minWidth: 140,
-                    maxWidth: 200, // 增加最大宽度
+                    minWidth: 120,
                   }}>
                     <div style={{
                       position: 'absolute',
-                      left: 10,
+                      left: 12,
                       top: '50%',
                       transform: 'translateY(-50%)',
-                      color: isDark ? '#9CA3AF' : '#6B7280',
+                      color: isDark ? '#6B7280' : '#9CA3AF',
                       pointerEvents: 'none',
-                      fontSize: '13px',
+                      fontSize: '14px',
                       zIndex: 1,
+                      opacity: 0.7,
                     }}>
                       🔍
                     </div>
                     <input
                       type="text"
-                      placeholder="搜索..."
+                      placeholder="搜索白板..."
                       value={boardSearchQuery}
                       onChange={(e) => setBoardSearchQuery(e.target.value)}
                       style={{
                         width: '100%',
-                        height: '32px', // 增加高度
-                        padding: '0 32px 0 32px',
-                        border: isDark ? '1px solid #374151' : '1px solid #E5E7EB',
-                        borderRadius: '16px', // 更圆的角度
-                        backgroundColor: isDark ? '#111827' : '#F9FAFB', // 使用更柔和的背景色
-                        color: isDark ? '#F9FAFB' : '#111827',
+                        height: '36px',
+                        padding: '0 36px 0 38px',
+                        border: 'none',
+                        borderRadius: '10px',
+                        backgroundColor: isDark ? 'rgba(55, 65, 81, 0.4)' : 'rgba(243, 244, 246, 0.8)',
+                        color: isDark ? '#E5E7EB' : '#1F2937',
                         fontSize: '13px',
                         outline: 'none',
                         boxSizing: 'border-box',
-                        transition: 'all 0.2s ease',
+                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                         fontWeight: 400,
-                        boxShadow: 'none', // 移除默认阴影
                       }}
                       onFocus={(e) => {
-                        e.currentTarget.style.borderColor = isDark ? '#4F46E5' : '#3B82F6';
+                        e.currentTarget.style.backgroundColor = isDark ? 'rgba(55, 65, 81, 0.6)' : 'rgba(249, 250, 251, 1)';
                         e.currentTarget.style.boxShadow = isDark 
-                          ? '0 0 0 2px rgba(79, 70, 229, 0.1)' 
-                          : '0 0 0 2px rgba(59, 130, 246, 0.1)';
+                          ? '0 0 0 2px rgba(99, 102, 241, 0.15), 0 2px 8px rgba(0, 0, 0, 0.1)' 
+                          : '0 0 0 2px rgba(59, 130, 246, 0.1), 0 2px 8px rgba(0, 0, 0, 0.05)';
                       }}
                       onBlur={(e) => {
-                        e.currentTarget.style.borderColor = isDark ? '#374151' : '#E5E7EB';
+                        e.currentTarget.style.backgroundColor = isDark ? 'rgba(55, 65, 81, 0.4)' : 'rgba(243, 244, 246, 0.8)';
                         e.currentTarget.style.boxShadow = 'none';
                       }}
                     />
@@ -1233,29 +1227,30 @@ const ModernProjectManager: React.FC<ModernProjectManagerProps & { onShowAI?: ()
                         onClick={() => setBoardSearchQuery('')}
                         style={{
                           position: 'absolute',
-                          right: 6,
+                          right: 10,
                           top: '50%',
                           transform: 'translateY(-50%)',
-                          width: 16,
-                          height: 16,
+                          width: 20,
+                          height: 20,
                           border: 'none',
-                          backgroundColor: 'transparent',
-                          color: isDark ? '#9CA3AF' : '#6B7280',
+                          backgroundColor: isDark ? 'rgba(75, 85, 99, 0.5)' : 'rgba(209, 213, 219, 0.5)',
+                          color: isDark ? '#E5E7EB' : '#374151',
                           cursor: 'pointer',
-                          fontSize: '12px',
+                          fontSize: '14px',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          borderRadius: '50%',
+                          borderRadius: '6px',
                           transition: 'all 0.15s ease',
+                          fontWeight: 500,
                         }}
                         onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = isDark ? '#374151' : '#F3F4F6';
-                          e.currentTarget.style.color = isDark ? '#F9FAFB' : '#111827';
+                          e.currentTarget.style.backgroundColor = isDark ? 'rgba(107, 114, 128, 0.7)' : 'rgba(156, 163, 175, 0.6)';
+                          e.currentTarget.style.transform = 'translateY(-50%) scale(1.05)';
                         }}
                         onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                          e.currentTarget.style.color = isDark ? '#9CA3AF' : '#6B7280';
+                          e.currentTarget.style.backgroundColor = isDark ? 'rgba(75, 85, 99, 0.5)' : 'rgba(209, 213, 219, 0.5)';
+                          e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
                         }}
                       >
                         ×
@@ -1267,32 +1262,33 @@ const ModernProjectManager: React.FC<ModernProjectManagerProps & { onShowAI?: ()
                   <button
                     onClick={handleAddNewBoard}
                     style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: '10px', // 更圆润的角度
-                      border: isDark ? '1px solid #374151' : '1px solid #E5E7EB',
-                      backgroundColor: isDark ? '#1F2937' : '#FFFFFF',
-                      color: isDark ? '#F9FAFB' : '#374151',
+                      width: 36,
+                      height: 36,
+                      borderRadius: '10px',
+                      border: 'none',
+                      backgroundColor: isDark ? 'rgba(99, 102, 241, 0.12)' : 'rgba(59, 130, 246, 0.08)',
+                      color: isDark ? '#818CF8' : '#3B82F6',
                       cursor: 'pointer',
-                      fontSize: '16px',
+                      fontSize: '18px',
+                      fontWeight: 400,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      transition: 'all 0.15s ease',
+                      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                       flexShrink: 0,
-                      boxShadow: isDark 
-                        ? '0 1px 3px rgba(0,0,0,0.3)' 
-                        : '0 1px 3px rgba(0,0,0,0.1)',
+                      boxShadow: 'none',
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = isDark ? '#374151' : '#F9FAFB';
+                      e.currentTarget.style.backgroundColor = isDark ? 'rgba(99, 102, 241, 0.18)' : 'rgba(59, 130, 246, 0.12)';
                       e.currentTarget.style.transform = 'scale(1.05)';
-                      e.currentTarget.style.borderColor = isDark ? '#4B5563' : '#D1D5DB';
+                      e.currentTarget.style.boxShadow = isDark 
+                        ? '0 2px 8px rgba(99, 102, 241, 0.15)' 
+                        : '0 2px 8px rgba(59, 130, 246, 0.1)';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = isDark ? '#1F2937' : '#FFFFFF';
+                      e.currentTarget.style.backgroundColor = isDark ? 'rgba(99, 102, 241, 0.12)' : 'rgba(59, 130, 246, 0.08)';
                       e.currentTarget.style.transform = 'scale(1)';
-                      e.currentTarget.style.borderColor = isDark ? '#374151' : '#E5E7EB';
+                      e.currentTarget.style.boxShadow = 'none';
                     }}
                     title="新增白板"
                   >
@@ -1303,28 +1299,24 @@ const ModernProjectManager: React.FC<ModernProjectManagerProps & { onShowAI?: ()
                 {/* 白板列表 */}
                 <div style={{
                   flex: 1,
-                  overflow: 'auto',
-                  padding: '8px',
+                  overflowY: 'auto',
+                  overflowX: 'hidden',
+                  padding: '8px 12px 12px 12px',
+                  minHeight: 0,
                 }}>
-                  {React.createElement(List, {
-                    height: 400,
-                    itemCount: filteredBoards.length,
-                    itemSize: 56,
-                    width: 220,
-                    children: ({ index, style }: { index: number; style: React.CSSProperties }) => {
-                      const board = filteredBoards[index];
-                      return (
-                        <div key={board.id} style={{ ...style, marginBottom: 4 }}>
-                          <div style={{
-                            padding: '10px',
+                  {filteredBoards.map((board) => (
+                    <div key={board.id} style={{ marginBottom: 4, flexShrink: 0 }}>
+                      <div style={{
+                            padding: '8px 10px',
                             borderRadius: '8px',
                             backgroundColor: board.isActive
-                              ? (isDark ? '#374151' : '#E5E7EB')
+                              ? (isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)')
                               : 'transparent',
-                            transition: 'all 0.15s ease',
+                            backdropFilter: board.isActive ? 'blur(12px)' : 'none',
+                            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                             cursor: 'pointer',
-                            border: board.isActive 
-                              ? (isDark ? '1px solid #4B5563' : '1px solid #D1D5DB') 
+                            border: board.isActive
+                              ? (isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(0, 0, 0, 0.06)')
                               : '1px solid transparent',
                             position: 'relative',
                           }}
@@ -1334,7 +1326,9 @@ const ModernProjectManager: React.FC<ModernProjectManagerProps & { onShowAI?: ()
                             if (!board.isActive) {
                               const element = document.querySelector(`[data-board-id="${board.id}"]`) as HTMLElement;
                               if (element) {
-                                element.style.backgroundColor = isDark ? '#374151' : '#F3F4F6';
+                                element.style.backgroundColor = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)';
+                                element.style.backdropFilter = 'blur(12px)';
+                                element.style.borderColor = isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.04)';
                               }
                             }
                           }}
@@ -1344,6 +1338,8 @@ const ModernProjectManager: React.FC<ModernProjectManagerProps & { onShowAI?: ()
                               const element = document.querySelector(`[data-board-id="${board.id}"]`) as HTMLElement;
                               if (element) {
                                 element.style.backgroundColor = 'transparent';
+                                element.style.backdropFilter = 'none';
+                                element.style.borderColor = 'transparent';
                               }
                             }
                           }}
@@ -1422,20 +1418,21 @@ const ModernProjectManager: React.FC<ModernProjectManagerProps & { onShowAI?: ()
                               <div style={{
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: 10, // 从8增加到10，给更大的图标更多空间
-                                marginBottom: 4,
+                                gap: 12,
+                                marginBottom: 0,
                               }}>
                                 {/* 白板图标 */}
                                 <img
                                   src={getIconPath(board.icon)}
                                   alt="白板图标"
                                   style={{
-                                    width: 24, // 从16增加到24
-                                    height: 24, // 从16增加到24
+                                    width: 28,
+                                    height: 28,
                                     flexShrink: 0,
-                                    borderRadius: '4px', // 稍微增加圆角
-                                    cursor: 'pointer', // 添加指针样式，表明可点击
-                                    transition: 'transform 0.15s ease', // 添加悬停效果
+                                    borderRadius: '6px',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                    opacity: board.isActive ? 1 : 0.8,
                                   }}
                                   onClick={(e) => {
                                     e.stopPropagation(); // 阻止冒泡到白板点击事件
@@ -1457,15 +1454,19 @@ const ModernProjectManager: React.FC<ModernProjectManagerProps & { onShowAI?: ()
                                 {/* 白板标题 */}
                                 <div 
                                   style={{
-                                    fontSize: '12px',
-                                    fontWeight: 600,
+                                    fontSize: '13px',
+                                    fontWeight: board.isActive ? 600 : 500,
                                     color: board.isActive 
-                                      ? (isDark ? '#F9FAFB' : '#111827')
-                                      : (isDark ? '#D1D5DB' : '#6B7280'),
+                                      ? (isDark ? '#F3F4F6' : '#1F2937')
+                                      : (isDark ? '#9CA3AF' : '#6B7280'),
                                     cursor: 'pointer',
                                     flex: 1,
                                     paddingRight: hoveredBoardId === board.id ? '28px' : (board.isPinned ? '16px' : '0'),
-                                    transition: 'padding-right 0.15s ease',
+                                    transition: 'all 0.2s ease',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                    lineHeight: 1.6,
                                   }}
                                   title="双击编辑标题，悬停查看更多操作"
                                   onDoubleClick={(e) => {
@@ -1477,11 +1478,9 @@ const ModernProjectManager: React.FC<ModernProjectManagerProps & { onShowAI?: ()
                                 </div>
                               </div>
                             )}
-                          </div>
-                        </div>
-                      );
-                    }
-                  })}
+                      </div>
+                    </div>
+                  ))}
 
                   {/* 空状态 */}
                   {filteredBoards.length === 0 && (
@@ -1509,63 +1508,60 @@ const ModernProjectManager: React.FC<ModernProjectManagerProps & { onShowAI?: ()
               /* 标签模块内容 */
               <>
                 <div style={{
-                  padding: '16px',
-                  borderBottom: isDark ? '1px solid #374151' : '1px solid #E5E7EB',
+                  padding: '16px 16px 12px 16px',
+                  borderBottom: isDark ? '1px solid rgba(55, 65, 81, 0.5)' : '1px solid rgba(229, 231, 235, 0.8)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center', // 居中对齐搜索框
-                  gap: 12,
+                  justifyContent: 'center',
+                  gap: 10,
                 }}>
                   
-                  {/* 标签搜索框 - 优化样式 */}
+                  {/* 标签搜索框 */}
                   <div style={{ 
                     position: 'relative', 
                     flex: 1,
-                    minWidth: 140,
-                    maxWidth: 200, // 增加最大宽度
+                    minWidth: 120,
                   }}>
                     <div style={{
                       position: 'absolute',
-                      left: 10,
+                      left: 12,
                       top: '50%',
                       transform: 'translateY(-50%)',
-                      color: isDark ? '#9CA3AF' : '#6B7280',
+                      color: isDark ? '#6B7280' : '#9CA3AF',
                       pointerEvents: 'none',
-                      fontSize: '13px',
+                      fontSize: '14px',
                       zIndex: 1,
+                      opacity: 0.7,
                     }}>
                       🔍
                     </div>
                     <input
                       type="text"
-                      placeholder="搜索..."
+                      placeholder="搜索标签..."
                       value={tagSearchQuery}
                       onChange={(e) => setTagSearchQuery(e.target.value)}
                       style={{
                         width: '100%',
-                        height: '32px', // 增加高度
-                        padding: '0 32px 0 32px',
-                        border: isDark ? '1px solid #374151' : '1px solid #E5E7EB',
-                        borderRadius: '16px', // 更圆的角度
-                        backgroundColor: isDark ? '#111827' : '#F9FAFB', // 使用更柔和的背景色
-                        color: isDark ? '#F9FAFB' : '#111827',
+                        height: '36px',
+                        padding: '0 36px 0 38px',
+                        border: 'none',
+                        borderRadius: '10px',
+                        backgroundColor: isDark ? 'rgba(55, 65, 81, 0.4)' : 'rgba(243, 244, 246, 0.8)',
+                        color: isDark ? '#E5E7EB' : '#1F2937',
                         fontSize: '13px',
                         outline: 'none',
                         boxSizing: 'border-box',
-                        transition: 'all 0.2s ease',
+                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                         fontWeight: 400,
-                        boxShadow: 'none', // 移除默认阴影
                       }}
                       onFocus={(e) => {
-                        e.currentTarget.style.borderColor = isDark ? '#4F46E5' : '#3B82F6';
-                        e.currentTarget.style.backgroundColor = isDark ? '#1F2937' : '#FFFFFF';
+                        e.currentTarget.style.backgroundColor = isDark ? 'rgba(55, 65, 81, 0.6)' : 'rgba(249, 250, 251, 1)';
                         e.currentTarget.style.boxShadow = isDark 
-                          ? '0 0 0 2px rgba(79, 70, 229, 0.1)' 
-                          : '0 0 0 2px rgba(59, 130, 246, 0.1)';
+                          ? '0 0 0 2px rgba(99, 102, 241, 0.15), 0 2px 8px rgba(0, 0, 0, 0.1)' 
+                          : '0 0 0 2px rgba(59, 130, 246, 0.1), 0 2px 8px rgba(0, 0, 0, 0.05)';
                       }}
                       onBlur={(e) => {
-                        e.currentTarget.style.borderColor = isDark ? '#374151' : '#E5E7EB';
-                        e.currentTarget.style.backgroundColor = isDark ? '#111827' : '#F9FAFB';
+                        e.currentTarget.style.backgroundColor = isDark ? 'rgba(55, 65, 81, 0.4)' : 'rgba(243, 244, 246, 0.8)';
                         e.currentTarget.style.boxShadow = 'none';
                       }}
                     />
@@ -1574,29 +1570,30 @@ const ModernProjectManager: React.FC<ModernProjectManagerProps & { onShowAI?: ()
                         onClick={() => setTagSearchQuery('')}
                         style={{
                           position: 'absolute',
-                          right: 8,
+                          right: 10,
                           top: '50%',
                           transform: 'translateY(-50%)',
-                          width: 18,
-                          height: 18,
+                          width: 20,
+                          height: 20,
                           border: 'none',
-                          backgroundColor: 'transparent',
-                          color: isDark ? '#9CA3AF' : '#6B7280',
+                          backgroundColor: isDark ? 'rgba(75, 85, 99, 0.5)' : 'rgba(209, 213, 219, 0.5)',
+                          color: isDark ? '#E5E7EB' : '#374151',
                           cursor: 'pointer',
-                          fontSize: '13px',
+                          fontSize: '14px',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          borderRadius: '50%',
+                          borderRadius: '6px',
                           transition: 'all 0.15s ease',
+                          fontWeight: 500,
                         }}
                         onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = isDark ? '#374151' : '#E5E7EB';
-                          e.currentTarget.style.color = isDark ? '#F9FAFB' : '#111827';
+                          e.currentTarget.style.backgroundColor = isDark ? 'rgba(107, 114, 128, 0.7)' : 'rgba(156, 163, 175, 0.6)';
+                          e.currentTarget.style.transform = 'translateY(-50%) scale(1.05)';
                         }}
                         onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                          e.currentTarget.style.color = isDark ? '#9CA3AF' : '#6B7280';
+                          e.currentTarget.style.backgroundColor = isDark ? 'rgba(75, 85, 99, 0.5)' : 'rgba(209, 213, 219, 0.5)';
+                          e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
                         }}
                       >
                         ×
@@ -1605,47 +1602,63 @@ const ModernProjectManager: React.FC<ModernProjectManagerProps & { onShowAI?: ()
                   </div>
                 </div>
 
-                {/* 标签列表 */}
+                {/* 标签列表和卡片预览 */}
                 <div style={{
                   flex: 1,
-                  overflow: 'auto',
-                  padding: '8px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  minHeight: 0,
+                  gap: 8,
                 }}>
-                  {filteredTags.map((tag) => (
-                    <div key={tag.id} style={{ marginBottom: 4 }}>
+                  {/* 标签列表 */}
+                  <div style={{
+                    flex: selectedTagId ? '0 0 auto' : 1,
+                    maxHeight: selectedTagId ? '30%' : 'none',
+                    overflow: 'auto',
+                    padding: '8px 12px 12px 12px',
+                  }}>
+                    {filteredTags.map((tag) => (
+                      <div key={tag.id} style={{ marginBottom: 6 }}>
                       <button
                         onClick={() => setSelectedTagId(tag.id)}
                         style={{
                           width: '100%',
-                          padding: '8px',
+                          padding: '10px 12px',
                           border: 'none',
-                          borderRadius: '6px',
+                          borderRadius: '10px',
                           backgroundColor: selectedTagId === tag.id 
-                            ? (isDark ? '#374151' : '#E5E7EB')
+                            ? (isDark ? 'rgba(99, 102, 241, 0.15)' : 'rgba(59, 130, 246, 0.1)')
                             : 'transparent',
                           color: selectedTagId === tag.id 
-                            ? (isDark ? '#F9FAFB' : '#111827')
-                            : (isDark ? '#D1D5DB' : '#6B7280'),
-                          fontSize: '12px',
-                          fontWeight: 500,
+                            ? (isDark ? '#F3F4F6' : '#111827')
+                            : (isDark ? '#9CA3AF' : '#6B7280'),
+                          fontSize: '13px',
+                          fontWeight: selectedTagId === tag.id ? 600 : 500,
                           cursor: 'pointer',
                           textAlign: 'left',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between',
-                          transition: 'all 0.15s ease',
+                          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                          boxShadow: selectedTagId === tag.id
+                            ? (isDark ? '0 1px 3px rgba(0, 0, 0, 0.2), inset 0 0 0 1px rgba(99, 102, 241, 0.2)' : '0 1px 3px rgba(0, 0, 0, 0.05), inset 0 0 0 1px rgba(59, 130, 246, 0.15)')
+                            : 'none',
                         }}
                         onMouseEnter={(e) => {
                           if (selectedTagId === tag.id) return;
-                          e.currentTarget.style.backgroundColor = isDark ? '#374151' : '#E5E7EB';
+                          e.currentTarget.style.backgroundColor = isDark ? 'rgba(55, 65, 81, 0.4)' : 'rgba(249, 250, 251, 1)';
+                          e.currentTarget.style.boxShadow = isDark 
+                            ? '0 1px 3px rgba(0, 0, 0, 0.1)' 
+                            : '0 1px 3px rgba(0, 0, 0, 0.03)';
                         }}
                         onMouseLeave={(e) => {
                           if (selectedTagId === tag.id) return;
                           e.currentTarget.style.backgroundColor = 'transparent';
+                          e.currentTarget.style.boxShadow = 'none';
                         }}
-                        title={`标签 "${tag.name}" 出现在 ${tag.nodeCount} 个白板中`}
+                        title={`标签 "${tag.name}" 包含 ${tag.nodeCount} 张卡片`}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           {(() => {
                             const icon = getTagIcon(tag.name);
                             return icon ? (
@@ -1653,12 +1666,15 @@ const ModernProjectManager: React.FC<ModernProjectManagerProps & { onShowAI?: ()
                                 src={getIconPath(icon)}
                                 alt="icon"
                                 style={{
-                                  width: 18,
-                                  height: 18,
-                                  borderRadius: 4,
-                                  marginRight: 2,
+                                  width: 22,
+                                  height: 22,
+                                  borderRadius: 6,
                                   cursor: 'pointer',
-                                  background: isDark ? '#374151' : '#F3F4F6',
+                                  background: isDark ? 'rgba(55, 65, 81, 0.5)' : 'rgba(243, 244, 246, 0.8)',
+                                  boxShadow: isDark 
+                                    ? '0 1px 3px rgba(0, 0, 0, 0.2)' 
+                                    : '0 1px 3px rgba(0, 0, 0, 0.08)',
+                                  transition: 'all 0.2s ease',
                                 }}
                                 onClick={e => {
                                   e.stopPropagation();
@@ -1670,20 +1686,23 @@ const ModernProjectManager: React.FC<ModernProjectManagerProps & { onShowAI?: ()
                             ) : (
                               <span
                                 style={{
-                                  display: 'inline-block',
-                                  minWidth: 18,
-                                  height: 20,
-                                  lineHeight: '20px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  minWidth: 22,
+                                  height: 22,
                                   borderRadius: 6,
-                                  background: isDark ? '#374151' : '#F3F4F6',
-                                  color: isDark ? '#F3F4F6' : '#6B7280',
-                                  fontWeight: 700,
-                                  fontSize: 15,
-                                  textAlign: 'center',
-                                  marginRight: 2,
+                                  background: isDark ? 'rgba(55, 65, 81, 0.5)' : 'rgba(243, 244, 246, 0.8)',
+                                  color: isDark ? '#9CA3AF' : '#6B7280',
+                                  fontWeight: 600,
+                                  fontSize: 14,
                                   padding: '0 6px',
                                   boxSizing: 'border-box',
                                   cursor: 'pointer',
+                                  boxShadow: isDark 
+                                    ? '0 1px 3px rgba(0, 0, 0, 0.2)' 
+                                    : '0 1px 3px rgba(0, 0, 0, 0.08)',
+                                  transition: 'all 0.2s ease',
                                 }}
                                 onClick={e => {
                                   e.stopPropagation();
@@ -1694,35 +1713,145 @@ const ModernProjectManager: React.FC<ModernProjectManagerProps & { onShowAI?: ()
                               >#</span>
                             );
                           })()}
-                          <span>{tag.name}</span>
+                          <span style={{ lineHeight: 1.4 }}>{tag.name}</span>
                         </div>
                         <span style={{
-                          fontSize: '10px',
-                          color: isDark ? '#9CA3AF' : '#6B7280',
+                          fontSize: '11px',
+                          fontWeight: 500,
+                          color: isDark ? '#6B7280' : '#9CA3AF',
+                          padding: '2px 8px',
+                          borderRadius: '6px',
+                          backgroundColor: isDark ? 'rgba(55, 65, 81, 0.3)' : 'rgba(243, 244, 246, 0.6)',
                         }}>
-                          {tag.nodeCount}个卡片
+                          {tag.nodeCount}
                         </span>
                       </button>
                     </div>
                   ))}
 
-                  {filteredTags.length === 0 && (
+                    {filteredTags.length === 0 && (
+                      <div style={{
+                        textAlign: 'center',
+                        padding: '20px 10px',
+                        color: isDark ? '#6B7280' : '#9CA3AF',
+                      }}>
+                        {boardList.length === 0 ? (
+                          <>
+                            <div style={{ fontSize: '12px', marginBottom: 4 }}>暂无标签</div>
+                            <div style={{ fontSize: '10px' }}>在任意白板的卡片中使用 #标签名 创建标签</div>
+                          </>
+                        ) : (
+                          <>
+                            <div style={{ fontSize: '12px', marginBottom: 4 }}>未找到匹配的标签</div>
+                            <div style={{ fontSize: '10px' }}>试试其他搜索关键词</div>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 卡片预览区域 */}
+                  {(selectedTagId || boardSearchQuery.trim() || tagSearchQuery.trim()) && displayNodes.length > 0 && (
                     <div style={{
-                      textAlign: 'center',
-                      padding: '20px 10px',
-                      color: isDark ? '#6B7280' : '#9CA3AF',
+                      flex: 1,
+                      borderTop: isDark ? '1px solid #374151' : '1px solid #E5E7EB',
+                      padding: '12px',
+                      overflow: 'auto',
+                      backgroundColor: isDark ? 'rgba(17, 24, 39, 0.5)' : 'rgba(249, 250, 251, 0.5)',
                     }}>
-                      {boardList.length === 0 ? (
-                        <>
-                          <div style={{ fontSize: '12px', marginBottom: 4 }}>暂无标签</div>
-                          <div style={{ fontSize: '10px' }}>在任意白板的卡片中使用 #标签名 创建标签</div>
-                        </>
-                      ) : (
-                        <>
-                          <div style={{ fontSize: '12px', marginBottom: 4 }}>未找到匹配的标签</div>
-                          <div style={{ fontSize: '10px' }}>试试其他搜索关键词</div>
-                        </>
-                      )}
+                      <div style={{
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        color: isDark ? '#9CA3AF' : '#6B7280',
+                        marginBottom: 12,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                      }}>
+                        <span>
+                          {selectedTagId 
+                            ? `"${extractedTagsWithRealTimeUpdate.find(t => t.id === selectedTagId)?.name}" 相关卡片` 
+                            : boardSearchQuery.trim()
+                            ? '白板搜索结果'
+                            : '标签搜索结果'}
+                        </span>
+                        <span style={{ fontSize: '11px', color: isDark ? '#6B7280' : '#9CA3AF' }}>
+                          共 {displayNodes.length} 张
+                        </span>
+                      </div>
+                      
+                      <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 8,
+                      }}>
+                        {displayNodes.map((node) => {
+                          const nodeWithBoard = node as NodeData & { _boardId?: string; _boardTitle?: string };
+                          return (
+                            <div
+                              key={node.id}
+                              style={{
+                                padding: '10px',
+                                borderRadius: '8px',
+                                backgroundColor: isDark ? '#1F2937' : '#FFFFFF',
+                                border: isDark ? '1px solid #374151' : '1px solid #E5E7EB',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease',
+                              }}
+                              onClick={() => {
+                                // 如果卡片来自其他白板，先切换白板
+                                if (nodeWithBoard._boardId && nodeWithBoard._boardId !== boardList.find(b => b.isActive)?.id) {
+                                  handleSwitchBoard(nodeWithBoard._boardId);
+                                  setTimeout(() => {
+                                    setNodeEditing(node.id);
+                                    onClose();
+                                  }, 100);
+                                } else {
+                                  setNodeEditing(node.id);
+                                  onClose();
+                                }
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = isDark ? '#374151' : '#F9FAFB';
+                                e.currentTarget.style.borderColor = isDark ? '#4B5563' : '#D1D5DB';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = isDark ? '#1F2937' : '#FFFFFF';
+                                e.currentTarget.style.borderColor = isDark ? '#374151' : '#E5E7EB';
+                              }}
+                            >
+                              {/* 卡片标题/内容预览 */}
+                              <div style={{
+                                fontSize: '12px',
+                                color: isDark ? '#D1D5DB' : '#374151',
+                                marginBottom: 6,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                display: '-webkit-box',
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: 'vertical',
+                                lineHeight: '1.4',
+                              }}>
+                                {extractTextFromSlateContent(node.content || node.frontContent || []).slice(0, 60) || '空白卡片'}
+                              </div>
+                              
+                              {/* 所属白板信息 */}
+                              {nodeWithBoard._boardTitle && (
+                                <div style={{
+                                  fontSize: '10px',
+                                  color: isDark ? '#6B7280' : '#9CA3AF',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                }}>
+                                  <span>📋</span>
+                                  <span>{nodeWithBoard._boardTitle}</span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1929,132 +2058,6 @@ const ModernProjectManager: React.FC<ModernProjectManagerProps & { onShowAI?: ()
               </svg>
             </button>
           </div>
-        </div>
-
-        {/* 右侧：卡片展示区域 */}
-        <div style={{
-          flex: 1,
-          backgroundColor: isDark ? '#23272F' : '#F5F6FA',
-          overflow: 'auto',
-          position: 'relative',
-        }}>
-          {/* 卡片展示区域 */}
-          <div style={{
-            padding: '16px',
-            position: 'relative',
-            height: '100%',
-          }}>
-            {displayNodes.length === 0 ? (
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: '400px',
-                color: isDark ? '#6B7280' : '#9CA3AF',
-              }}>
-                <svg width="48" height="48" viewBox="0 0 48 48" fill="none" style={{ marginBottom: 16 }}>
-                  {selectedTagId ? (
-                    <path d="M10 34L32 56L54 34C56.8 31.2 56.8 26.4 54 23.6L40.4 10C37.6 7.2 32.8 7.2 30 10L10 30C7.2 32.8 7.2 37.6 10 40.4z" stroke="currentColor" strokeWidth="2"/>
-                  ) : (
-                    <rect x="8" y="8" width="32" height="24" rx="4" stroke="currentColor" strokeWidth="2"/>
-                  )}
-                </svg>
-                <div style={{ fontSize: '16px', fontWeight: 500, marginBottom: 8 }}>
-                  {selectedTagId ? '该标签下暂无卡片' : '当前白板没有卡片'}
-                </div>
-                <div style={{ fontSize: '14px', textAlign: 'center' }}>
-                  {selectedTagId ? `在任意白板中添加 #${selectedTagId} 标签即可在这里看到` : '在白板中创建卡片后在这里管理'}
-                </div>
-              </div>
-            ) : (
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(4, 1fr)',
-                gap: '6px',
-                alignItems: 'start',
-              }}>
-                {displayNodes.map((node: any) => (
-                  <div
-                    key={`${node._boardId || 'current'}-${node.id}`}
-                    style={{
-                      position: 'relative',
-                      width: '100%',
-                      height: 'auto',
-                      transform: 'none',
-                    }}
-                    onDoubleClick={() => {
-                      // 进入编辑态
-                      setNodeEditing(node.id, true);
-                    }}
-                  >
-                    <div style={{
-                      width: '100%',
-                      height: 200,
-                      position: 'relative',
-                      overflow: 'hidden',
-                    }}>
-                      <NodeCard
-                        node={{
-                          ...node,
-                          pinned: false,
-                          pinnedX: undefined,
-                          pinnedY: undefined,
-                          x: 0,
-                          y: 0,
-                          width: '100%',
-                          height: 200,
-                          selected: false,
-                        }}
-                      />
-                    </div>
-                  </div>
-                ))}
-                {/* 新增卡片按钮：仅在白板Tab显示 */}
-                {activeTab === 'boards' && (
-                  <div
-                    key="add-card"
-                    style={{
-                      width: '100%',
-                      height: 200,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      border: `2px dashed ${tagBorderColor}`,
-                      borderRadius: 12,
-                      background: tagBgColor,
-                      color: tagTextColor,
-                      fontSize: 22,
-                      cursor: 'pointer',
-                      transition: 'border-color 0.2s',
-                    }}
-                    onClick={() => {
-                      // 新建卡片并进入编辑
-                      const { addNode, setNodeEditing, nodes } = useBoardStore.getState();
-                      addNode(100, 100); // 默认放在(100,100)，实际位置无影响
-                      setTimeout(() => {
-                        const latest = useBoardStore.getState().nodes.slice(-1)[0];
-                        if (latest) setNodeEditing(latest.id, true);
-                      }, 0);
-                    }}
-                    onMouseEnter={e => {
-                      e.currentTarget.style.borderColor = isDark ? '#6366f1' : '#3b82f6';
-                    }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.borderColor = tagBorderColor;
-                    }}
-                    title="新建卡片"
-                  >
-                    <div style={{ textAlign: 'center', width: '100%' }}>
-                      <div style={{ fontSize: 38, lineHeight: 1, marginBottom: 6, color: tagTextColor }}>＋</div>
-                      <div style={{ fontSize: 16, color: tagTextColor }}>新建卡片</div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
       </div>
     );
   };
@@ -2346,45 +2349,26 @@ const ModernProjectManager: React.FC<ModernProjectManagerProps & { onShowAI?: ()
   if (!isOpen) return null;
 
   return (
-    <div 
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: isDark ? '#23272F' : '#F5F6FA',
-        backdropFilter: 'blur(12px)',
-        zIndex: 2000,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '40px',
-      }}
-      onClick={handleClose} // 点击背景关闭
-    >
-      {/* 主容器 */}
+    <>
       <div 
+        data-sidebar
         style={{
           width: '100%',
-          maxWidth: '1200px',
-          height: '90vh',
-          backgroundColor: isDark ? '#0F1419' : '#FFFFFF',
-          borderRadius: '16px',
-          boxShadow: isDark 
-            ? '0 24px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05)'
-            : '0 24px 48px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.05)',
+          height: '100%',
+          backgroundColor: isDark ? 'rgba(26, 32, 44, 0.85)' : 'rgba(255, 255, 255, 0.85)',
+          backdropFilter: 'blur(12px)',
+          borderRight: isDark ? '1px solid rgba(55, 65, 81, 0.4)' : '1px solid rgba(229, 231, 235, 0.4)',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
         }}
-        onClick={(e) => e.stopPropagation()} // 阻止点击内容区域时关闭
       >
-        {/* 直接显示标签页内容，移除顶部导航栏 */}
+        {/* 标签页内容 */}
         {renderTagsContent()}
-        
-        {/* 右键菜单 - 保持作为备用方案 */}
-        {contextMenu?.show && (
+      </div>
+      
+      {/* 右键菜单 */}
+      {contextMenu?.show && (
           <div style={{
             position: 'fixed',
             top: contextMenu.y,
@@ -3987,7 +3971,7 @@ const ModernProjectManager: React.FC<ModernProjectManagerProps & { onShowAI?: ()
           currentTheme={interactiveTheme}
           isDark={isDark}
         />
-      </div>
+      
       {/* 删除白板自定义弹窗 */}
       {deleteConfirm.show && (
         <div style={{
@@ -4116,133 +4100,7 @@ const ModernProjectManager: React.FC<ModernProjectManagerProps & { onShowAI?: ()
           </div>
         </div>
       )}
-      {shareDialog.show && (
-        <div style={{
-          position: 'fixed',
-          top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.15)',
-          zIndex: 99999,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}
-          onClick={() => setShareDialog({ show: false, boardId: null })}
-        >
-          <div
-            style={{
-              background: isDark ? '#23272F' : '#fff',
-              borderRadius: 12,
-              boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
-              padding: 32,
-              minWidth: 340,
-              minHeight: 120,
-              maxWidth: '90vw',
-              position: 'relative',
-              display: 'flex', flexDirection: 'column', alignItems: 'center',
-            }}
-            onClick={e => e.stopPropagation()}
-          >
-            <div style={{ fontWeight: 600, fontSize: 18, marginBottom: 16 }}>白板分享</div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-              <input
-                type="checkbox"
-                checked={shareEnabled}
-                onChange={async (e) => {
-                  const enabled = e.target.checked;
-                  setShareEnabled(enabled);
-                  
-                  if (!shareDialog.boardId) return;
-                  
-                        if (enabled) {
-                    // 🚀 启用云端分享
-                    console.log('🔄 启用云端分享...');
-                    setToast('正在上传到云端...');
-                    
-                    const shareUrl = await handleEnableShare(shareDialog.boardId);
-                    
-                    if (shareUrl) {
-                      setShareUrl(shareUrl);
-                      setToast('✅ 云端分享已启用');
-                      setTimeout(() => setToast(''), 2000);
-                    } else {
-                      setShareEnabled(false);
-                      setToast('❌ 云端分享启用失败');
-                      setTimeout(() => setToast(''), 2000);
-                    }
-                        } else {
-                    // 🚀 禁用云端分享
-                    console.log('🔄 禁用云端分享...');
-                    setToast('正在禁用云端访问...');
-                    
-                    const success = await handleDisableShare(shareDialog.boardId);
-                    
-                    if (success) {
-                      // ✅ 完全成功：云端访问已禁用，本地清理成功
-                      setShareUrl('');
-                      setToast('✅ 分享已禁用，访问已阻断');
-                      setTimeout(() => setToast(''), 3000);
-                    } else {
-                      // ⚠️ 部分成功：本地已清理，但云端可能有问题
-                      setShareUrl(''); // 仍然清理UI状态
-                      
-                      // 🔍 检查具体错误类型并给出针对性提示
-                      const board = boardList.find(b => b.id === shareDialog.boardId);
-                      if (!board?.shareId) {
-                        // 本地状态已清理，说明操作基本成功
-                        setToast('⚠️ 分享已禁用，但请检查云端状态');
-                      } else {
-                        // 恢复启用状态，因为操作确实失败了
-                        setShareEnabled(true);
-                        setToast('❌ 访问权限禁用失败，请检查网络连接');
-                      }
-                      
-                      setTimeout(() => setToast(''), 4000); // 显示更长时间让用户看清楚
-                    }
-                  }
-                }}
-              />
-              允许分享
-            </label>
-            {shareEnabled && shareUrl && (
-              <div style={{ width: '100%', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <input
-                  value={shareUrl}
-                  readOnly
-                  style={{ flex: 1, padding: 8, borderRadius: 6, border: '1px solid #eee', fontSize: 14 }}
-                />
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(shareUrl);
-                    // 显示 toast
-                    setToast('复制成功');
-                    // 2秒后关闭弹窗和 toast
-                    setTimeout(() => {
-                      setShareDialog({ show: false, boardId: null });
-                      setToast('');
-                    }, 2000);
-                  }}
-                  style={{
-                    marginLeft: 8,
-                    padding: '6px 16px',
-                    background: '#2563eb',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: 6,
-                    fontSize: 14,
-                    cursor: 'pointer',
-                    fontWeight: 500,
-                    transition: 'background 0.15s',
-                  }}
-                >
-                  复制
-                </button>
-              </div>
-            )}
-            <button
-              onClick={() => setShareDialog({ show: false, boardId: null })}
-              style={{ marginTop: 8, padding: '6px 18px', borderRadius: 6, border: 'none', background: isDark ? '#374151' : '#eee', color: isDark ? '#fff' : '#222', fontWeight: 500, cursor: 'pointer' }}
-            >关闭</button>
-          </div>
-        </div>
-      )}
+      
       {/* Toast 渲染 */}
       {toast && (
         <div style={{
@@ -4261,8 +4119,8 @@ const ModernProjectManager: React.FC<ModernProjectManagerProps & { onShowAI?: ()
           {toast}
         </div>
       )}
-    </div>
+    </>
   );
 };
 
-export default ModernProjectManager; 
+export default ModernProjectManager;
