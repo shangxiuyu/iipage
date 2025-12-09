@@ -110,7 +110,7 @@ function generateShareId(length = 16) {
   return result;
 }
 
-const ModernProjectManager: React.FC<ModernProjectManagerProps & { onShowAI?: () => void }> = ({ isOpen, onClose, onShowAI }) => {
+const ModernProjectManager: React.FC<ModernProjectManagerProps> = ({ isOpen, onClose }) => {
   const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
   const [tagSearchQuery, setTagSearchQuery] = useState(''); // 添加标签搜索状态
   
@@ -1750,110 +1750,6 @@ const ModernProjectManager: React.FC<ModernProjectManagerProps & { onShowAI?: ()
                     )}
                   </div>
 
-                  {/* 卡片预览区域 */}
-                  {(selectedTagId || boardSearchQuery.trim() || tagSearchQuery.trim()) && displayNodes.length > 0 && (
-                    <div style={{
-                      flex: 1,
-                      borderTop: isDark ? '1px solid #374151' : '1px solid #E5E7EB',
-                      padding: '12px',
-                      overflow: 'auto',
-                      backgroundColor: isDark ? 'rgba(17, 24, 39, 0.5)' : 'rgba(249, 250, 251, 0.5)',
-                    }}>
-                      <div style={{
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        color: isDark ? '#9CA3AF' : '#6B7280',
-                        marginBottom: 12,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                      }}>
-                        <span>
-                          {selectedTagId 
-                            ? `"${extractedTagsWithRealTimeUpdate.find(t => t.id === selectedTagId)?.name}" 相关卡片` 
-                            : boardSearchQuery.trim()
-                            ? '白板搜索结果'
-                            : '标签搜索结果'}
-                        </span>
-                        <span style={{ fontSize: '11px', color: isDark ? '#6B7280' : '#9CA3AF' }}>
-                          共 {displayNodes.length} 张
-                        </span>
-                      </div>
-                      
-                      <div style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 8,
-                      }}>
-                        {displayNodes.map((node) => {
-                          const nodeWithBoard = node as NodeData & { _boardId?: string; _boardTitle?: string };
-                          return (
-                            <div
-                              key={node.id}
-                              style={{
-                                padding: '10px',
-                                borderRadius: '8px',
-                                backgroundColor: isDark ? '#1F2937' : '#FFFFFF',
-                                border: isDark ? '1px solid #374151' : '1px solid #E5E7EB',
-                                cursor: 'pointer',
-                                transition: 'all 0.15s ease',
-                              }}
-                              onClick={() => {
-                                // 如果卡片来自其他白板，先切换白板
-                                if (nodeWithBoard._boardId && nodeWithBoard._boardId !== boardList.find(b => b.isActive)?.id) {
-                                  handleSwitchBoard(nodeWithBoard._boardId);
-                                  setTimeout(() => {
-                                    setNodeEditing(node.id, true);
-                                    onClose();
-                                  }, 100);
-                                } else {
-                                  setNodeEditing(node.id, true);
-                                  onClose();
-                                }
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor = isDark ? '#374151' : '#F9FAFB';
-                                e.currentTarget.style.borderColor = isDark ? '#4B5563' : '#D1D5DB';
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundColor = isDark ? '#1F2937' : '#FFFFFF';
-                                e.currentTarget.style.borderColor = isDark ? '#374151' : '#E5E7EB';
-                              }}
-                            >
-                              {/* 卡片标题/内容预览 */}
-                              <div style={{
-                                fontSize: '12px',
-                                color: isDark ? '#D1D5DB' : '#374151',
-                                marginBottom: 6,
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                display: '-webkit-box',
-                                WebkitLineClamp: 2,
-                                WebkitBoxOrient: 'vertical',
-                                lineHeight: '1.4',
-                              }}>
-                                {extractTextFromSlateContent(node.content || node.frontContent || []).slice(0, 60) || '空白卡片'}
-                              </div>
-                              
-                              {/* 所属白板信息 */}
-                              {nodeWithBoard._boardTitle && (
-                                <div style={{
-                                  fontSize: '10px',
-                                  color: isDark ? '#6B7280' : '#9CA3AF',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: 4,
-                                }}>
-                                  <span>📋</span>
-                                  <span>{nodeWithBoard._boardTitle}</span>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
                 </div>
               </>
             )}
@@ -2014,48 +1910,6 @@ const ModernProjectManager: React.FC<ModernProjectManagerProps & { onShowAI?: ()
               title="卡片设置"
             >
               ⚙️
-            </button>
-            {/* AI助手按钮 */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (onShowAI) onShowAI();
-                onClose();
-              }}
-              style={{
-                width: '32px',
-                height: '32px',
-                border: isDark ? '1px solid #374151' : '1px solid #E5E7EB',
-                borderRadius: '8px',
-                background: isDark ? '#1F2937' : '#FFFFFF',
-                color: isDark ? '#fff' : '#374151',
-                cursor: 'pointer',
-                fontSize: '18px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.15s ease',
-                boxShadow: '0 2px 8px rgba(79,140,255,0.10)',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = isDark ? '#374151' : '#F9FAFB';
-                e.currentTarget.style.transform = 'scale(1.08)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = isDark ? '#1F2937' : '#FFFFFF';
-                e.currentTarget.style.transform = 'scale(1)';
-              }}
-              title="AI助手"
-            >
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="2.5" y="2.5" width="15" height="15" rx="4" stroke="currentColor" fill="none"/>
-                {/* 字母A */}
-                <path d="M7.2 14L9 6L10.8 14M7.7 12h2.6" stroke="currentColor" strokeWidth="1.1"/>
-                {/* 字母I */}
-                <line x1="12.5" y1="7" x2="12.5" y2="13" stroke="currentColor" strokeWidth="1.1"/>
-                <line x1="12" y1="7" x2="13" y2="7" stroke="currentColor" strokeWidth="1.1"/>
-                <line x1="12" y1="13" x2="13" y2="13" stroke="currentColor" strokeWidth="1.1"/>
-              </svg>
             </button>
           </div>
       </div>
@@ -3004,8 +2858,8 @@ const ModernProjectManager: React.FC<ModernProjectManagerProps & { onShowAI?: ()
             {/* 卡片设置弹窗 */}
             <div style={{
               position: 'fixed',
-              bottom: '60px', // 在按钮上方
-              left: '110px', // 在卡片设置按钮上方
+              bottom: '70px', // 在按钮上方，稍微远一点
+              left: '16px', // 从左侧边距开始
               zIndex: 10000,
               backgroundColor: isDark ? '#1F2937' : '#FFFFFF',
               border: isDark ? '1px solid #374151' : '1px solid #E5E7EB',
@@ -3013,8 +2867,12 @@ const ModernProjectManager: React.FC<ModernProjectManagerProps & { onShowAI?: ()
               boxShadow: isDark 
                 ? '0 12px 32px rgba(0,0,0,0.5)' 
                 : '0 12px 32px rgba(0,0,0,0.15)',
-              minWidth: '280px',
+              width: 'calc(100% - 32px)', // 左右各留16px边距
+              maxWidth: '320px',
+              maxHeight: 'calc(100vh - 140px)', // 限制最大高度，确保不会超出视口
               overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
             }}
             onClick={(e) => e.stopPropagation()}
             >
@@ -3051,7 +2909,7 @@ const ModernProjectManager: React.FC<ModernProjectManagerProps & { onShowAI?: ()
               {/* 设置选项 */}
               <div style={{
                 padding: '18px',
-                maxHeight: '50vh',
+                flex: 1,
                 overflowY: 'auto',
                 // 自定义滚动条样式
                 scrollbarWidth: 'thin',
