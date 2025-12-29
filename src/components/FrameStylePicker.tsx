@@ -49,7 +49,6 @@ const FrameStylePicker: React.FC<FrameStylePickerProps> = ({
   position,
   onCopyAsImage,
 }) => {
-  const [hoveredColor, setHoveredColor] = useState<string | null>(null);
   const [adjustedPosition, setAdjustedPosition] = useState(position);
   const { isDarkMode } = useContext(ThemeContext);
   const [title, setTitle] = useState(currentTitle || '');
@@ -129,7 +128,6 @@ const FrameStylePicker: React.FC<FrameStylePickerProps> = ({
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            onBlur={() => onTitleChange(title)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 onTitleChange(title);

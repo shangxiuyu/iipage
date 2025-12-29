@@ -2291,7 +2291,7 @@ function withShortcuts(editor: Editor) {
               // 强制聚焦，防止光标丢失
               // 在 void 节点后操作容易导致 DOM selection 丢失
               setTimeout(() => {
-                ReactEditor.focus(editor);
+                ReactEditor.focus(editor as unknown as ReactEditor);
               }, 0);
 
               return;
