@@ -31,17 +31,17 @@ import NodeCardActions from './NodeCard/NodeCardActions';
 import NodeCardResizeHandles from './NodeCard/NodeCardResizeHandles';
 
 // 简单的错误边界组件
-class ErrorBoundary extends React.Component<{children: React.ReactNode, fallback: React.ReactNode}> {
+class ErrorBoundary extends React.Component<{ children: React.ReactNode, fallback: React.ReactNode }> {
   state = { hasError: false };
-  
+
   static getDerivedStateFromError() {
     return { hasError: true };
   }
-  
+
   componentDidCatch(error: Error) {
     console.error("编辑器错误:", error);
   }
-  
+
   render() {
     if (this.state.hasError) {
       return this.props.fallback;
@@ -58,7 +58,7 @@ interface Props {
 // 提取文本内容的辅助函数
 const getTextContent = (descendants: any[]): string => {
   if (!descendants || !Array.isArray(descendants)) return '';
-  
+
   return descendants.map(desc => {
     if (desc.children && Array.isArray(desc.children)) {
       return getTextContent(desc.children);
@@ -107,10 +107,10 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
   const scale = useBoardStore((s) => s.scale);
   const panX = useBoardStore((s) => s.panX);
   const panY = useBoardStore((s) => s.panY);
-  
+
   // 添加卡片翻转相关状态和方法
   const flipCard = useBoardStore((s) => s.flipCard);
-  
+
   // 添加连线相关的状态和方法
   const isConnecting = useBoardStore((s) => s.isConnecting);
   const connectingFrom = useBoardStore((s) => s.connectingFrom);
@@ -118,32 +118,32 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
   const finishConnecting = useBoardStore((s) => s.finishConnecting);
   const addConnection = useBoardStore((s) => s.addConnection);
   const updateTempConnection = useBoardStore((s) => s.updateTempConnection);
-  
+
   // 新增：背景框相关状态
   const backgroundFrames = useBoardStore((s) => s.backgroundFrames);
   const addNodeToFrame = useBoardStore((s) => s.addNodeToFrame);
   const removeNodeFromFrame = useBoardStore((s) => s.removeNodeFromFrame);
   const setFrameHighlight = useBoardStore((s) => s.setFrameHighlight);
   const clearAllFrameHighlights = useBoardStore((s) => s.clearAllFrameHighlights);
-  
+
   // 新增：标签相关状态
   const [localTags, setLocalTags] = useState<string[]>(node.tags || []);
-  
+
   // 新增：标签变化处理函数
   const handleTagsChange = useCallback((tags: string[]) => {
     if (readOnly) return;
     setLocalTags(tags);
     updateNode(node.id, { tags });
   }, [node.id, updateNode, readOnly]);
-  
-  
+
+
   // 监听 node.tags 变化，同步到本地状态
   useEffect(() => {
     if (node.tags && JSON.stringify(node.tags) !== JSON.stringify(localTags)) {
       setLocalTags(node.tags);
     }
   }, [node.tags]);
-  
+
   // 添加CSS动画样式
   React.useEffect(() => {
     if (!document.getElementById('nodecard-animations')) {
@@ -357,7 +357,7 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
       document.head.appendChild(style);
     }
   }, []);
-  
+
   const [dragging, setDragging] = useState(false);
   const [resizing, setResizing] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
@@ -367,12 +367,12 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
   const [imagePreviewPosition, setImagePreviewPosition] = useState({ x: 0, y: 0 });
 
   const [colorPickerPosition, setColorPickerPosition] = useState({ x: 0, y: 0 });
-  
+
   // 确保 isEditing 状态与全局状态严格同步
   useEffect(() => {
     setIsEditing(node.editing || false);
   }, [node.editing]);
-  
+
   // 新增本地内容状态
   const [localContent, setLocalContent] = useState<Descendant[]>(() => {
     if (node.isFlipped) {
@@ -383,12 +383,12 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
       return toSlateContent(node.frontContent ?? node.content);
     }
   });
-  
+
   // 网页渲染相关状态
   const [detectedUrl, setDetectedUrl] = useState<string | null>(null);
   const [isWebPageMode, setIsWebPageMode] = useState(false);
   const [codeInfo, setCodeInfo] = useState<{ code: string, language: string } | null>(null);
-  
+
   // 优先判断代码块，如果不是代码再判断url
   useEffect(() => {
     let code = null;
@@ -403,8 +403,8 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
           node.frontContent && Array.isArray(node.frontContent) && node.frontContent.length > 0
             ? node.frontContent
             : (node.content && Array.isArray(node.content) && node.content.length > 0
-                ? node.content
-                : defaultContent)
+              ? node.content
+              : defaultContent)
         );
       }
     } else {
@@ -412,8 +412,8 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
         node.frontContent && Array.isArray(node.frontContent) && node.frontContent.length > 0
           ? node.frontContent
           : (node.content && Array.isArray(node.content) && node.content.length > 0
-              ? node.content
-              : defaultContent)
+            ? node.content
+            : defaultContent)
       );
       if (!code) {
         code = extractCodeFromContent(
@@ -442,8 +442,8 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
           node.frontContent && Array.isArray(node.frontContent) && node.frontContent.length > 0
             ? node.frontContent
             : (node.content && Array.isArray(node.content) && node.content.length > 0
-                ? node.content
-                : defaultContent)
+              ? node.content
+              : defaultContent)
         );
       }
     } else {
@@ -451,8 +451,8 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
         node.frontContent && Array.isArray(node.frontContent) && node.frontContent.length > 0
           ? node.frontContent
           : (node.content && Array.isArray(node.content) && node.content.length > 0
-              ? node.content
-              : defaultContent)
+            ? node.content
+            : defaultContent)
       );
       if (!url) {
         url = detectUrlInCard(
@@ -465,14 +465,14 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
     setDetectedUrl(url);
     setIsWebPageMode(Boolean(url));
   }, [node.isFlipped, node.backContent, node.frontContent, node.content]);
-  
+
   // 使用ref保存最新的编辑器内容
   const currentContentRef = useRef<Descendant[]>(localContent);
   // 使用ref来跟踪卡片元素，用于获取实时高度
   const cardRef = useRef<HTMLDivElement>(null);
   // 添加Slate编辑器的ref
   const slateEditorRef = useRef<any>(null); // Slate编辑器实例
-  
+
   // 更新ref中的内容
   useEffect(() => {
     currentContentRef.current = localContent;
@@ -480,12 +480,12 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
 
   // 监听编辑状态变化，确保内容不丢失
   const [prevEditing, setPrevEditing] = useState(node.editing);
-  
+
   // 代码检测状态
   // const [isCodeMode, setIsCodeMode] = useState(false);
   // const [codeContent, setCodeContent] = useState('');
   // const [codeLanguage, setCodeLanguage] = useState('javascript');
-  
+
   useEffect(() => {
     // 检测从编辑状态变为非编辑状态
     if (prevEditing && !node.editing) {
@@ -493,10 +493,10 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
       const contentToSave = currentContentRef.current;
       if (contentToSave && Array.isArray(contentToSave) && contentToSave.length > 0) {
         // 检查是否有图片且为isFullSize模式
-        const hasFullSizeImage = contentToSave.some((item: any) => 
+        const hasFullSizeImage = contentToSave.some((item: any) =>
           item.type === 'image' && item.isFullSize === true
         );
-        
+
         // 检查是否有文本内容
         const hasTextContent = contentToSave.some((item: any) => {
           if (item.type === 'paragraph' && item.children && Array.isArray(item.children)) {
@@ -504,42 +504,42 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
           }
           return false;
         });
-        
+
         // 针对仅有全尺寸图片的情况特殊处理
         if (hasFullSizeImage && !hasTextContent && contentToSave.length === 1) {
           // 确保卡片无内边距
           if (node.isFlipped) {
             console.log('保存卡片背面内容（全尺寸图片）', contentToSave);
-            updateNode(node.id, { 
+            updateNode(node.id, {
               backContent: contentToSave,
               // 确保内容也同时更新到全局content中，避免正面内容丢失
               content: node.frontContent || contentToSave
             });
           } else {
-            updateNode(node.id, { 
+            updateNode(node.id, {
               frontContent: contentToSave,
               content: contentToSave
             });
           }
         } else {
           // 常规情况处理
-          const hasContent = contentToSave.some((item: any) => 
-            item.children && Array.isArray(item.children) && 
+          const hasContent = contentToSave.some((item: any) =>
+            item.children && Array.isArray(item.children) &&
             item.children.some((child: any) => child.text && child.text.trim() !== '')
           );
-          
+
           if (hasContent || JSON.stringify(contentToSave) !== JSON.stringify(defaultContent)) {
             // 根据当前卡片面更新相应的内容
             if (node.isFlipped) {
               console.log('保存卡片背面内容', contentToSave);
               // 同时更新backContent和全局content，确保内容不丢失
-              updateNode(node.id, { 
+              updateNode(node.id, {
                 backContent: contentToSave,
                 // 确保内容也同时更新到全局content中，避免正面内容丢失 
                 content: node.frontContent || contentToSave
               });
             } else {
-              updateNode(node.id, { 
+              updateNode(node.id, {
                 frontContent: contentToSave,
                 content: contentToSave // 同时更新content以保持向后兼容
               });
@@ -548,12 +548,12 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
         }
       }
     }
-    
+
     // 进入编辑状态时确保isCodeMode为false
     // if (!prevEditing && node.editing) {
     //   setIsCodeMode(false);
     // }
-    
+
     setPrevEditing(node.editing);
   }, [node.editing, prevEditing, updateNode, node.id, node.isFlipped, node.frontContent]);
 
@@ -570,7 +570,7 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
       // 如果点击的是当前卡片内部，不做任何处理
       const cardElement = e.target as Element;
       let isClickInside = false;
-      
+
       // 检查点击是否在当前卡片内
       let current = cardElement;
       while (current && current !== document.body) {
@@ -580,37 +580,37 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
         }
         current = current.parentElement as Element;
       }
-      
+
       // 如果点击在卡片外部
       if (!isClickInside) {
         // 关闭动作菜单
         if (showActionMenu) {
           setShowActionMenu(false);
         }
-        
+
         // 如果在编辑状态，退出编辑
         if (node.editing) {
           // 保存当前编辑内容和调整高度
-          const validContent = (currentContentRef.current && Array.isArray(currentContentRef.current) && currentContentRef.current.length > 0) ? 
-            currentContentRef.current : 
+          const validContent = (currentContentRef.current && Array.isArray(currentContentRef.current) && currentContentRef.current.length > 0) ?
+            currentContentRef.current :
             defaultContent;
-          
+
           // 在退出编辑前，检查内容是否需要更大的高度
           if (cardRef.current) {
             const contentHeight = getContentHeight();
             const currentHeight = node.height || 80;
-            
+
             // 如果内容高度大于当前高度，则扩展卡片高度
             // 但如果用户没有手动调整过尺寸，限制最大高度为550px
-            const newHeight = node.userResized 
+            const newHeight = node.userResized
               ? Math.max(currentHeight, contentHeight)
               : Math.min(MAX_CARD_HEIGHT, Math.max(currentHeight, contentHeight));
-            
+
             // 根据当前是否为翻转状态，保存对应内容
             if (node.isFlipped) {
               console.log('点击外部保存背面内容', validContent);
               // 同时保存内容和高度
-              updateNode(node.id, { 
+              updateNode(node.id, {
                 backContent: validContent,
                 // 确保内容也同时更新到全局content中，避免正面内容丢失
                 content: node.frontContent || validContent,
@@ -618,7 +618,7 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
               });
             } else {
               // 同时保存内容和高度
-              updateNode(node.id, { 
+              updateNode(node.id, {
                 frontContent: validContent,
                 content: validContent,
                 ...((!!node.userResized) ? {} : { height: newHeight })
@@ -628,19 +628,19 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
             // 如果没有cardRef，至少保存内容
             if (node.isFlipped) {
               console.log('点击外部保存背面内容（无高度调整）', validContent);
-              updateNode(node.id, { 
+              updateNode(node.id, {
                 backContent: validContent,
                 // 确保内容也同时更新到全局content中，避免正面内容丢失
                 content: node.frontContent || validContent
               });
             } else {
-              updateNode(node.id, { 
+              updateNode(node.id, {
                 frontContent: validContent,
                 content: validContent
               });
             }
           }
-          
+
           // 延迟一帧再退出编辑状态，确保内容和高度已经保存
           setTimeout(() => {
             setNodeEditing(node.id, false);
@@ -651,7 +651,7 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
 
     // 添加全局点击监听
     document.addEventListener('mousedown', handleGlobalClick, true);
-    
+
     return () => {
       document.removeEventListener('mousedown', handleGlobalClick, true);
     };
@@ -662,7 +662,7 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
   // 获取当前背景色配置
   const getCurrentCardBackground = () => {
     let colorValue;
-    
+
     // 首先检查是否有设置面板配置的默认背景色（直接颜色值）
     if (isDarkMode && node.darkBackgroundColor && node.darkBackgroundColor.startsWith('rgba')) {
       colorValue = node.darkBackgroundColor;
@@ -682,7 +682,7 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
         return colorList[0];
       }
     }
-    
+
     // 如果是直接颜色值，创建一个临时的背景色对象
     return {
       id: 'custom',
@@ -729,14 +729,14 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
     if (readOnly) return;
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (node.editing) return;
 
     // 关闭操作菜单（如果打开的话）
     setShowActionMenu(false);
-    
+
     // 设置颜色选择器位置 - 直接在点击位置
-    
+
     // 使用 setTimeout 确保在下一个事件循环中设置位置
     setTimeout(() => {
       setColorPickerPosition({ x: e.clientX, y: e.clientY });
@@ -766,9 +766,9 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
       return;
     }
     if (node.editing || showColorPicker) return;
-    
+
     e.stopPropagation(); // 阻止事件冒泡到BoardCanvas
-    
+
     // 如果当前在连线模式，处理连线逻辑
     if (isConnecting) {
       if (connectingFrom === node.id) {
@@ -782,7 +782,7 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
         return;
       }
     }
-    
+
     // 检查是否有其他正在编辑的节点，如果有则先保存并退出编辑状态
     const allNodes = useBoardStore.getState().nodes;
     const editingNode = allNodes.find(n => n.editing && n.id !== node.id);
@@ -790,7 +790,7 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
       const { setNodeEditing } = useBoardStore.getState();
       setNodeEditing(editingNode.id, false);
     }
-    
+
     // 处理选中状态
     const isMultiSelect = e.metaKey || e.ctrlKey;
     selectNode(node.id, isMultiSelect);
@@ -821,35 +821,35 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
   const onMouseDown = (e: React.MouseEvent, dragCallbacks?: { onDragStart?: () => void, onDragEnd?: () => void }) => {
     if (readOnly) return;
     if (node.editing || showColorPicker) return;
-    
+
     e.stopPropagation();
     e.preventDefault();
-    
+
     const startX = e.clientX;
     const startY = e.clientY;
     let hasDragged = false;
     let lastX = startX;
     let lastY = startY;
     let bestFitFrameId: string | null = null;
-    
+
     // 缓存状态，避免频繁调用getState()
     let cachedNodes: any[] = [];
     let cachedSelectedNodes: string[] = [];
     let needsUpdate = false;
     let animationFrameId: number | null = null;
-    
+
     const onMouseMove = (e: MouseEvent) => {
       const deltaX = e.clientX - lastX;
       const deltaY = e.clientY - lastY;
-      
+
       // 小的移动量直接忽略，减少不必要的更新
       if (Math.abs(deltaX) < 1 && Math.abs(deltaY) < 1) return;
-      
+
       // 如果移动距离超过阈值，开始拖拽
       if (!hasDragged && (Math.abs(e.clientX - startX) > 5 || Math.abs(e.clientY - startY) > 5)) {
         hasDragged = true;
         setDragging(true);
-        
+
         // 开始拖拽时，检查是否有其他正在编辑的节点
         const allNodes = useBoardStore.getState().nodes;
         const editingNode = allNodes.find(n => n.editing && n.id !== node.id);
@@ -857,38 +857,38 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
           const { setNodeEditing } = useBoardStore.getState();
           setNodeEditing(editingNode.id, false);
         }
-        
+
         // 如果当前卡片未选中，或者是多选模式，处理选中状态
         const isMultiSelect = e.metaKey || e.ctrlKey;
         if (!node.selected || isMultiSelect) {
           selectNode(node.id, isMultiSelect);
         }
-        
+
         // 缓存初始状态
         const state = useBoardStore.getState();
         cachedNodes = state.nodes;
         cachedSelectedNodes = state.selectedNodes;
       }
-      
+
       if (!hasDragged) return;
-      
+
       // 使用requestAnimationFrame优化渲染性能
       if (!needsUpdate) {
         needsUpdate = true;
-        
+
         // 取消之前的动画帧请求
         if (animationFrameId) {
           cancelAnimationFrame(animationFrameId);
         }
-        
+
         animationFrameId = requestAnimationFrame(() => {
           // 批量更新所有选中的节点
-          const updates: Array<{id: string, changes: any}> = [];
-          
+          const updates: Array<{ id: string, changes: any }> = [];
+
           cachedSelectedNodes.forEach(nodeId => {
             const targetNode = cachedNodes.find(n => n.id === nodeId);
             if (!targetNode) return;
-            
+
             if (targetNode.pinned) {
               // 固定卡片直接使用屏幕坐标移动
               const currentPinnedX = targetNode.pinnedX || 100;
@@ -913,7 +913,7 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
               });
             }
           });
-          
+
           // 批量应用更新
           updates.forEach(update => {
             updateNode(update.id, update.changes);
@@ -923,7 +923,7 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
               cachedNodes[nodeIndex] = { ...cachedNodes[nodeIndex], ...update.changes };
             }
           });
-          
+
           needsUpdate = false;
           animationFrameId = null;
 
@@ -944,7 +944,7 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
           for (const frame of backgroundFrames) {
             // 新增：跳过已收起的背景框
             if (frame.collapsed) continue;
-            
+
             const frameRect = {
               x: frame.x,
               y: frame.y,
@@ -965,7 +965,7 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
               setFrameHighlight(frame.id, 'rgba(0, 255, 0, 0.2)'); // 绿色高亮
               bestFitFrameId = frame.id;
               bestOverlap = Infinity; // 完全包含，最高优先级
-              break; 
+              break;
             }
 
             if (overlapArea > bestOverlap) {
@@ -980,7 +980,7 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
           // --- 结束检测 ---
         });
       }
-      
+
       // 更新上次的鼠标位置
       lastX = e.clientX;
       lastY = e.clientY;
@@ -992,7 +992,7 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
         cancelAnimationFrame(animationFrameId);
         animationFrameId = null;
       }
-      
+
       // 如果没有拖拽，触发点击选中逻辑
       if (!hasDragged) {
         // 检查是否有其他正在编辑的节点
@@ -1002,7 +1002,7 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
           const { setNodeEditing } = useBoardStore.getState();
           setNodeEditing(editingNode.id, false);
         }
-        
+
         // 处理选中状态
         const isMultiSelect = (e as any).metaKey || (e as any).ctrlKey;
         selectNode(node.id, isMultiSelect);
@@ -1023,7 +1023,7 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
 
       // 拖拽结束，清理所有高亮
       clearAllFrameHighlights();
-      
+
       setDragging(false);
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseup', onMouseUp);
@@ -1044,7 +1044,7 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
         const backContentToLoad = (node.backContent && Array.isArray(node.backContent) && node.backContent.length > 0)
           ? node.backContent
           : defaultContent;
-        
+
         // 更新到ref和state
         currentContentRef.current = backContentToLoad;
         console.log('更新背面编辑器内容', backContentToLoad);
@@ -1055,7 +1055,7 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
           : (node.content && Array.isArray(node.content) && node.content.length > 0)
             ? node.content
             : defaultContent;
-        
+
         // 更新到ref和state
         currentContentRef.current = frontContentToLoad;
         console.log('更新正面编辑器内容', frontContentToLoad);
@@ -1064,7 +1064,7 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
   }, [node.editing, node.isFlipped, node.frontContent, node.backContent, node.content]); // 添加isFlipped依赖，确保翻转时能够更新内容
 
   // 双击进入编辑态
-  const [pendingFocusPos, setPendingFocusPos] = useState<{x: number, y: number} | null>(null);
+  const [pendingFocusPos, setPendingFocusPos] = useState<{ x: number, y: number } | null>(null);
   const handleDoubleClick = (e: React.MouseEvent) => {
     if (readOnly) return;
     e.stopPropagation();
@@ -1086,12 +1086,12 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
   // 计算文本内容实际需要的高度
   const calculateContentHeight = (content: Descendant[]): number => {
     const textContent = getTextContent(content);
-    
+
     // 如果没有文本内容，返回默认最小高度
     if (!textContent || textContent.trim() === '') {
       return 80; // 默认最小高度
     }
-    
+
     // 基础参数
     const fontSize = 16;
     const lineHeight = 1.6; // 行高系数
@@ -1099,20 +1099,20 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
     const padding = shouldRemovePadding(content) ? 0 : 24; // 上下内边距总和
     const cardWidth = node.width || 200;
     const effectiveWidth = cardWidth - padding - 16; // 减去滚动条和额外边距
-    
+
     // 更精确的字符宽度估算
     const avgCharWidth = fontSize * 0.65; // 调整字符宽度系数
     const charsPerLine = Math.max(1, Math.floor(effectiveWidth / avgCharWidth));
-    
+
     // 计算段落数量和总行数
     let totalLines = 0;
     let paragraphCount = 0;
-    
+
     content.forEach((node) => {
       // 类型检查：确保node是Element类型
       if ('type' in node && typeof node.type === 'string') {
         paragraphCount++;
-        
+
         if (node.type === 'paragraph') {
           const paragraphText = getTextContent([node]);
           if (!paragraphText.trim()) {
@@ -1134,18 +1134,18 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
         totalLines += 1;
       }
     });
-    
+
     // 添加段落间距（除了第一个段落）
     const paragraphSpacing = Math.max(0, paragraphCount - 1) * 0.3 * actualLineHeight;
-    
+
     // 计算总高度
     const contentHeight = totalLines * actualLineHeight + paragraphSpacing;
     const totalHeight = Math.ceil(contentHeight + padding);
-    
+
     // 确保不小于最小高度，不超过最大高度
     const MAX_CARD_HEIGHT = 550;
     const minHeight = 80;
-    
+
     return Math.min(MAX_CARD_HEIGHT, Math.max(minHeight, totalHeight));
   };
 
@@ -1217,16 +1217,16 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
   // 计算文本内容的最小高度
   const getMinHeight = () => {
     const textContent = getTextContent(localContent);
-    
+
     // 如果没有文本内容，返回一个很小的最小高度
     if (!textContent || textContent.trim() === '') {
       return 24; // 空内容时的最小高度，进一步降低
     }
-    
+
     // 基于字体大小计算最小高度：16px字体 + 减少内边距
     const lineHeight = 18; // 稍微减少行高
     const padding = 16; // 减少上下内边距到8px each
-    
+
     return lineHeight + padding;
   };
 
@@ -1251,7 +1251,7 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
     const startNodeY = node.y;
     const startPinnedX = node.pinnedX || 100;
     const startPinnedY = node.pinnedY || 100;
-    
+
     const onMouseMove = (e: MouseEvent) => {
       // 对于固定卡片，不需要考虑缩放因子，因为它们使用屏幕坐标
       const deltaX = node.pinned ? (e.clientX - startX) : (e.clientX - startX) / scale;
@@ -1262,10 +1262,10 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
       let newY = startNodeY;
       let newPinnedX = startPinnedX;
       let newPinnedY = startPinnedY;
-      
+
       const minWidth = 120;
       const minHeight = getMinHeight();
-      
+
       // 根据方向调整宽度、高度和位置
       switch (direction) {
         case 'nw': // 左上角
@@ -1354,7 +1354,7 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
           newHeight = Math.max(minHeight, startHeight + deltaY);
           break;
       }
-      
+
       // 根据卡片是否固定，更新不同的坐标
       if (node.pinned) {
         updateNode(node.id, {
@@ -1374,13 +1374,13 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
         });
       }
     };
-    
+
     const onMouseUp = () => {
       setResizing(false);
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseup', onMouseUp);
     };
-    
+
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
   };
@@ -1427,13 +1427,13 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
     const pastedText = e.clipboardData.getData('text/plain');
     if (pastedText) {
       console.log('📋 NodeCard: 检测到粘贴文本，长度:', pastedText.length);
-      
+
       // 🔥 关键优化：跳过长URL的代码检测
       const trimmedText = pastedText.trim();
       if (trimmedText.length > 1000) {
         const hasSpacesOrNewlines = /[\s\n\r]/.test(trimmedText);
         const looksLikeUrl = /^https?:\/\/[^\s]+$/i.test(trimmedText.substring(0, 100));
-        
+
         if (!hasSpacesOrNewlines && looksLikeUrl) {
           console.log('🚀 NodeCard: 检测到长URL，跳过代码检测');
           return; // 跳过代码检测，使用默认粘贴行为
@@ -1441,7 +1441,7 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
       }
 
       const minCodeLength = 15; // 最小代码长度，避免误判
-      
+
       // 如果文本长度小于最小代码长度，不判断为代码
       if (pastedText.length < minCodeLength) {
         return;
@@ -1449,8 +1449,8 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
 
       // 🔥 对超长文本进行限制，避免正则表达式卡死
       const maxTestLength = 5000; // 最大检测长度
-      const testText = pastedText.length > maxTestLength 
-        ? pastedText.substring(0, maxTestLength) 
+      const testText = pastedText.length > maxTestLength
+        ? pastedText.substring(0, maxTestLength)
         : pastedText;
 
       // 代码检测正则表达式
@@ -1492,7 +1492,7 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
         /\w+\.\w+\s*\(/,                    // 方法调用
         /\w+\[['"`]\w+['"`]\]/              // 对象属性访问
       ];
-      
+
       // 🔥 使用try-catch保护正则表达式检测
       let isCode = false;
       try {
@@ -1503,23 +1503,23 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
         console.error('❌ NodeCard: 代码检测过程中出错:', error);
         return; // 出错时跳过代码检测
       }
-      
+
       if (isCode) {
         e.preventDefault(); // 阻止默认粘贴行为
-        
+
         // 检测代码语言
         const language = detectCodeLanguage(pastedText);
-        
+
         // 同时更新到节点数据中，确保持久化
         updateNode(node.id, {
           isCodeMode: true,
           codeContent: pastedText,
           codeLanguage: language
         });
-        
+
         // 显示一个通知消息
         console.log('✅ NodeCard: 代码已识别，按ESC或点击外部以查看渲染效果');
-        
+
         return; // 处理完代码粘贴后不再继续处理其它内容
       }
     }
@@ -1530,10 +1530,10 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
   useEffect(() => {
     if (node.editing && cardRef.current) {
       const editorElement = cardRef.current.querySelector('[data-slate-editor="true"]');
-      
+
       if (editorElement) {
         editorElement.addEventListener('paste', handlePaste as EventListener);
-        
+
         return () => {
           editorElement.removeEventListener('paste', handlePaste as EventListener);
         };
@@ -1549,10 +1549,10 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
   // 修复的滚轮事件处理 - 支持编辑模式下的滚动
   useEffect(() => {
     if (!node.selected) return;
-    
+
     const cardElement = cardRef.current;
     if (!cardElement) return;
-    
+
     const handleWheel = (e: WheelEvent) => {
       // 如果是编辑模式，需要特殊处理
       if (node.editing) {
@@ -1575,13 +1575,13 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
           }
         }
       }
-      
+
       // 非编辑模式或不在编辑器内的滚动，阻止冒泡到白板
       e.stopPropagation();
     };
-    
+
     cardElement.addEventListener('wheel', handleWheel, { passive: true });
-    
+
     return () => {
       cardElement.removeEventListener('wheel', handleWheel);
     };
@@ -1593,11 +1593,11 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
     const checkScrollable = () => {
       // 根据是否在编辑模式选择正确的容器
       const container = node.editing ? editorContainerRef.current : contentContainerRef.current;
-      
+
       if (container) {
         // 检查是否需要滚动
         const needsScrolling = container.scrollHeight > container.clientHeight;
-        
+
         console.log('🔍 滚动检查详细信息:', {
           scrollHeight: container.scrollHeight,
           clientHeight: container.clientHeight,
@@ -1609,7 +1609,7 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
           currentClasses: container.className,
           hasScrollableClass: container.classList.contains('content-scrollable')
         });
-        
+
         // 根据是否需要滚动添加或移除类名
         if (needsScrolling) {
           container.classList.add('content-scrollable');
@@ -1685,27 +1685,27 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
   const displayContent = node.editing
     ? (node.editMode === 'markdown' ? localMarkdown : localContent)
     : (node.editMode === 'markdown' && node.markdownContent
-        ? node.markdownContent
-        : (node.isFlipped
-            ? (getContent(node.backContent) ?? defaultContent)
-            : (getContent(node.frontContent) ?? getContent(node.content) ?? defaultContent)));
+      ? node.markdownContent
+      : (node.isFlipped
+        ? (getContent(node.backContent) ?? defaultContent)
+        : (getContent(node.frontContent) ?? getContent(node.content) ?? defaultContent)));
 
   // 计算毛玻璃样式
   const frostedStyle = node.frosted
     ? {
-        background: isDarkMode
-          ? 'rgba(30, 32, 40, 0.45)' // 深色主题下更深色
-          : 'rgba(255, 255, 255, 0.55)', // 浅色主题下更亮
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-        // 可选：加一点边框和阴影提升质感
-        boxShadow: node.selected
-          ? (isDarkMode ? '0 4px 16px rgba(0,0,0,0.45)' : '0 4px 16px rgba(0,0,0,0.10)')
-          : undefined,
-        border: node.selected
-          ? (isDarkMode ? '2px dashed #fff' : '2px dashed #000')
-          : 'none',
-      }
+      background: isDarkMode
+        ? 'rgba(30, 32, 40, 0.45)' // 深色主题下更深色
+        : 'rgba(255, 255, 255, 0.55)', // 浅色主题下更亮
+      backdropFilter: 'blur(12px)',
+      WebkitBackdropFilter: 'blur(12px)',
+      // 可选：加一点边框和阴影提升质感
+      boxShadow: node.selected
+        ? (isDarkMode ? '0 4px 16px rgba(0,0,0,0.45)' : '0 4px 16px rgba(0,0,0,0.10)')
+        : undefined,
+      border: node.selected
+        ? (isDarkMode ? '2px dashed #fff' : '2px dashed #000')
+        : 'none',
+    }
     : {};
 
   // 添加编辑器聚焦处理
@@ -1717,22 +1717,22 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
         if (editorElement) {
           // 先尝试聚焦编辑器
           editorElement.focus();
-          
+
           // 如果有 Slate 编辑器引用，也尝试通过 ReactEditor.focus 聚焦
           if (slateEditorRef.current) {
             try {
               ReactEditor.focus(slateEditorRef.current);
-              
+
               // 如果有待处理的聚焦位置，尝试将光标移动到点击位置附近
               if (pendingFocusPos) {
                 // 获取编辑器的边界矩形
                 const editorRect = editorElement.getBoundingClientRect();
                 const relativeX = pendingFocusPos.x - editorRect.left;
                 const relativeY = pendingFocusPos.y - editorRect.top;
-                
+
                 // 如果点击位置在编辑器范围内，尝试设置光标位置
-                if (relativeX >= 0 && relativeX <= editorRect.width && 
-                    relativeY >= 0 && relativeY <= editorRect.height) {
+                if (relativeX >= 0 && relativeX <= editorRect.width &&
+                  relativeY >= 0 && relativeY <= editorRect.height) {
                   // 使用(document as any).caretPositionFromPoint或document.caretRangeFromPoint
                   let range = null;
                   if ((document as any).caretPositionFromPoint) {
@@ -1745,7 +1745,7 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
                   } else if (document.caretRangeFromPoint) {
                     range = document.caretRangeFromPoint(pendingFocusPos.x, pendingFocusPos.y);
                   }
-                  
+
                   if (range) {
                     const selection = window.getSelection();
                     if (selection) {
@@ -1775,7 +1775,7 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
               console.warn('Slate editor focus failed:', error);
             }
           }
-          
+
           // 清除待处理的聚焦位置
           setPendingFocusPos(null);
         }
@@ -1868,7 +1868,7 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
   // 新增：处理Markdown检测 - 自动切换无需确认
   const handleMarkdownDetected = React.useCallback((markdownText: string, confidence: number) => {
     console.log('🔍 NodeCard检测到Markdown，自动切换:', { confidence, length: markdownText.length });
-    
+
     // 如果置信度足够高，直接自动切换到Markdown模式
     if (confidence > 0.4) {
       // 如果当前是正面编辑
@@ -1888,7 +1888,7 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
         setLocalBackMarkdown(markdownText);
         setBackEditMode('markdown');
       }
-      
+
       // 显示提示
       console.log('✅ 已自动切换到Markdown模式并应用内容');
     }
@@ -1943,14 +1943,14 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
 
   const handleCopyAsImage = (e: React.MouseEvent) => {
     e.stopPropagation();
-    
+
     // 计算预览弹窗的位置
     const rect = e.currentTarget.getBoundingClientRect();
     const position = {
       x: rect.left + rect.width + 10,
       y: rect.top
     };
-    
+
     setImagePreviewPosition(position);
     setShowImagePreview(true);
     setShowActionMenu(false);
@@ -1958,7 +1958,7 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
 
   const handleShowColorPicker = (e: React.MouseEvent) => {
     e.stopPropagation();
-    
+
     // 计算颜色选择器位置 - 根据卡片是否固定使用不同的坐标系统
     let pickerX, pickerY;
     if (node.pinned) {
@@ -1971,7 +1971,7 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
       pickerX = node.x * currentScale + panX + (node.width || 324) * currentScale + 20;
       pickerY = node.y * currentScale + panY;
     }
-    
+
     setColorPickerPosition({ x: pickerX, y: pickerY });
     setShowColorPicker(true);
     setShowActionMenu(false);
@@ -1979,20 +1979,20 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
 
   const handleTogglePin = (e: React.MouseEvent) => {
     e.stopPropagation();
-    
+
     // 如果当前正在编辑，先保存编辑内容
     if (node.editing) {
       const validContent = (currentContentRef.current && Array.isArray(currentContentRef.current) && currentContentRef.current.length > 0) ? currentContentRef.current : defaultContent;
       updateNode(node.id, { frontContent: validContent, backContent: validContent });
       setNodeEditing(node.id, false);
     }
-    
+
     if (!node.pinned) {
       // 固定卡片
       const currentScreenX = node.x * scale + panX;
       const currentScreenY = node.y * scale + panY;
-      updateNode(node.id, { 
-        pinnedX: currentScreenX, 
+      updateNode(node.id, {
+        pinnedX: currentScreenX,
         pinnedY: currentScreenY,
         pinned: true
       });
@@ -2002,8 +2002,8 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
       const currentScreenY = node.pinnedY || 100;
       const worldX = (currentScreenX - panX) / scale;
       const worldY = (currentScreenY - panY) / scale;
-      updateNode(node.id, { 
-        x: worldX, 
+      updateNode(node.id, {
+        x: worldX,
         y: worldY,
         pinned: false,
         pinnedX: undefined,
@@ -2135,7 +2135,7 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
   // 检查卡片是否在背景框内
   const isInFrame = node.containerId && backgroundFrames.some(frame => frame.id === node.containerId);
   const parentFrame = isInFrame ? backgroundFrames.find(frame => frame.id === node.containerId) : null;
-  
+
   // 如果在背景框内，使用特殊的样式
   const frameStyle = isInFrame && parentFrame ? {
     border: `2px solid ${parentFrame.style?.borderColor || '#007acc'}`,
@@ -2150,8 +2150,8 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
     maxHeight: 'none',
     background: node.transparent ? 'transparent' : currentBg.color,
     borderRadius: getBorderRadius(),
-    boxShadow: node.selected 
-      ? '0 4px 12px var(--card-shadow)' 
+    boxShadow: node.selected
+      ? '0 4px 12px var(--card-shadow)'
       : (node.transparent ? 'none' : '0 2px 8px var(--card-shadow)'),
     cursor: node.editing ? 'text' : (resizing ? 'default' : 'move'),
     userSelect: 'none',
@@ -2159,11 +2159,11 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
     border: node.editing
       ? (isDarkMode ? '2px dashed #fff' : '2px dashed #000')
       : (node.selected
-          ? (isDarkMode ? '2px dashed #fff' : '2px dashed #000')
-          : (node.showBorder 
-              ? `2px solid ${node.borderColor || '#D1D5DB'}`
-              : 'none')
-        ),
+        ? (isDarkMode ? '2px dashed #fff' : '2px dashed #000')
+        : (node.showBorder
+          ? `2px solid ${node.borderColor || '#D1D5DB'}`
+          : 'none')
+      ),
     transform: dragging ? 'scale(1.02) translateZ(0)' : 'scale(1) translateZ(0)',
     transition: dragging || resizing || node.editing ? 'none' : 'transform 0.2s ease',
     willChange: dragging ? 'transform, left, top' : 'auto',
@@ -2189,33 +2189,33 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
 
   return (
     <>
-    <div
+      <div
         ref={cardRef}
         data-node-id={node.id}
         className={`flip-card ${node.isFlipped ? 'flipped' : ''} ${node.selected ? 'selected' : ''}`}
-      style={{
-        position: 'absolute',
-        left: cardPosition.x,
-        top: cardPosition.y,
-        width: node.width || 200,
-        height: node.height || 80, // 始终使用固定高度
-        maxHeight: 'none', // 不在主容器上设置最大高度限制
-        zIndex: cardPosition.zIndex,
-        isolation: 'isolate', // 创建新的层叠上下文，确保子元素z-index正常工作
-        // 性能优化
-        transform: 'translateZ(0)', // 启用硬件加速
-        willChange: dragging ? 'transform, left, top' : 'auto',
-      }}
+        style={{
+          position: 'absolute',
+          left: cardPosition.x,
+          top: cardPosition.y,
+          width: node.width || 200,
+          height: node.height || 80, // 始终使用固定高度
+          maxHeight: 'none', // 不在主容器上设置最大高度限制
+          zIndex: cardPosition.zIndex,
+          isolation: 'isolate', // 创建新的层叠上下文，确保子元素z-index正常工作
+          // 性能优化
+          transform: 'translateZ(0)', // 启用硬件加速
+          willChange: dragging ? 'transform, left, top' : 'auto',
+        }}
       >
 
 
         <div className="flip-card-inner">
           {/* 正面 */}
           <div className="flip-card-front" style={frontStyle}
-          onClick={handleClick}
-          onMouseDown={onMouseDown}
-          onDoubleClick={handleDoubleClick}
-          onContextMenu={handleContextMenu}
+            onClick={handleClick}
+            onMouseDown={onMouseDown}
+            onDoubleClick={handleDoubleClick}
+            onContextMenu={handleContextMenu}
           >
             {/* 固定图钉图标 - 仅当卡片被固定时显示（正面） */}
             {node.pinned && !node.editing && !node.isFlipped && !readOnly && (
@@ -2229,8 +2229,8 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
                   const currentScreenY = node.pinnedY || 100;
                   const worldX = (currentScreenX - panX) / scale;
                   const worldY = (currentScreenY - panY) / scale;
-                  updateNode(node.id, { 
-                    x: worldX, 
+                  updateNode(node.id, {
+                    x: worldX,
                     y: worldY,
                     pinned: false,
                     pinnedX: undefined,
@@ -2273,53 +2273,53 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
 
             {/* 正面指示器 - 显示背面内容或网页内容 */}
             {!node.editing && (
-              (node.backContent && Array.isArray(node.backContent) && getTextContent(node.backContent).trim() !== '') || 
+              (node.backContent && Array.isArray(node.backContent) && getTextContent(node.backContent).trim() !== '') ||
               detectedUrl
             ) && (
-              <div
-                onClick={handleFlipCard}
-                style={{
-                  position: 'absolute',
-                  bottom: 8,
-                  right: 8,
-                  width: detectedUrl ? 24 : 20,
-                  height: detectedUrl ? 24 : 20,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: '50%',
-                  background: detectedUrl ? '#f0f9ff' : 'transparent',
-                  border: detectedUrl ? '1.8px solid #0ea5e9' : '1.8px solid #3b82f6',
-                  color: detectedUrl ? '#0ea5e9' : '#3b82f6',
-                  fontSize: detectedUrl ? 12 : 11,
-                  fontWeight: 'bold',
-                  zIndex: 10,
-                  cursor: 'pointer',
-                  transition: 'transform 0.2s ease, border-color 0.2s ease, background-color 0.2s ease',
-                }}
-                title={detectedUrl ? `点击查看网页: ${detectedUrl}` : "翻转到背面"}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'scale(1.1)';
-                  if (detectedUrl) {
-                    e.currentTarget.style.borderColor = '#0284c7';
-                    e.currentTarget.style.backgroundColor = '#e0f2fe';
-                  } else {
-                    e.currentTarget.style.borderColor = '#2563eb';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'scale(1)';
-                  if (detectedUrl) {
-                    e.currentTarget.style.borderColor = '#0ea5e9';
-                    e.currentTarget.style.backgroundColor = '#f0f9ff';
-                  } else {
-                    e.currentTarget.style.borderColor = '#3b82f6';
-                  }
-                }}
-              >
-                {detectedUrl ? '🌐' : 'A'}
-              </div>
-            )}
+                <div
+                  onClick={handleFlipCard}
+                  style={{
+                    position: 'absolute',
+                    bottom: 8,
+                    right: 8,
+                    width: detectedUrl ? 24 : 20,
+                    height: detectedUrl ? 24 : 20,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: '50%',
+                    background: detectedUrl ? '#f0f9ff' : 'transparent',
+                    border: detectedUrl ? '1.8px solid #0ea5e9' : '1.8px solid #3b82f6',
+                    color: detectedUrl ? '#0ea5e9' : '#3b82f6',
+                    fontSize: detectedUrl ? 12 : 11,
+                    fontWeight: 'bold',
+                    zIndex: 10,
+                    cursor: 'pointer',
+                    transition: 'transform 0.2s ease, border-color 0.2s ease, background-color 0.2s ease',
+                  }}
+                  title={detectedUrl ? `点击查看网页: ${detectedUrl}` : "翻转到背面"}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.1)';
+                    if (detectedUrl) {
+                      e.currentTarget.style.borderColor = '#0284c7';
+                      e.currentTarget.style.backgroundColor = '#e0f2fe';
+                    } else {
+                      e.currentTarget.style.borderColor = '#2563eb';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    if (detectedUrl) {
+                      e.currentTarget.style.borderColor = '#0ea5e9';
+                      e.currentTarget.style.backgroundColor = '#f0f9ff';
+                    } else {
+                      e.currentTarget.style.borderColor = '#3b82f6';
+                    }
+                  }}
+                >
+                  {detectedUrl ? '🌐' : 'A'}
+                </div>
+              )}
 
             {!node.isFlipped && (
               node.editing ? (
@@ -2372,7 +2372,7 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
               )
             )}
           </div>
-          
+
           {/* 背面 */}
           <div className="flip-card-back" style={{
             minHeight: node.height || 80, // 保持最小高度
@@ -2382,8 +2382,8 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
             // 应用透明度设置
             background: node.transparent ? 'transparent' : currentBg.color,
             borderRadius: getBorderRadius(),
-            boxShadow: node.selected 
-              ? '0 4px 12px var(--card-shadow)' 
+            boxShadow: node.selected
+              ? '0 4px 12px var(--card-shadow)'
               : (node.transparent ? 'none' : '0 2px 8px var(--card-shadow)'),
             cursor: node.editing ? 'text' : (resizing ? 'default' : 'move'),
             userSelect: 'none',
@@ -2393,18 +2393,18 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
             border: node.editing
               ? (isDarkMode ? '2px dashed #fff' : '2px dashed #000')
               : (node.selected
-                  ? (isDarkMode ? '2px dashed #fff' : '2px dashed #000')
-                  : (node.showBorder 
-                      ? `2px solid ${node.borderColor || '#D1D5DB'}`
-                      : 'none')
-                ),
+                ? (isDarkMode ? '2px dashed #fff' : '2px dashed #000')
+                : (node.showBorder
+                  ? `2px solid ${node.borderColor || '#D1D5DB'}`
+                  : 'none')
+              ),
             ...frostedStyle,
             ...getCircleCardStyles(), // 添加圆形卡片特殊样式
           }}
-          onClick={handleClick}
-          onMouseDown={onMouseDown}
-          onDoubleClick={handleDoubleClick}
-          onContextMenu={handleContextMenu}
+            onClick={handleClick}
+            onMouseDown={onMouseDown}
+            onDoubleClick={handleDoubleClick}
+            onContextMenu={handleContextMenu}
           >
 
 
@@ -2459,11 +2459,11 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
                 />
               )
             )}
-            
+
 
           </div>
         </div>
-        
+
         {/* 调整尺寸手柄组件 - 编辑时隐藏 */}
         {!readOnly && (
           <NodeCardResizeHandles
@@ -2472,7 +2472,7 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
             onResizeMouseDown={handleResizeMouseDown}
           />
         )}
-        
+
         {/* 操作按钮组 */}
         <NodeCardActions
           node={node}
@@ -2492,14 +2492,14 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
 
         {/* 连接锚点 - 编辑时隐藏 */}
         {!isEditing && (
-          <NodeConnection 
+          <NodeConnection
             node={node}
             cardRef={cardRef}
             readOnly={readOnly}
           />
         )}
       </div>
-      
+
       {/* 确认删除对话框 */}
       {showColorPicker && (
         <CardColorPicker
@@ -2531,7 +2531,7 @@ const NodeCard = forwardRef<any, Props>(({ node, readOnly = false }, ref) => {
           onClose={() => setShowImagePreview(false)}
         />
       )}
-      
+
 
     </>
   );

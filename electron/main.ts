@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, shell, nativeTheme } from 'electron';
+import { app, BrowserWindow, Menu, shell, nativeTheme, screen, ipcMain } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -6,6 +6,14 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 let mainWindow: BrowserWindow | null = null;
+let floatingWindow: BrowserWindow | null = null;
+
+// Mock Data Store
+const mockBoards = [
+  { id: '1', title: '项目规划', isActive: true },
+  { id: '2', title: '灵感收集', isActive: false },
+  { id: '3', title: '待办事项', isActive: false },
+];
 
 // 开发环境端口
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
@@ -13,7 +21,7 @@ const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
 function createWindow() {
   // 检测系统主题
   const isDarkMode = nativeTheme.shouldUseDarkColors;
-  
+
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
@@ -26,52 +34,41 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.cjs'),
       webSecurity: true,
     },
-    backgroundColor: isDarkMode ? '#1a1a1a' : '#ffffff', // 根据系统主题设置背景色
-    // macOS 11+ 标题栏覆盖配置，使标题栏适配深色模式
+    backgroundColor: isDarkMode ? '#1a1a1a' : '#ffffff',
     ...(process.platform === 'darwin' && {
-      titleBarStyle: 'hiddenInset', // 使用隐藏标题栏样式
+      titleBarStyle: 'hiddenInset',
       titleBarOverlay: {
-        color: isDarkMode ? '#1a1a1a' : '#ffffff', // 标题栏背景色
-        symbolColor: isDarkMode ? '#ffffff' : '#000000', // 标题栏文字颜色
-        height: 28, // 标题栏高度
+        color: isDarkMode ? '#1a1a1a' : '#ffffff',
+        symbolColor: isDarkMode ? '#ffffff' : '#000000',
+        height: 28,
       },
     }),
-    show: false, // 等待ready-to-show事件
+    show: false,
   });
 
-  // 窗口准备好后再显示，避免闪烁
   mainWindow.once('ready-to-show', () => {
     mainWindow?.show();
   });
 
-  // 加载应用
   if (VITE_DEV_SERVER_URL) {
-    // 开发模式：从 Vite 开发服务器加载
     mainWindow.loadURL(VITE_DEV_SERVER_URL);
-    // 打开开发者工具
     mainWindow.webContents.openDevTools();
   } else {
-    // 生产模式：加载构建后的文件
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
 
-  // 处理外部链接
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
     return { action: 'deny' };
   });
 
-  // 创建应用菜单
   createMenu();
 
-  // 监听系统主题变化，动态更新窗口外观
   nativeTheme.on('updated', () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       const isDarkMode = nativeTheme.shouldUseDarkColors;
-      // 更新窗口背景色
       mainWindow.setBackgroundColor(isDarkMode ? '#1a1a1a' : '#ffffff');
-      
-      // macOS 11+ 更新标题栏覆盖配置
+
       if (process.platform === 'darwin') {
         mainWindow.setTitleBarOverlay({
           color: isDarkMode ? '#1a1a1a' : '#ffffff',
@@ -152,7 +149,6 @@ function createMenu() {
     },
   ];
 
-  // macOS 特殊菜单
   if (process.platform === 'darwin') {
     template.unshift({
       label: app.name,
@@ -174,8 +170,113 @@ function createMenu() {
   Menu.setApplicationMenu(menu);
 }
 
+// 创建右侧边缘悬浮条
+function createFloatingWindow() {
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
+
+  const windowWidth = 400;
+
+  floatingWindow = new BrowserWindow({
+    width: windowWidth,
+    height: screenHeight,
+    x: screenWidth - windowWidth,
+    y: 0,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    resizable: false,
+    hasShadow: false,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload: path.join(__dirname, 'preload.cjs'),
+    },
+  });
+
+  // 设置窗口可以响应鼠标事件
+  floatingWindow.setIgnoreMouseEvents(true, { forward: true });
+
+  // 监听渲染进程的消息来动态调整鼠标事件穿透区域
+  floatingWindow.webContents.on('ipc-message', (_event, channel, data) => {
+    if (channel === 'set-ignore-mouse-events') {
+      floatingWindow?.setIgnoreMouseEvents(data.ignore, { forward: true });
+    }
+  });
+
+  // Use loadURL with file protocol and timestamp to avoid caching issues
+  const filePath = path.join(__dirname, 'floating-window.html');
+  floatingWindow.loadURL(`file://${filePath}?v=${Date.now()}`);
+
+  // 开发模式下打开开发者工具
+  // if (VITE_DEV_SERVER_URL) {
+  //   floatingWindow.webContents.openDevTools();
+  // }
+
+  floatingWindow.on('closed', () => {
+    floatingWindow = null;
+  });
+}
+
+// IPC Handlers
+ipcMain.handle('get-board-list', async () => {
+  return mockBoards;
+});
+
+ipcMain.handle('create-card', async (_event, boardId, content) => {
+  console.log(`[New Card] Board: ${boardId}, Content: ${content}`);
+  // In a real app, you would save this to the database
+  return true;
+});
+
+// 浮窗与主窗口通信
+ipcMain.on('request-board-name', () => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('request-board-name');
+  }
+});
+
+ipcMain.on('respond-board-name', (_event, name) => {
+  if (floatingWindow && !floatingWindow.isDestroyed()) {
+    floatingWindow.webContents.send('update-board-name', name);
+  }
+});
+
+ipcMain.on('create-card-from-floating', (_event, content) => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('create-card-from-floating', content);
+    // 如果主窗口最小化了，恢复并聚焦
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
+  }
+});
+
+ipcMain.on('request-board-list', () => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('request-board-list');
+  }
+});
+
+ipcMain.on('respond-board-list', (_event, list) => {
+  if (floatingWindow && !floatingWindow.isDestroyed()) {
+    floatingWindow.webContents.send('update-board-list', list);
+  }
+});
+
+ipcMain.on('switch-board', (_event, boardId) => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('switch-board', boardId);
+    // 切换后可能需要恢复主窗口显示？视需求而定，暂时不强制显示
+  }
+});
+
 app.whenReady().then(() => {
   createWindow();
+
+  setTimeout(() => {
+    createFloatingWindow();
+  }, 1000);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -184,12 +285,10 @@ app.whenReady().then(() => {
   });
 });
 
-// 所有窗口关闭时退出（Windows & Linux）
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
 });
 
-// 防止硬件加速问题
 app.disableHardwareAcceleration();

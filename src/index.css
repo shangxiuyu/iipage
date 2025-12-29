@@ -4,18 +4,18 @@ body {
   font-family: 'Inter', 'Helvetica Neue', Arial, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   background: var(--bg-color);
   color: var(--text-color);
-  
+
   /* 阻止浏览器的左右滑动后退/前进手势 */
   overscroll-behavior-x: none;
   /* 阻止所有方向的过度滚动行为 */
   overscroll-behavior: none;
-  
+
   /* 浅色模式变量 */
   --bg-color: #f5f6fa;
   --text-color: #222;
   --card-bg: #fff;
-  --card-border: rgba(0,0,0,0.10);
-  --card-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  --card-border: rgba(0, 0, 0, 0.10);
+  --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   --grid-bg: #f5f6fa;
   --grid-line: #e5e7eb;
   --button-bg: #fff;
@@ -30,8 +30,8 @@ body.dark-mode {
   --bg-color: #181c23;
   --text-color: #e2e8f0;
   --card-bg: #232a36;
-  --card-border: rgba(255,255,255,0.10);
-  --card-shadow: 0 2px 8px rgba(0,0,0,0.30);
+  --card-border: rgba(255, 255, 255, 0.10);
+  --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.30);
   --grid-bg: #181c23;
   --grid-line: #283040;
   --button-bg: #232a36;
@@ -43,20 +43,24 @@ body.dark-mode {
 
 /* 卡片内容容器滚动样式 */
 .card-content-container {
-  overflow-y: hidden; /* 默认隐藏溢出 */
+  overflow-y: hidden;
+  /* 默认隐藏溢出 */
 }
 
 .card-content-container.content-scrollable {
-  overflow-y: auto; /* 内容超出时启用滚动 */
+  overflow-y: auto;
+  /* 内容超出时启用滚动 */
 }
 
 /* 编辑器容器滚动样式 */
 .editor-container {
-  overflow-y: hidden; /* 默认隐藏溢出 */
+  overflow-y: hidden;
+  /* 默认隐藏溢出 */
 }
 
 .editor-container.content-scrollable {
-  overflow-y: auto; /* 内容超出时启用滚动 */
+  overflow-y: auto;
+  /* 内容超出时启用滚动 */
 }
 
 /* 滚动条样式优化 */
@@ -137,6 +141,7 @@ body.dark-mode .editor-container::-webkit-scrollbar-thumb:hover {
   0% {
     stroke-dashoffset: 0;
   }
+
   100% {
     stroke-dashoffset: -24;
   }
@@ -177,17 +182,21 @@ body.dark-mode .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   margin: 8px 0;
   font-size: 15px;
 }
-.markdown-body th, .markdown-body td {
+
+.markdown-body th,
+.markdown-body td {
   border: 1px solid #d1d5db;
   padding: 6px 12px;
   text-align: left;
   background: none;
 }
+
 .markdown-body th {
   font-weight: 600;
   background: #fafbfc;
   color: #222;
 }
+
 body.dark-mode .markdown-body th {
   background: #3a3a3c;
   color: #fff;
@@ -206,6 +215,7 @@ body.dark-mode .markdown-body th {
   touch-action: pan-y !important;
   pointer-events: auto !important;
 }
+
 .markdown-editor-linenumbers {
   position: absolute;
   left: 0;
@@ -224,9 +234,11 @@ body.dark-mode .markdown-body th {
   background: transparent;
   border-radius: inherit;
 }
+
 body.dark-mode .markdown-editor-linenumbers {
   color: #5c6370;
 }
+
 .markdown-editor-textarea {
   font-size: 15px;
   line-height: 1.8;
@@ -249,6 +261,7 @@ body.dark-mode .markdown-editor-linenumbers {
   user-select: text;
   scroll-behavior: smooth;
 }
+
 body.dark-mode .markdown-editor-textarea {
   background: transparent;
   border: none;

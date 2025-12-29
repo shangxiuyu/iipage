@@ -1,55 +1,27 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, lazy, Suspense } from 'react';
 import BoardCanvas from './components/BoardCanvas';
-import SaveLoadManager from './components/SaveLoadManager';
-import ProjectManager from './components/ProjectManager';
-import ModernProjectManager from './components/ModernProjectManager';
-import AutoSaveIndicator from './components/AutoSaveIndicator';
-import { useBoardStore, LIGHT_CARD_COLORS, DARK_CARD_COLORS, defaultContent } from './store/useBoardStore';
-import ProjectInfo from './components/ProjectInfo';
-import QuickActions from './components/QuickActions';
-import AIBrainstormChat from './components/AIBrainstormChat';
-import QuickInputModal from './components/QuickInputModal';
-import type { Descendant } from 'slate';
-import ReactMarkdown from 'react-markdown';
+import { useBoardStore, LIGHT_CARD_COLORS, DARK_CARD_COLORS } from './store/useBoardStore';
+
+// 懒加载非首屏组件 - 减少初始包大小
+const SaveLoadManager = lazy(() => import('./components/SaveLoadManager'));
+const ProjectManager = lazy(() => import('./components/ProjectManager'));
+const ModernProjectManager = lazy(() => import('./components/ModernProjectManager'));
+const AIBrainstormChat = lazy(() => import('./components/AIBrainstormChat'));
+const QuickInputModal = lazy(() => import('./components/QuickInputModal'));
 
 // 云端存储初始化
 import { cloudDataManager } from './services/cloudDataManager';
+import { useElectronIPC } from './hooks/useElectronIPC';
 
 // 1. 创建主题上下文
 export const ThemeContext = createContext({
   isDarkMode: false,
-  toggleDarkMode: () => {},
+  toggleDarkMode: () => { },
 });
 
 export const useTheme = () => useContext(ThemeContext);
 
-// 富文本类型兼容转换函数
-function normalizeSlateBlocks(blocks: any[]): any[] {
-  return blocks.map(block => {
-    let newBlock = { ...block };
-    // 处理heading(level)
-    if (newBlock.type === 'heading') {
-      if (newBlock.level === 1) newBlock.type = 'heading-one';
-      else if (newBlock.level === 2) newBlock.type = 'heading-two';
-      else if (newBlock.level === 3) newBlock.type = 'heading-three';
-      delete newBlock.level;
-    }
-    if (newBlock.type === 'ul_list') newBlock.type = 'bulleted-list';
-    if (newBlock.type === 'ol_list') newBlock.type = 'numbered-list';
-    if (newBlock.type === 'list_item') newBlock.type = 'list-item';
-    if (newBlock.type === 'hr') newBlock.type = 'divider';
-    // 递归children
-    if (Array.isArray(newBlock.children)) {
-      newBlock.children = normalizeSlateBlocks(newBlock.children);
-    }
-    return newBlock;
-  });
-}
 
-// 工具函数：将字符串转为Slate段落
-function toSlateContent(content: string): Descendant[] {
-  return [{ type: 'paragraph', children: [{ text: content }] }] as any;
-}
 
 function App() {
   // 初始化时从 localStorage 读取主题
@@ -61,11 +33,10 @@ function App() {
   const [showProjectManager, setShowProjectManager] = useState(false);
   const [showModernProjectManager, setShowModernProjectManager] = useState(false);
   const [showAIBrainstormChat, setShowAIBrainstormChat] = useState(false);
-  const [showQuickInputModal, setShowQuickInputModal] = useState(false);
-  
+
   // 鼠标靠近左侧自动显示侧边栏
   const [isHoveringLeftEdge, setIsHoveringLeftEdge] = useState(false);
-  
+
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       // 鼠标距离左侧小于20px时显示
@@ -76,11 +47,11 @@ function App() {
         setIsHoveringLeftEdge(false);
       }
     };
-    
+
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
-  
+
   // 当鼠标靠近左侧时显示侧边栏
   useEffect(() => {
     if (isHoveringLeftEdge) {
@@ -88,30 +59,11 @@ function App() {
     }
   }, [isHoveringLeftEdge]);
 
-  // 监听 Electron 全局快捷键事件
-  React.useEffect(() => {
-    console.log('🔍 检查 Electron API:', window.electronAPI);
-    if (typeof window !== 'undefined' && window.electronAPI) {
-      console.log('✅ Electron API 已找到，注册快捷键监听器');
-      window.electronAPI.onQuickInput(() => {
-        console.log('🎯 收到 quick-input 事件，打开弹窗');
-        setShowQuickInputModal(true);
-      });
-    } else {
-      console.log('❌ 未找到 Electron API');
-    }
-  }, []);
-  
-  // 🔥 暴露 useBoardStore 到 window 对象供 Electron IPC 使用
-  React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.useBoardStore = useBoardStore;
-      console.log('✅ useBoardStore 已暴露到 window 对象');
-    }
-  }, []);
-  
+  // 使用自定义 Hook 处理 Electron IPC
+  const { showQuickInputModal, setShowQuickInputModal } = useElectronIPC();
+
   // 🔥 云端存储初始化
-  React.useEffect(() => {
+  useEffect(() => {
     const initCloudStorage = async () => {
       try {
         // 尝试从环境变量获取阿里云配置
@@ -128,10 +80,10 @@ function App() {
         if (config.region && config.accessKeyId && config.accessKeySecret && config.bucket) {
           console.log('🔄 正在初始化阿里云OSS存储...');
           const success = await cloudDataManager.initialize(config);
-          
+
           if (success) {
             console.log('✅ 阿里云OSS存储初始化成功');
-            
+
             // 获取存储统计信息
             const stats = await cloudDataManager.getStorageStats();
             if (stats) {
@@ -152,7 +104,7 @@ function App() {
 
     initCloudStorage();
   }, []);
-  
+
   // 切换主题时写入 localStorage
   const toggleDarkMode = () => {
     setIsDarkMode((v) => {
@@ -163,7 +115,7 @@ function App() {
   };
 
   // 切换body的className
-  React.useEffect(() => {
+  useEffect(() => {
     if (isDarkMode) {
       document.body.classList.add('dark-mode');
     } else {
@@ -172,7 +124,7 @@ function App() {
   }, [isDarkMode]);
 
   // 主题切换时自动批量切换所有卡片颜色
-  React.useEffect(() => {
+  useEffect(() => {
     const nodes = useBoardStore.getState().nodes;
     const updateNode = useBoardStore.getState().updateNode;
     nodes.forEach((node) => {
@@ -200,7 +152,7 @@ function App() {
       ) {
         return;
       }
-      
+
       // 支持Ctrl+Z和Command+Z
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
         e.preventDefault();
@@ -217,9 +169,9 @@ function App() {
       <div style={{ display: 'flex', width: '100vw', height: '100vh', overflow: 'hidden' }}>
         {/* 左侧项目管理侧边栏 */}
         {showModernProjectManager && (
-          <div 
-            style={{ 
-              width: '280px', 
+          <div
+            style={{
+              width: '280px',
               flexShrink: 0,
               height: '100vh',
               overflow: 'hidden',
@@ -232,18 +184,20 @@ function App() {
             }}
             onMouseLeave={() => setIsHoveringLeftEdge(false)}
           >
-            <ModernProjectManager 
-              isOpen={showModernProjectManager} 
-              onClose={() => {
-                setShowModernProjectManager(false);
-                setIsHoveringLeftEdge(false);
-              }}
-            />
+            <Suspense fallback={<div style={{ padding: 20 }}>加载中...</div>}>
+              <ModernProjectManager
+                isOpen={showModernProjectManager}
+                onClose={() => {
+                  setShowModernProjectManager(false);
+                  setIsHoveringLeftEdge(false);
+                }}
+              />
+            </Suspense>
           </div>
         )}
-        
+
         {/* 右侧主画布区域 */}
-        <div 
+        <div
           style={{ flex: 1, position: 'relative', overflow: 'hidden' }}
           onClick={(e) => {
             // 点击画布区域关闭侧边栏
@@ -256,7 +210,7 @@ function App() {
             }
           }}
         >
-          <BoardCanvas 
+          <BoardCanvas
             onOpenProjectCenter={() => {
               setShowModernProjectManager(true);
               setIsHoveringLeftEdge(true);
@@ -265,33 +219,33 @@ function App() {
           />
         </div>
       </div>
-      
-      {/* 自动保存状态指示器 - 已隐藏 */}
-      {/* <AutoSaveIndicator /> */}
-      
-      {/* 项目管理面板 */}
-      <ProjectManager 
-        isOpen={showProjectManager} 
-        onClose={() => setShowProjectManager(false)} 
-      />
-      
-      {/* 数据管理弹窗 */}
-      <SaveLoadManager 
-        isOpen={showDataManager}
-        onClose={() => setShowDataManager(false)}
-      />
-      
-      {/* AI思维梳理聊天侧边栏 */}
-      <AIBrainstormChat
-        isOpen={showAIBrainstormChat}
-        onClose={() => setShowAIBrainstormChat(false)}
-      />
-      
-      {/* 快速输入弹窗 */}
-      <QuickInputModal
-        isOpen={showQuickInputModal}
-        onClose={() => setShowQuickInputModal(false)}
-      />
+
+      {/* Suspense 包裹所有懒加载的弹窗组件 */}
+      <Suspense fallback={null}>
+        {/* 项目管理面板 */}
+        <ProjectManager
+          isOpen={showProjectManager}
+          onClose={() => setShowProjectManager(false)}
+        />
+
+        {/* 数据管理弹窗 */}
+        <SaveLoadManager
+          isOpen={showDataManager}
+          onClose={() => setShowDataManager(false)}
+        />
+
+        {/* AI思维梳理聊天侧边栏 */}
+        <AIBrainstormChat
+          isOpen={showAIBrainstormChat}
+          onClose={() => setShowAIBrainstormChat(false)}
+        />
+
+        {/* 快速输入弹窗 */}
+        <QuickInputModal
+          isOpen={showQuickInputModal}
+          onClose={() => setShowQuickInputModal(false)}
+        />
+      </Suspense>
     </ThemeContext.Provider>
   );
 }

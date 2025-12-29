@@ -9,8 +9,8 @@ interface SimpleConnectionLayerProps {
 type ConnectableEntity = (NodeData & { type: 'node' }) | (BackgroundFrame & { type: 'frame' });
 
 const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly }) => {
-  const { 
-    nodes: boardNodes, 
+  const {
+    nodes: boardNodes,
     backgroundFrames, // 获取背景框数据
     connections,
     scale,
@@ -31,39 +31,16 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
     selectedNodes,
   } = useBoardStore();
 
-  // 计算左侧边栏偏移量
-  const [leftOffset, setLeftOffset] = useState(0);
-  
-  useEffect(() => {
-    const checkSidebarWidth = () => {
-      // 查找左侧边栏元素
-      const sidebar = document.querySelector('[style*="width: 280px"]');
-      setLeftOffset(sidebar ? 280 : 0);
-    };
-    
-    // 初始检查
-    checkSidebarWidth();
-    
-    // 使用MutationObserver监听DOM变化
-    const observer = new MutationObserver(checkSidebarWidth);
-    observer.observe(document.body, { 
-      childList: true, 
-      subtree: true,
-      attributes: true,
-      attributeFilter: ['style']
-    });
-    
-    return () => observer.disconnect();
-  }, []);
+  // Note: leftOffset removed - sidebar is position:fixed and doesn't affect canvas layout
 
   // 连线标签编辑状态
   const [editingConnection, setEditingConnection] = useState<string | null>(null);
   const [labelText, setLabelText] = useState('');
-  const [labelPosition, setLabelPosition] = useState<{x: number, y: number} | null>(null);
+  const [labelPosition, setLabelPosition] = useState<{ x: number, y: number } | null>(null);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [isDoubleClicking, setIsDoubleClicking] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  
+
   // 用于处理单击/双击冲突的定时器
   const clickTimeoutRef = useRef<number | null>(null);
 
@@ -101,16 +78,16 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
 
     // 设置双击标志，防止拖拽逻辑执行
     setIsDoubleClicking(true);
-    
+
     // 清除所有选中状态（包括卡片和连线），避免显示锚点
     clearSelection();
     clearConnectionSelection();
-    
+
     setEditingConnection(connectionId);
     setLabelText(connection.label || '');
     setLabelPosition({ x, y });
     setShowColorPicker(false); // 重置颜色选择器状态
-    
+
     // 延迟聚焦，确保输入框已渲染
     setTimeout(() => {
       if (inputRef.current) {
@@ -118,7 +95,7 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
         inputRef.current.select();
       }
     }, 10);
-    
+
     // 重置双击标志
     setTimeout(() => {
       setIsDoubleClicking(false);
@@ -158,7 +135,7 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
   const toggleConnectionStyle = (connectionId: string) => {
     const connection = connections.find(c => `${c.from}-${c.to}` === connectionId);
     if (!connection) return;
-    
+
     const currentStyle = connection.style || 'solid'; // 默认为实线
     const newStyle = currentStyle === 'dashed' ? 'solid' : 'dashed';
     updateConnectionStyle(connectionId, newStyle);
@@ -199,10 +176,10 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
   ) => {
     e.stopPropagation();
     e.preventDefault();
-    
+
     // 如果正在双击，不执行拖拽逻辑
     if (isDoubleClicking) return;
-    
+
     const connection = connections.find(c => `${c.from}-${c.to}` === connectionId);
     if (!connection) return;
 
@@ -215,15 +192,15 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
 
     const fromPos = getAnchorPosition(connection.from, fromAnchor);
     const toPos = getAnchorPosition(connection.to, toAnchor);
-    
+
     if (!fromPos || !toPos) return;
-    
+
     // 判断点击更接近起点还是终点
     const distanceToFrom = Math.sqrt(Math.pow(clickX - fromPos.x, 2) + Math.pow(clickY - fromPos.y, 2));
     const distanceToTo = Math.sqrt(Math.pow(clickX - toPos.x, 2) + Math.pow(clickY - toPos.y, 2));
-    
+
     const isFromCloser = distanceToFrom < distanceToTo;
-    
+
     setDraggingConnection({
       connectionId,
       type: isFromCloser ? 'from' : 'to',
@@ -248,8 +225,8 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
       entityWidth = entity.width || 324;
       entityHeight = entity.height || 200;
     } else {
-      // 普通卡片和背景框需要应用缩放和平移变换，同时考虑左侧偏移
-      entityX = entity.x * scale + panX + leftOffset;
+      // 普通卡片和背景框需要应用缩放和平移变换
+      entityX = entity.x * scale + panX;
       entityY = entity.y * scale + panY;
       entityWidth = (entity.width || 324) * scale;
       entityHeight = (entity.height || 200) * scale;
@@ -287,7 +264,7 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
         // 阻止浏览器的默认缩放行为
         e.preventDefault();
         e.stopPropagation();
-        
+
         const boardCanvas = document.querySelector('.board-canvas') as HTMLElement;
         if (boardCanvas) {
           // 创建新的滚轮事件并在白板上派发
@@ -316,8 +293,8 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
         if (e.touches.length === 1) {
           const touch = e.touches[0];
           // 如果触摸在屏幕边缘10%的区域内，强制阻止
-          if (touch.clientX < window.innerWidth * 0.1 || 
-              touch.clientX > window.innerWidth * 0.9) {
+          if (touch.clientX < window.innerWidth * 0.1 ||
+            touch.clientX > window.innerWidth * 0.9) {
             e.preventDefault();
             e.stopPropagation();
             return;
@@ -349,7 +326,7 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
     document.addEventListener('touchstart', handleTouchStart, { passive: false, capture: true });
     document.addEventListener('touchmove', handleTouchMove, { passive: false, capture: true });
     document.addEventListener('touchend', handleTouchEnd, { passive: false, capture: true });
-    
+
     return () => {
       document.removeEventListener('wheel', handleWheel, { capture: true });
       document.removeEventListener('touchstart', handleTouchStart, { capture: true });
@@ -364,7 +341,7 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
       if (!draggingConnection) return;
 
       const nearestAnchor = getNearestAnchor(draggingConnection.nodeId, e.clientX, e.clientY);
-      
+
       // 检查是否靠近锚点
       const anchorPos = getAnchorPosition(draggingConnection.nodeId, nearestAnchor);
       const distance = Math.sqrt(Math.pow(e.clientX - (anchorPos?.x ?? 0), 2) + Math.pow(e.clientY - (anchorPos?.y ?? 0), 2));
@@ -372,7 +349,7 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
 
       // 更新拖拽状态
       setDraggingConnection(prev => prev ? { ...prev, isNearAnchor } : null);
-      
+
       // 如果靠近锚点，实时更新连线锚点
       if (isNearAnchor) {
         updateConnectionAnchor(draggingConnection.connectionId, draggingConnection.type, nearestAnchor);
@@ -419,18 +396,18 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
   }, [showColorPicker]);
 
   // 计算贝塞尔曲线的中点
-  const getBezierMidpoint = (fromPos: {x: number, y: number}, toPos: {x: number, y: number}, fromAnchor: string, toAnchor: string) => {
+  const getBezierMidpoint = (fromPos: { x: number, y: number }, toPos: { x: number, y: number }, fromAnchor: string, toAnchor: string) => {
     const dx = toPos.x - fromPos.x;
     const dy = toPos.y - fromPos.y;
-    
+
     // 计算控制点偏移
     const offset = Math.min(Math.abs(dx), Math.abs(dy)) * 0.5 + 50;
-    
+
     let cp1x = fromPos.x;
     let cp1y = fromPos.y;
     let cp2x = toPos.x;
     let cp2y = toPos.y;
-    
+
     // 根据锚点方向调整控制点
     switch (fromAnchor) {
       case 'right':
@@ -446,7 +423,7 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
         cp1y -= offset;
         break;
     }
-    
+
     switch (toAnchor) {
       case 'right':
         cp2x += offset;
@@ -461,19 +438,19 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
         cp2y -= offset;
         break;
     }
-    
+
     // 计算贝塞尔曲线在 t=0.5 处的点
     const t = 0.5;
-    const x = Math.pow(1-t, 3) * fromPos.x + 
-              3 * Math.pow(1-t, 2) * t * cp1x + 
-              3 * (1-t) * Math.pow(t, 2) * cp2x + 
-              Math.pow(t, 3) * toPos.x;
-    
-    const y = Math.pow(1-t, 3) * fromPos.y + 
-              3 * Math.pow(1-t, 2) * t * cp1y + 
-              3 * (1-t) * Math.pow(t, 2) * cp2y + 
-              Math.pow(t, 3) * toPos.y;
-    
+    const x = Math.pow(1 - t, 3) * fromPos.x +
+      3 * Math.pow(1 - t, 2) * t * cp1x +
+      3 * (1 - t) * Math.pow(t, 2) * cp2x +
+      Math.pow(t, 3) * toPos.x;
+
+    const y = Math.pow(1 - t, 3) * fromPos.y +
+      3 * Math.pow(1 - t, 2) * t * cp1y +
+      3 * (1 - t) * Math.pow(t, 2) * cp2y +
+      Math.pow(t, 3) * toPos.y;
+
     return { x, y };
   };
 
@@ -518,8 +495,8 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
       entityWidth = entity.width || 324;
       entityHeight = entity.height || 200;
     } else {
-      // 普通卡片和背景框需要应用缩放和平移变换，同时考虑左侧偏移
-      entityX = entity.x * scale + panX + leftOffset;
+      // 普通卡片和背景框需要应用缩放和平移变换
+      entityX = entity.x * scale + panX;
       entityY = entity.y * scale + panY;
       entityWidth = (entity.width || 324) * scale;
       entityHeight = (entity.height || 200) * scale;
@@ -543,7 +520,7 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
   const getOptimalAnchors = (fromNodeId: string, toNodeId: string) => {
     const entity = getEntityById(fromNodeId);
     const toEntity = getEntityById(toNodeId);
-    
+
     if (!entity || !toEntity) return null;
 
     let fromX, fromY, toX, toY;
@@ -553,7 +530,7 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
       fromX = (entity.pinnedX || 100) + (entity.width || 324) / 2;
       fromY = (entity.pinnedY || 100) + (entity.height || 200) / 2;
     } else {
-      fromX = entity.x * scale + panX + leftOffset + (entity.width || 324) * scale / 2;
+      fromX = entity.x * scale + panX + (entity.width || 324) * scale / 2;
       fromY = entity.y * scale + panY + (entity.height || 200) * scale / 2;
     }
 
@@ -562,7 +539,7 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
       toX = (toEntity.pinnedX || 100) + (toEntity.width || 324) / 2;
       toY = (toEntity.pinnedY || 100) + (toEntity.height || 200) / 2;
     } else {
-      toX = toEntity.x * scale + panX + leftOffset + (toEntity.width || 324) * scale / 2;
+      toX = toEntity.x * scale + panX + (toEntity.width || 324) * scale / 2;
       toY = toEntity.y * scale + panY + (toEntity.height || 200) * scale / 2;
     }
 
@@ -597,18 +574,18 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
   };
 
   // 生成平滑路径
-  const generateSmoothPath = (fromPos: {x: number, y: number}, toPos: {x: number, y: number}, fromAnchor: string, toAnchor: string) => {
+  const generateSmoothPath = (fromPos: { x: number, y: number }, toPos: { x: number, y: number }, fromAnchor: string, toAnchor: string) => {
     const dx = toPos.x - fromPos.x;
     const dy = toPos.y - fromPos.y;
-    
+
     // 计算控制点偏移
     const offset = Math.min(Math.abs(dx), Math.abs(dy)) * 0.5 + 50;
-    
+
     let cp1x = fromPos.x;
     let cp1y = fromPos.y;
     let cp2x = toPos.x;
     let cp2y = toPos.y;
-    
+
     // 根据锚点方向调整控制点
     switch (fromAnchor) {
       case 'right':
@@ -624,7 +601,7 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
         cp1y -= offset;
         break;
     }
-    
+
     switch (toAnchor) {
       case 'right':
         cp2x += offset;
@@ -639,15 +616,15 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
         cp2y -= offset;
         break;
     }
-    
+
     return `M ${fromPos.x} ${fromPos.y} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${toPos.x} ${toPos.y}`;
   };
 
   // 计算箭头路径
-  const generateArrowPath = (toPos: {x: number, y: number}, toAnchor: string) => {
+  const generateArrowPath = (toPos: { x: number, y: number }, toAnchor: string) => {
     const arrowLength = 10;
     let angle = 0;
-    
+
     switch (toAnchor) {
       case 'top':
         angle = Math.PI / 2; // 向下
@@ -662,7 +639,7 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
         angle = 0; // 向右
         break;
     }
-    
+
     return `
       M ${toPos.x} ${toPos.y}
       L ${toPos.x - arrowLength * Math.cos(angle - Math.PI / 6)} ${toPos.y - arrowLength * Math.sin(angle - Math.PI / 6)}
@@ -672,7 +649,7 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
   };
 
   return (
-    <div 
+    <div
       style={{
         position: 'fixed',
         top: 0,
@@ -695,7 +672,7 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
       <svg
         width="100%"
         height="100%"
-        style={{ 
+        style={{
           position: 'absolute',
           top: 0,
           left: 0,
@@ -725,69 +702,69 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
           }
         }}
       >
-                 {/* 渲染所有连线 */}
-         {connections.map((connection, index) => {
-           const connectionId = `${connection.from}-${connection.to}`;
-           const uniqueKey = `${connectionId}-${index}`; // 使用索引确保唯一性
-           const optimal = getOptimalAnchors(connection.from, connection.to);
-           if (!optimal) return null;
-           
-           // 新增：检查连线的起点和终点是否在折叠的背景框内
-           const fromEntity = getEntityById(connection.from);
-           const toEntity = getEntityById(connection.to);
-           
-           // 如果起点或终点是背景框内的卡片，且该背景框已折叠，则不显示连线
-           if (fromEntity?.type === 'node' && fromEntity.containerId) {
-             const fromFrame = backgroundFrames.find(f => f.id === fromEntity.containerId);
-             if (fromFrame && fromFrame.collapsed) return null;
-           }
-           if (toEntity?.type === 'node' && toEntity.containerId) {
-             const toFrame = backgroundFrames.find(f => f.id === toEntity.containerId);
-             if (toFrame && toFrame.collapsed) return null;
-           }
-           
-           // 如果起点或终点本身就是折叠的背景框，也不显示连线
-           if (fromEntity?.type === 'frame' && fromEntity.collapsed) return null;
-           if (toEntity?.type === 'frame' && toEntity.collapsed) return null;
-           
-           const fromAnchor = (connection.fromAnchor ?? optimal.fromAnchor) as 'top' | 'right' | 'bottom' | 'left';
-           const toAnchor = (connection.toAnchor ?? optimal.toAnchor) as 'top' | 'right' | 'bottom' | 'left';
+        {/* 渲染所有连线 */}
+        {connections.map((connection, index) => {
+          const connectionId = `${connection.from}-${connection.to}`;
+          const uniqueKey = `${connectionId}-${index}`; // 使用索引确保唯一性
+          const optimal = getOptimalAnchors(connection.from, connection.to);
+          if (!optimal) return null;
 
-           const fromPos = getAnchorPosition(connection.from, fromAnchor);
-           const toPos = getAnchorPosition(connection.to, toAnchor);
-           if (!fromPos || !toPos) return null;
+          // 新增：检查连线的起点和终点是否在折叠的背景框内
+          const fromEntity = getEntityById(connection.from);
+          const toEntity = getEntityById(connection.to);
 
-           const path = generateSmoothPath(fromPos, toPos, fromAnchor, toAnchor);
-           const arrowPath = generateArrowPath(toPos, toAnchor);
-           
-           const isSelected = connection.selected || false;
-           // 检查连线是否从选中的节点流出，且不是自循环
-           const isFlowingFromSelectedNode = selectedNodes.length > 0 && 
-             connection.from !== connection.to && // 排除自循环
-             selectedNodes.includes(connection.from); // 只有从选中节点流出的连线才有效果
-           const labelX = (fromPos.x + toPos.x) / 2;
-           const labelY = (fromPos.y + toPos.y) / 2;
-           
-           // 根据连线样式决定虚线类型
-           const isDashed = connection.style === 'dashed';
-           let strokeDasharray = "none";
-           if (isSelected) {
-             strokeDasharray = "8,4";
-           } else if (isFlowingFromSelectedNode) {
-             strokeDasharray = "6,3";
-           } else if (isDashed) {
-             strokeDasharray = "8,4"; // 用户设置的虚线样式
-           }
-           
-           // 确定连线颜色
-           const connectionColor = connection.color || 'var(--connection-default)';
-           const connectionStroke = isSelected ? '#3b82f6' : isFlowingFromSelectedNode ? '#f59e0b' : connectionColor;
-           const arrowFill = isSelected ? '#3b82f6' : isFlowingFromSelectedNode ? '#f59e0b' : (connection.color || 'var(--connection-arrow)');
-           
+          // 如果起点或终点是背景框内的卡片，且该背景框已折叠，则不显示连线
+          if (fromEntity?.type === 'node' && fromEntity.containerId) {
+            const fromFrame = backgroundFrames.find(f => f.id === fromEntity.containerId);
+            if (fromFrame && fromFrame.collapsed) return null;
+          }
+          if (toEntity?.type === 'node' && toEntity.containerId) {
+            const toFrame = backgroundFrames.find(f => f.id === toEntity.containerId);
+            if (toFrame && toFrame.collapsed) return null;
+          }
+
+          // 如果起点或终点本身就是折叠的背景框，也不显示连线
+          if (fromEntity?.type === 'frame' && fromEntity.collapsed) return null;
+          if (toEntity?.type === 'frame' && toEntity.collapsed) return null;
+
+          const fromAnchor = (connection.fromAnchor ?? optimal.fromAnchor) as 'top' | 'right' | 'bottom' | 'left';
+          const toAnchor = (connection.toAnchor ?? optimal.toAnchor) as 'top' | 'right' | 'bottom' | 'left';
+
+          const fromPos = getAnchorPosition(connection.from, fromAnchor);
+          const toPos = getAnchorPosition(connection.to, toAnchor);
+          if (!fromPos || !toPos) return null;
+
+          const path = generateSmoothPath(fromPos, toPos, fromAnchor, toAnchor);
+          const arrowPath = generateArrowPath(toPos, toAnchor);
+
+          const isSelected = connection.selected || false;
+          // 检查连线是否从选中的节点流出，且不是自循环
+          const isFlowingFromSelectedNode = selectedNodes.length > 0 &&
+            connection.from !== connection.to && // 排除自循环
+            selectedNodes.includes(connection.from); // 只有从选中节点流出的连线才有效果
+          const labelX = (fromPos.x + toPos.x) / 2;
+          const labelY = (fromPos.y + toPos.y) / 2;
+
+          // 根据连线样式决定虚线类型
+          const isDashed = connection.style === 'dashed';
+          let strokeDasharray = "none";
+          if (isSelected) {
+            strokeDasharray = "8,4";
+          } else if (isFlowingFromSelectedNode) {
+            strokeDasharray = "6,3";
+          } else if (isDashed) {
+            strokeDasharray = "8,4"; // 用户设置的虚线样式
+          }
+
+          // 确定连线颜色
+          const connectionColor = connection.color || 'var(--connection-default)';
+          const connectionStroke = isSelected ? '#3b82f6' : isFlowingFromSelectedNode ? '#f59e0b' : connectionColor;
+          const arrowFill = isSelected ? '#3b82f6' : isFlowingFromSelectedNode ? '#f59e0b' : (connection.color || 'var(--connection-arrow)');
 
 
-           return (
-             <g key={uniqueKey}>
+
+          return (
+            <g key={uniqueKey}>
               {/* 主连线 */}
               <path
                 d={path}
@@ -799,80 +776,80 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
                   animation: 'dash-flow 1.2s linear infinite'
                 } : {}}
               />
-              
+
               {/* 箭头 */}
-                             <path
-                 d={arrowPath}
-                 fill={arrowFill}
-                 stroke="none"
-               />
+              <path
+                d={arrowPath}
+                fill={arrowFill}
+                stroke="none"
+              />
 
 
-              
-                             {/* 点击区域（更大的透明路径） */}
-               <path
-                 d={path}
-                 stroke="transparent"
-                 strokeWidth={20}
-                 fill="none"
-                 data-connection={connectionId}
-                 style={{ 
-                   cursor: draggingConnection ? 'grabbing' : 'pointer',
-                   pointerEvents: 'stroke',
-                   // 阻止所有浏览器默认手势行为
-                   touchAction: 'none',
-                   userSelect: 'none',
-                   WebkitUserSelect: 'none',
-                   msUserSelect: 'none'
-                 } as React.CSSProperties}
-                 onPointerDown={(e) => {
-                   if (isReadOnly) return;
-                   if (e.pointerType === 'mouse' && isSelected && !isDoubleClicking) {
-                     handleConnectionMouseDown(e as any, connectionId, e.clientX, e.clientY);
-                   }
-                 }}
-                 onClick={(e) => {
-                   if (isReadOnly) return;
-                   e.stopPropagation();
-                   
-                   // 清除之前的定时器
-                   if (clickTimeoutRef.current) {
-                     clearTimeout(clickTimeoutRef.current);
-                   }
-                   
-                   // 延迟执行单击逻辑，如果期间发生双击则会被取消
-                   clickTimeoutRef.current = window.setTimeout(() => {
-                     if (!isDoubleClicking) {
-                       selectConnection(connectionId, e.ctrlKey || e.metaKey);
-                     }
-                   }, 200);
-                 }}
-                 onDoubleClick={(e) => {
-                   if (isReadOnly) return;
-                   e.stopPropagation();
-                   e.preventDefault();
-                   
-                   // 清除单击的定时器，防止单击逻辑执行
-                   if (clickTimeoutRef.current) {
-                     clearTimeout(clickTimeoutRef.current);
-                     clickTimeoutRef.current = null;
-                   }
-                   
-                   const midpoint = getBezierMidpoint(fromPos, toPos, fromAnchor, toAnchor);
-                   handleConnectionDoubleClick(connectionId, midpoint.x, midpoint.y);
-                 }}
-                 onMouseDown={(e) => {
-                   if (isReadOnly) return;
-                   if (isSelected && !isDoubleClicking) {
-                     handleConnectionMouseDown(e, connectionId, e.clientX, e.clientY);
-                   }
-                 }}
 
-               />
+              {/* 点击区域（更大的透明路径） */}
+              <path
+                d={path}
+                stroke="transparent"
+                strokeWidth={20}
+                fill="none"
+                data-connection={connectionId}
+                style={{
+                  cursor: draggingConnection ? 'grabbing' : 'pointer',
+                  pointerEvents: 'stroke',
+                  // 阻止所有浏览器默认手势行为
+                  touchAction: 'none',
+                  userSelect: 'none',
+                  WebkitUserSelect: 'none',
+                  msUserSelect: 'none'
+                } as React.CSSProperties}
+                onPointerDown={(e) => {
+                  if (isReadOnly) return;
+                  if (e.pointerType === 'mouse' && isSelected && !isDoubleClicking) {
+                    handleConnectionMouseDown(e as any, connectionId, e.clientX, e.clientY);
+                  }
+                }}
+                onClick={(e) => {
+                  if (isReadOnly) return;
+                  e.stopPropagation();
+
+                  // 清除之前的定时器
+                  if (clickTimeoutRef.current) {
+                    clearTimeout(clickTimeoutRef.current);
+                  }
+
+                  // 延迟执行单击逻辑，如果期间发生双击则会被取消
+                  clickTimeoutRef.current = window.setTimeout(() => {
+                    if (!isDoubleClicking) {
+                      selectConnection(connectionId, e.ctrlKey || e.metaKey);
+                    }
+                  }, 200);
+                }}
+                onDoubleClick={(e) => {
+                  if (isReadOnly) return;
+                  e.stopPropagation();
+                  e.preventDefault();
+
+                  // 清除单击的定时器，防止单击逻辑执行
+                  if (clickTimeoutRef.current) {
+                    clearTimeout(clickTimeoutRef.current);
+                    clickTimeoutRef.current = null;
+                  }
+
+                  const midpoint = getBezierMidpoint(fromPos, toPos, fromAnchor, toAnchor);
+                  handleConnectionDoubleClick(connectionId, midpoint.x, midpoint.y);
+                }}
+                onMouseDown={(e) => {
+                  if (isReadOnly) return;
+                  if (isSelected && !isDoubleClicking) {
+                    handleConnectionMouseDown(e, connectionId, e.clientX, e.clientY);
+                  }
+                }}
+
+              />
             </g>
           );
         })}
-        
+
         {/* 临时连线（拖拽时显示） */}
         {isConnecting && tempConnection && (() => {
           // 检查连线起点是否在折叠的背景框内
@@ -884,7 +861,7 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
             }
             if (fromEntity?.type === 'frame' && fromEntity.collapsed) return null; // 如果起点本身是折叠的背景框，不显示临时连线
           }
-          
+
           return (
             <g>
               {/* 简单的直线临时连线 */}
@@ -911,14 +888,14 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
             </g>
           );
         })()}
-        
+
         {/* 调试：显示连线状态 */}
         {false && isConnecting && (
           <text x="10" y="30" fill="red" fontSize="14">
             连线模式: {connectingFrom || 'null'}
           </text>
         )}
-        
+
         {/* 调试：显示临时连线数据 */}
         {false && (
           <text x="10" y="50" fill="blue" fontSize="13">
@@ -954,11 +931,11 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
       {connections.map((connection, index) => {
         const connectionId = `${connection.from}-${connection.to}`;
         if (!connection.label) return null;
-        
+
         // 新增：检查连线的起点和终点是否在折叠的背景框内
         const fromEntity = getEntityById(connection.from);
         const toEntity = getEntityById(connection.to);
-        
+
         // 如果起点或终点是背景框内的卡片，且该背景框已折叠，则不显示标签
         if (fromEntity?.type === 'node' && fromEntity.containerId) {
           const fromFrame = backgroundFrames.find(f => f.id === fromEntity.containerId);
@@ -968,11 +945,11 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
           const toFrame = backgroundFrames.find(f => f.id === toEntity.containerId);
           if (toFrame && toFrame.collapsed) return null;
         }
-        
+
         // 如果起点或终点本身就是折叠的背景框，也不显示标签
         if (fromEntity?.type === 'frame' && fromEntity.collapsed) return null;
         if (toEntity?.type === 'frame' && toEntity.collapsed) return null;
-        
+
         const optimal = getOptimalAnchors(connection.from, connection.to);
         if (!optimal) return null;
         const fromAnchor = (connection.fromAnchor ?? optimal.fromAnchor) as 'top' | 'right' | 'bottom' | 'left';
@@ -1028,7 +1005,7 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
             flexDirection: 'column',
             gap: '10px',
           }}>
-            
+
             {/* 工具栏 */}
             <div style={{
               display: 'flex',
@@ -1036,7 +1013,7 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
               justifyContent: 'space-between',
               gap: '8px',
             }}>
-              
+
               {/* 左侧按钮组 */}
               <div style={{
                 display: 'flex',
@@ -1044,76 +1021,13 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
                 gap: '8px',
               }}>
                 {/* 样式切换 */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  if (editingConnection) {
-                    toggleConnectionStyle(editingConnection);
-                  }
-                }}
-                onMouseDown={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                }}
-                style={{
-                  border: 'none',
-                  borderRadius: '8px',
-                  padding: '8px 12px',
-                  fontSize: '13px',
-                  background: '#f8fafc',
-                  color: '#475569',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  transition: 'all 0.2s ease',
-                  fontWeight: '500',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = '#e2e8f0';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = '#f8fafc';
-                }}
-                title={(() => {
-                  const connection = connections.find(c => `${c.from}-${c.to}` === editingConnection);
-                  const currentStyle = connection?.style === 'dashed' ? '虚线' : '实线';
-                  const nextStyle = connection?.style === 'dashed' ? '实线' : '虚线';
-                  return `当前: ${currentStyle}，点击切换为${nextStyle}`;
-                })()}
-              >
-                {/* 连线图标 - 显示当前状态 */}
-                <svg width="18" height="10" viewBox="0 0 18 10" fill="none">
-                  <line 
-                    x1="1" 
-                    y1="5" 
-                    x2="17" 
-                    y2="5" 
-                    stroke="currentColor" 
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeDasharray={(() => {
-                      const connection = connections.find(c => `${c.from}-${c.to}` === editingConnection);
-                      const isDashed = connection?.style === 'dashed';
-                      return isDashed ? "4,3" : "none"; // 虚线显示虚线，实线显示实线
-                    })()}
-                  />
-                </svg>
-                {(() => {
-                  const connection = connections.find(c => `${c.from}-${c.to}` === editingConnection);
-                  const isDashed = connection?.style === 'dashed';
-                  return isDashed ? '虚线' : '实线'; // 显示当前状态
-                })()}
-              </button>
-              
-              {/* 颜色选择器 */}
-              <div style={{ position: 'relative' }} data-color-picker>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     e.preventDefault();
-                    setShowColorPicker(!showColorPicker);
+                    if (editingConnection) {
+                      toggleConnectionStyle(editingConnection);
+                    }
                   }}
                   onMouseDown={(e) => {
                     e.stopPropagation();
@@ -1139,108 +1053,171 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background = '#f8fafc';
                   }}
+                  title={(() => {
+                    const connection = connections.find(c => `${c.from}-${c.to}` === editingConnection);
+                    const currentStyle = connection?.style === 'dashed' ? '虚线' : '实线';
+                    const nextStyle = connection?.style === 'dashed' ? '实线' : '虚线';
+                    return `当前: ${currentStyle}，点击切换为${nextStyle}`;
+                  })()}
                 >
-                  {/* 当前颜色预览 */}
-                  <div style={{
-                    width: '16px',
-                    height: '16px',
-                    borderRadius: '4px',
-                    background: (() => {
-                      const connection = connections.find(c => `${c.from}-${c.to}` === editingConnection);
-                      return connection?.color || 'var(--connection-default)';
-                    })(),
-                    border: '1px solid rgba(0, 0, 0, 0.1)',
-                  }} />
-                  颜色
-                  {/* 展开箭头 */}
-                  <svg 
-                    width="12" 
-                    height="12" 
-                    viewBox="0 0 12 12" 
-                    fill="none"
-                    style={{
-                      transform: showColorPicker ? 'rotate(180deg)' : 'rotate(0deg)',
-                      transition: 'transform 0.2s ease',
-                    }}
-                  >
-                    <path 
-                      d="M3 4.5L6 7.5L9 4.5" 
-                      stroke="currentColor" 
-                      strokeWidth="1.5" 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round"
+                  {/* 连线图标 - 显示当前状态 */}
+                  <svg width="18" height="10" viewBox="0 0 18 10" fill="none">
+                    <line
+                      x1="1"
+                      y1="5"
+                      x2="17"
+                      y2="5"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeDasharray={(() => {
+                        const connection = connections.find(c => `${c.from}-${c.to}` === editingConnection);
+                        const isDashed = connection?.style === 'dashed';
+                        return isDashed ? "4,3" : "none"; // 虚线显示虚线，实线显示实线
+                      })()}
                     />
                   </svg>
+                  {(() => {
+                    const connection = connections.find(c => `${c.from}-${c.to}` === editingConnection);
+                    const isDashed = connection?.style === 'dashed';
+                    return isDashed ? '虚线' : '实线'; // 显示当前状态
+                  })()}
                 </button>
-                
-                {/* 颜色选择面板 */}
-                {showColorPicker && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '100%',
-                    right: '0',
-                    marginTop: '4px',
-                    background: 'white',
-                    borderRadius: '8px',
-                    padding: '8px',
-                    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.15)',
-                    border: '1px solid rgba(0, 0, 0, 0.08)',
-                    zIndex: 1000,
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(4, 1fr)',
-                    gap: '6px',
-                    minWidth: '140px',
-                  }}>
-                    {commonColors.map((colorOption) => {
-                      const connection = connections.find(c => `${c.from}-${c.to}` === editingConnection);
-                      const currentColor = connection?.color || '';
-                      const isSelected = currentColor === colorOption.value;
-                      
-                      return (
-                        <button
-                          key={colorOption.value}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            e.preventDefault();
-                            if (editingConnection) {
-                              setConnectionColor(editingConnection, colorOption.value);
-                              setShowColorPicker(false);
-                            }
-                          }}
-                          onMouseDown={(e) => {
-                            e.stopPropagation();
-                            e.preventDefault();
-                          }}
-                          title={colorOption.name}
-                          style={{
-                            width: '28px',
-                            height: '28px',
-                            border: isSelected ? '2px solid #3b82f6' : '2px solid transparent',
-                            borderRadius: '6px',
-                            background: colorOption.preview,
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease',
-                            transform: isSelected ? 'scale(1.05)' : 'scale(1)',
-                            boxShadow: isSelected ? '0 0 0 2px rgba(59, 130, 246, 0.2)' : '0 1px 3px rgba(0, 0, 0, 0.1)',
-                          }}
-                          onMouseEnter={(e) => {
-                            if (!isSelected) {
-                              e.currentTarget.style.transform = 'scale(1.1)';
-                              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.15)';
-                            }
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.transform = isSelected ? 'scale(1.05)' : 'scale(1)';
-                            e.currentTarget.style.boxShadow = isSelected ? '0 0 0 2px rgba(59, 130, 246, 0.2)' : '0 1px 3px rgba(0, 0, 0, 0.1)';
-                          }}
-                        />
-                      );
-                    })}
-                  </div>
-                )}
+
+                {/* 颜色选择器 */}
+                <div style={{ position: 'relative' }} data-color-picker>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      setShowColorPicker(!showColorPicker);
+                    }}
+                    onMouseDown={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                    }}
+                    style={{
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '8px 12px',
+                      fontSize: '13px',
+                      background: '#f8fafc',
+                      color: '#475569',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      transition: 'all 0.2s ease',
+                      fontWeight: '500',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = '#e2e8f0';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = '#f8fafc';
+                    }}
+                  >
+                    {/* 当前颜色预览 */}
+                    <div style={{
+                      width: '16px',
+                      height: '16px',
+                      borderRadius: '4px',
+                      background: (() => {
+                        const connection = connections.find(c => `${c.from}-${c.to}` === editingConnection);
+                        return connection?.color || 'var(--connection-default)';
+                      })(),
+                      border: '1px solid rgba(0, 0, 0, 0.1)',
+                    }} />
+                    颜色
+                    {/* 展开箭头 */}
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      style={{
+                        transform: showColorPicker ? 'rotate(180deg)' : 'rotate(0deg)',
+                        transition: 'transform 0.2s ease',
+                      }}
+                    >
+                      <path
+                        d="M3 4.5L6 7.5L9 4.5"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+
+                  {/* 颜色选择面板 */}
+                  {showColorPicker && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '100%',
+                      right: '0',
+                      marginTop: '4px',
+                      background: 'white',
+                      borderRadius: '8px',
+                      padding: '8px',
+                      boxShadow: '0 4px 16px rgba(0, 0, 0, 0.15)',
+                      border: '1px solid rgba(0, 0, 0, 0.08)',
+                      zIndex: 1000,
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(4, 1fr)',
+                      gap: '6px',
+                      minWidth: '140px',
+                    }}>
+                      {commonColors.map((colorOption) => {
+                        const connection = connections.find(c => `${c.from}-${c.to}` === editingConnection);
+                        const currentColor = connection?.color || '';
+                        const isSelected = currentColor === colorOption.value;
+
+                        return (
+                          <button
+                            key={colorOption.value}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              e.preventDefault();
+                              if (editingConnection) {
+                                setConnectionColor(editingConnection, colorOption.value);
+                                setShowColorPicker(false);
+                              }
+                            }}
+                            onMouseDown={(e) => {
+                              e.stopPropagation();
+                              e.preventDefault();
+                            }}
+                            title={colorOption.name}
+                            style={{
+                              width: '28px',
+                              height: '28px',
+                              border: isSelected ? '2px solid #3b82f6' : '2px solid transparent',
+                              borderRadius: '6px',
+                              background: colorOption.preview,
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease',
+                              transform: isSelected ? 'scale(1.05)' : 'scale(1)',
+                              boxShadow: isSelected ? '0 0 0 2px rgba(59, 130, 246, 0.2)' : '0 1px 3px rgba(0, 0, 0, 0.1)',
+                            }}
+                            onMouseEnter={(e) => {
+                              if (!isSelected) {
+                                e.currentTarget.style.transform = 'scale(1.1)';
+                                e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.15)';
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.transform = isSelected ? 'scale(1.05)' : 'scale(1)';
+                              e.currentTarget.style.boxShadow = isSelected ? '0 0 0 2px rgba(59, 130, 246, 0.2)' : '0 1px 3px rgba(0, 0, 0, 0.1)';
+                            }}
+                          />
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
-              </div>
-              
+
               {/* 删除按钮 */}
               <button
                 onClick={(e) => {
@@ -1282,17 +1259,17 @@ const SimpleConnectionLayer: React.FC<SimpleConnectionLayerProps> = ({ readOnly 
               >
                 {/* 删除图标 */}
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path 
-                    d="M6 2V1.5C6 1.22386 6.22386 1 6.5 1H9.5C9.77614 1 10 1.22386 10 1.5V2M4 4V13.5C4 14.3284 4.67157 15 5.5 15H10.5C11.3284 15 12 14.3284 12 13.5V4M2 4H14M6.5 7V11.5M9.5 7V11.5" 
-                    stroke="currentColor" 
-                    strokeWidth="1.5" 
-                    strokeLinecap="round" 
+                  <path
+                    d="M6 2V1.5C6 1.22386 6.22386 1 6.5 1H9.5C9.77614 1 10 1.22386 10 1.5V2M4 4V13.5C4 14.3284 4.67157 15 5.5 15H10.5C11.3284 15 12 14.3284 12 13.5V4M2 4H14M6.5 7V11.5M9.5 7V11.5"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
                     strokeLinejoin="round"
                   />
                 </svg>
               </button>
             </div>
-            
+
             {/* 输入框 */}
             <input
               ref={inputRef}

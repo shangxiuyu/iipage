@@ -9,28 +9,28 @@ interface CanvasState {
   scale: number;
   panX: number;
   panY: number;
-  
+
   // 背景设置
   currentBackground: string;
   showGrid: boolean;
   backgroundMode: BackgroundMode;
-  
+
   // 视频背景
   videoBackgroundMode: boolean;
   videoBackgroundUrl: string | null;
-  
+
   // 图片背景
   imageBackgroundUrl: string | null;
   imageBlurLevel: number;
-  
+
   // 可交互主题
   interactiveTheme: InteractiveTheme;
-  
+
   // 框选相关
   isSelecting: boolean;
   selectionStart: { x: number; y: number } | null;
   selectionEnd: { x: number; y: number } | null;
-  
+
   // 缩放和平移操作
   setScale: (scale: number) => void;
   setPan: (x: number, y: number) => void;
@@ -38,23 +38,29 @@ interface CanvasState {
   zoomIn: () => void;
   zoomOut: () => void;
   zoomToFit: () => void;
-  
+
   // 背景操作
   setBackground: (backgroundId: string) => void;
   toggleGrid: () => void;
   setBackgroundMode: (mode: BackgroundMode) => void;
-  
+
   // 视频背景操作
   toggleVideoBackgroundMode: () => void;
   setVideoBackgroundUrl: (url: string | null) => void;
-  
+
   // 图片背景操作
   setImageBackgroundUrl: (url: string | null) => void;
   setImageBlurLevel: (level: number) => void;
-  
+
   // 可交互主题操作
   setInteractiveTheme: (theme: InteractiveTheme) => void;
-  
+
+  // Grid Theme Operations
+  gridThemeIndex: number;
+  setGridThemeIndex: (index: number) => void;
+  nextGridTheme: () => void;
+  prevGridTheme: () => void;
+
   // 框选操作
   startSelection: (x: number, y: number) => void;
   updateSelection: (x: number, y: number) => void;
@@ -145,6 +151,12 @@ export const useCanvasStore = create<CanvasState>()(
         set({ interactiveTheme: theme });
       },
 
+      // Grid Theme Operations
+      gridThemeIndex: 0,
+      setGridThemeIndex: (index) => set({ gridThemeIndex: index }),
+      nextGridTheme: () => set((state) => ({ gridThemeIndex: state.gridThemeIndex + 1 })),
+      prevGridTheme: () => set((state) => ({ gridThemeIndex: state.gridThemeIndex - 1 })),
+
       // 框选操作
       startSelection: (x, y) => {
         set({
@@ -180,6 +192,7 @@ export const useCanvasStore = create<CanvasState>()(
         imageBackgroundUrl: state.imageBackgroundUrl,
         imageBlurLevel: state.imageBlurLevel,
         interactiveTheme: state.interactiveTheme,
+        gridThemeIndex: state.gridThemeIndex, // Persist grid theme
       }),
     }
   )

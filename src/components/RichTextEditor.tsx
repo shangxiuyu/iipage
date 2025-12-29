@@ -19,22 +19,25 @@ const iconList = Object.entries(iconModules).map(([path, url]) => ({
   url: url as string
 }));
 
-// 新增：图片内联插件
-function withImages(editor: ReactEditor) {
-  const { isInline } = editor;
+// 增强：节点类型插件 (处理 Inline 和 Void)
+function withNodeTypes(editor: ReactEditor) {
+  const { isInline, isVoid } = editor;
+
   editor.isInline = element => {
-    if (SlateElement.isElement(element)) {
-      return (element as any).type === 'image' || (element as any).type === 'tag' ? true : isInline(element);
-    }
-    return isInline(element);
+    return (element as any).type === 'tag' || (element as any).type === 'image' ? true : isInline(element);
   };
+
+  editor.isVoid = element => {
+    return (element as any).type === 'tag' || (element as any).type === 'image' || (element as any).type === 'video' ? true : isVoid(element);
+  };
+
   return editor;
 }
 
 // 新增：标签提取函数
 export const extractTags = (value: Descendant[]): string[] => {
   const tags: string[] = [];
-  
+
   const extractFromNode = (node: any) => {
     if (node.type === 'tag' && node.value) {
       tags.push(node.value);
@@ -43,7 +46,7 @@ export const extractTags = (value: Descendant[]): string[] => {
       node.children.forEach(extractFromNode);
     }
   };
-  
+
   value.forEach(extractFromNode);
   return Array.from(new Set(tags)); // 去重
 };
@@ -51,25 +54,25 @@ export const extractTags = (value: Descendant[]): string[] => {
 // 新增：文本提取函数
 export const extractTextFromSlateContent = (content: any[]): string => {
   if (!Array.isArray(content)) return '';
-  
+
   const extractText = (node: any): string => {
     // 如果是文本节点，直接返回文本
     if (typeof node === 'string') return node;
     if (node.text !== undefined) return node.text;
-    
+
     // 如果是标签节点，返回标签值
     if (node.type === 'tag' && node.value) {
       return `#${node.value}`;
     }
-    
+
     // 如果有children，递归处理所有子节点
     if (node.children && Array.isArray(node.children)) {
       return node.children.map(extractText).join('');
     }
-    
+
     return '';
   };
-  
+
   return content.map(extractText).join(' ').trim();
 };
 
@@ -95,13 +98,13 @@ interface RichTextEditorProps {
 const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
   ({ value, onChange, onBlur, autoFocus, style, onTagsChange, readOnly, onInsertImage, onMarkdownDetected }, ref) => {
     const { isDarkMode } = useContext(ThemeContext);
-    
+
     const createSlateEditor = useCallback(() => {
-      return withShortcuts(withImages(withReact(createEditor() as ReactEditor))) as ReactEditor;
+      return withShortcuts(withNodeTypes(withReact(createEditor() as ReactEditor))) as ReactEditor;
     }, []);
     const editorRef = React.useRef<ReactEditor | null>(null);
     const updateIndentLinesRef = React.useRef<(() => void) | null>(null);
-    
+
     if (!editorRef.current) {
       editorRef.current = createSlateEditor();
     }
@@ -145,7 +148,7 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
         }
       }
     }, [value]);
-    
+
     // 使用ref来引用编辑器容器
     const editorContainerRef = React.useRef<HTMLDivElement>(null);
     const [indentLines, setIndentLines] = React.useState<React.ReactNode[]>([]);
@@ -155,7 +158,7 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
     const updateIndentLines = React.useCallback(() => {
       // 分析文档内容，找出每个缩进级别的使用情况
       const indentUsage: { [level: number]: number[] } = {}; // 记录每个级别在哪些行被使用
-      
+
       localValue.forEach((node: any, index) => {
         const indent = node.indent || 0;
         // 记录该元素及其所有父级缩进
@@ -174,14 +177,14 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
       // 为每个使用的缩进级别创建连续竖线
       Object.entries(indentUsage).forEach(([level, indices]) => {
         if (indices.length === 0) return;
-        
+
         const levelNum = parseInt(level);
         const leftPos = (levelNum - 1) * indentSize + 12;
-        
+
         // 找到该级别的第一行和最后一行
         const firstIndex = Math.min(...indices);
         const lastIndex = Math.max(...indices);
-        
+
         // 计算竖线位置：从第一个使用该级别的元素开始，到最后一个结束
         const startTop = firstIndex * lineHeight + 4;
         const endBottom = (lastIndex + 1) * lineHeight + 4;
@@ -196,8 +199,8 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
               top: startTop,
               height: totalHeight,
               width: '1px',
-              backgroundColor: isDarkMode 
-                ? 'rgba(156, 163, 175, 0.3)' 
+              backgroundColor: isDarkMode
+                ? 'rgba(156, 163, 175, 0.3)'
                 : 'rgba(107, 114, 128, 0.25)',
               pointerEvents: 'none',
               zIndex: 1,
@@ -236,24 +239,24 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
     React.useEffect(() => {
       scheduleIndentUpdate();
     }, [scheduleIndentUpdate]);
-    
+
     // 修改：handleChange 添加标签提取逻辑
     // 云端文件删除检测
     const previousValueRef = React.useRef<Descendant[]>(localValue);
-    
+
     // 云端文件删除工具函数
     const deleteCloudFile = React.useCallback(async (url: string) => {
       try {
         // 检查是否是阿里云OSS URL
         if (url && typeof url === 'string' && url.includes('.aliyuncs.com')) {
           console.log(`🗑️ 检测到云端文件删除: ${url}`);
-          
+
           // 从URL提取文件路径
           const urlObj = new URL(url);
           const filePath = urlObj.pathname.substring(1); // 移除开头的 '/'
-          
+
           console.log(`🗑️ 提取文件路径: ${filePath}`);
-          
+
           if (aliCloudStorage.isReady()) {
             const result = await aliCloudStorage.deleteFile(filePath);
             if (result.success) {
@@ -276,7 +279,7 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
     const detectDeletedMediaFiles = React.useCallback((oldValue: Descendant[], newValue: Descendant[]) => {
       try {
         console.log('🔍 执行媒体文件删除检测');
-        
+
         // 提取所有媒体文件URL
         const extractMediaUrls = (value: Descendant[]): string[] => {
           const urls: string[] = [];
@@ -298,39 +301,39 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
 
         const oldUrls = extractMediaUrls(oldValue);
         const newUrls = extractMediaUrls(newValue);
-        
+
         console.log(`📊 删除检测统计:`);
         console.log(`   旧内容媒体文件数量: ${oldUrls.length}`);
         console.log(`   新内容媒体文件数量: ${newUrls.length}`);
         console.log(`   旧内容URL: ${JSON.stringify(oldUrls, null, 2)}`);
         console.log(`   新内容URL: ${JSON.stringify(newUrls, null, 2)}`);
-        
+
         // 找出被删除的URL
         const deletedUrls = oldUrls.filter(url => !newUrls.includes(url));
-        
+
         console.log(`🗑️ 检测到被删除的文件数量: ${deletedUrls.length}`);
-        
+
         if (deletedUrls.length === 0) {
           console.log('ℹ️ 没有检测到媒体文件被删除');
           return;
         }
-        
+
         // 异步删除云端文件
         deletedUrls.forEach(url => {
           // 确定文件类型
-          const fileType = url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? '图片' : 
-                          url.match(/\.(mp4|webm|ogg|avi)$/i) ? '视频' : '媒体';
-          
+          const fileType = url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? '图片' :
+            url.match(/\.(mp4|webm|ogg|avi)$/i) ? '视频' : '媒体';
+
           console.log(`🎯 检测到${fileType}文件被删除:`);
           console.log(`   📄 文件类型: ${fileType}`);
           console.log(`   🔗 文件URL: ${url}`);
           console.log(`   📅 删除时间: ${new Date().toLocaleString()}`);
-          
+
           deleteCloudFile(url).catch(error => {
             console.error(`❌ 异步删除云端${fileType}文件失败:`, error);
           });
         });
-        
+
       } catch (error) {
         console.error('❌ 媒体文件删除检测失败:', error);
       }
@@ -339,7 +342,7 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
     // 处理粘贴事件
     const handlePaste = useCallback((event: React.ClipboardEvent) => {
       console.log('RichTextEditor: Paste event triggered');
-      
+
       const clipboardData = event.clipboardData;
       if (!clipboardData) {
         console.log('RichTextEditor: No clipboard data available');
@@ -361,12 +364,12 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
         // 检查是否是纯URL（没有空格、换行等）
         const hasSpacesOrNewlines = /[\s\n\r]/.test(trimmedText);
         const looksLikeUrl = /^https?:\/\/[^\s]+$/i.test(trimmedText.substring(0, 100));
-        
+
         if (!hasSpacesOrNewlines && looksLikeUrl) {
           console.log('🚀 检测到长URL，跳过Markdown检测以避免卡死');
           return; // 直接返回，使用默认粘贴行为
         }
-        
+
         // 如果是超长文本但不是URL，限制检测长度
         console.log('📄 文本较长，使用优化检测');
       }
@@ -381,7 +384,7 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
         if (result.isMarkdown && result.confidence > 0.4) {
           console.log('RichTextEditor: Auto-switching to Markdown mode');
           event.preventDefault(); // 阻止默认粘贴行为
-          
+
           // 直接调用回调函数，让卡片自动切换到Markdown模式
           if (onMarkdownDetected) {
             onMarkdownDetected(pastedText, result.confidence, result.features);
@@ -393,44 +396,21 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
       }
     }, [onMarkdownDetected]);
 
-    // 工具函数：递归拆分文本节点为标签节点和普通文本节点
-    function splitDescendantsToTags(descendants: any[]): any[] {
-      const tagRegex = /#([\u4e00-\u9fa5\w\-]+)/g;
-      const result: any[] = [];
-      for (const node of descendants) {
-        if (typeof node.text === 'string' && node.text.includes('#')) {
-          let lastIndex = 0;
-          let match;
-          const text = node.text;
-          while ((match = tagRegex.exec(text)) !== null) {
-            if (match.index > lastIndex) {
-              result.push({ ...node, text: text.slice(lastIndex, match.index) });
-            }
-            result.push({ type: 'tag', value: match[1], children: [{ text: '' }] });
-            lastIndex = match.index + match[0].length;
-          }
-          if (lastIndex < text.length) {
-            result.push({ ...node, text: text.slice(lastIndex) });
-          }
-        } else if (Array.isArray(node.children)) {
-          result.push({ ...node, children: splitDescendantsToTags(node.children) });
-        } else {
-          result.push(node);
-        }
-      }
-      return result;
-    }
 
-    // 重写 handleChange，递归处理所有文本节点
+
+    // 重写 handleChange，移除 splitDescendantsToTags 以避免光标问题
     const handleChange = (value: Descendant[]) => {
-      const newValue = splitDescendantsToTags(value as any);
-      setLocalValue(newValue);
-      onChange?.(newValue);
+      setLocalValue(value);
+      onChange?.(value);
+
+      // 提取所有标签并去重，通知外部
+      const allTags = extractTags(value);
+      onTagsChange?.(allTags);
     };
 
     // picker 状态
     const [showIconPicker, setShowIconPicker] = React.useState(false);
-    const [iconPickerPos, setIconPickerPos] = React.useState<{x: number, y: number}>({x: 0, y: 0});
+    const [iconPickerPos, setIconPickerPos] = React.useState<{ x: number, y: number }>({ x: 0, y: 0 });
     const lastSelectionRef = React.useRef<Range | null>(null);
     const isPickerOpenRef = React.useRef(false);
 
@@ -452,14 +432,14 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
     ];
 
     const [showSlashMenu, setShowSlashMenu] = React.useState(false);
-    const [slashMenuPos, setSlashMenuPos] = React.useState<{x: number, y: number}>({x: 0, y: 0});
+    const [slashMenuPos, setSlashMenuPos] = React.useState<{ x: number, y: number }>({ x: 0, y: 0 });
     const [slashMenuIndex, setSlashMenuIndex] = React.useState(0);
     const [slashInput, setSlashInput] = React.useState('');
 
     // 监听 / 触发弹窗
     const handleKeyDown = (event: React.KeyboardEvent) => {
       if (readOnly) return;
-      
+
       // 体验优化：输入新字符时自动清除 mark
       if (
         event.key.length === 1 && // 只处理可见字符
@@ -482,7 +462,7 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
           }
         }
       }
-      
+
       // Tab/Shift+Tab 只做 blockquote 嵌套
       if (event.key === 'Tab') {
         event.preventDefault();
@@ -515,7 +495,7 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
         }
         return;
       }
-      
+
       // 斜杠命令弹窗
       if (event.key === '/' && !showSlashMenu) {
         const domSelection = window.getSelection();
@@ -619,13 +599,13 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
           if (file.type.startsWith('image/')) {
             // 暂时存储插入位置
             const currentSelection = editor.selection;
-            
+
             // 异步上传图片
             (async () => {
               try {
                 let imageUrl: string;
                 console.log(`🖼️ 开始处理图片: ${file.name}, 大小: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
-                
+
                 // 尝试云端上传
                 if (aliCloudStorage.isReady()) {
                   console.log(`📤 尝试上传图片到云端: ${file.name}`);
@@ -634,9 +614,9 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
                   const fileExtension = file.name.split('.').pop() || 'jpg';
                   const fileName = `${timestamp}-${randomStr}.${fileExtension}`;
                   const filePath = `images/${fileName}`;
-                  
+
                   const result = await aliCloudStorage.uploadFile(filePath, file);
-                  
+
                   if (result.success && result.url) {
                     console.log(`✅ 图片云端上传成功: ${result.url}`);
                     imageUrl = result.url;
@@ -670,14 +650,14 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
                     reader.readAsDataURL(file);
                   });
                 }
-                
+
                 // 直接在当前位置插入图片
                 console.log(`🎯 直接插入图片: ${imageUrl.substring(0, 100)}...`);
-                
+
                 if (currentSelection) {
                   Transforms.select(editor, currentSelection);
                 }
-                
+
                 const imageNode = { type: 'image', url: imageUrl, children: [{ text: '' }] } as any;
                 Transforms.insertNodes(editor, [imageNode, { type: 'paragraph', children: [{ text: '' }] }]);
                 console.log(`✅ 图片插入完成!`);
@@ -696,13 +676,13 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
           } else if (file.type.startsWith('video/')) {
             // 视频文件处理 - 支持云端上传
             const currentSelection = editor.selection;
-            
+
             // 异步上传视频
             (async () => {
               try {
                 let videoUrl: string;
                 console.log(`🎬 开始处理视频: ${file.name}, 大小: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
-                
+
                 // 尝试云端上传
                 if (aliCloudStorage.isReady()) {
                   console.log(`📤 尝试上传视频到云端: ${file.name}`);
@@ -711,9 +691,9 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
                   const fileExtension = file.name.split('.').pop() || 'mp4';
                   const fileName = `${timestamp}-${randomStr}.${fileExtension}`;
                   const filePath = `videos/${fileName}`;
-                  
+
                   const result = await aliCloudStorage.uploadFile(filePath, file);
-                  
+
                   if (result.success && result.url) {
                     console.log(`✅ 视频云端上传成功: ${result.url}`);
                     videoUrl = result.url;
@@ -747,14 +727,14 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
                     reader.readAsDataURL(file);
                   });
                 }
-                
+
                 // 直接在当前位置插入视频
                 console.log(`🎯 直接插入视频: ${videoUrl.substring(0, 100)}...`);
-                
+
                 if (currentSelection) {
                   Transforms.select(editor, currentSelection);
                 }
-                
+
                 const videoNode = { type: 'video', url: videoUrl, children: [{ text: '' }] } as any;
                 Transforms.insertNodes(editor, [videoNode, { type: 'paragraph', children: [{ text: '' }] }]);
                 console.log(`✅ 视频插入完成!`);
@@ -861,27 +841,27 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
     }, [readOnly, localValue]);
 
     // RichTextEditor 组件体内，新增临时网页卡片状态
-    const [previewUrl, setPreviewUrl] = React.useState<string|null>(null);
-    const [previewPos, setPreviewPos] = React.useState<{x:number,y:number}|null>(null);
-    const [previewSize, setPreviewSize] = React.useState({width: 420, height: 320});
+    const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
+    const [previewPos, setPreviewPos] = React.useState<{ x: number, y: number } | null>(null);
+    const [previewSize, setPreviewSize] = React.useState({ width: 420, height: 320 });
     const [isDragging, setIsDragging] = React.useState(false);
     const [isResizing, setIsResizing] = React.useState(false);
-    const [dragOffset, setDragOffset] = React.useState({x: 0, y: 0});
+    const [dragOffset, setDragOffset] = React.useState({ x: 0, y: 0 });
 
     // 支持 Ctrl+Enter 快捷键跳转和 Escape 关闭预览
     React.useEffect(() => {
       if (!previewUrl || !previewPos) return;
-      
+
       const handler = (e: KeyboardEvent) => {
         if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
           window.open(previewUrl, '_blank');
         }
         if (e.key === 'Escape') {
-          setPreviewUrl(null); 
+          setPreviewUrl(null);
           setPreviewPos(null);
         }
       };
-      
+
       window.addEventListener('keydown', handler);
       return () => window.removeEventListener('keydown', handler);
     }, [previewUrl, previewPos]);
@@ -889,7 +869,7 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
     // 点击其他区域关闭预览卡片
     React.useEffect(() => {
       if (!previewUrl) return;
-      
+
       const handleClickOutside = (e: MouseEvent) => {
         const target = e.target as HTMLElement;
         const previewCard = document.getElementById('preview-card');
@@ -898,9 +878,9 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
           setPreviewPos(null);
         }
       };
-      
+
       document.addEventListener('mousedown', handleClickOutside);
-      
+
       return () => {
         document.removeEventListener('mousedown', handleClickOutside);
       };
@@ -910,12 +890,12 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
     const renderElement = React.useCallback((props: any) => {
       const { attributes, children, element } = props;
       const { isDarkMode } = useContext(ThemeContext);
-      
+
       // 计算缩进
       const indent = element.indent || 0;
       const indentSize = 24; // 每级缩进24px
       const leftMargin = indent * indentSize;
-      
+
       // 简单的包装元素，只处理缩进和对齐
       const wrapWithIndent = (content: React.ReactNode, style: React.CSSProperties = {}) => (
         <div
@@ -933,15 +913,15 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
           {content as any}
         </div>
       );
-      
+
       switch (element.type) {
         case 'tag':
           return <TagElement {...props} editor={editor} readOnly={readOnly} />;
         case 'heading-one':
           return wrapWithIndent(
-            <h1 style={{ 
-              fontSize: '1.5em', 
-              fontWeight: 'bold', 
+            <h1 style={{
+              fontSize: '1.5em',
+              fontWeight: 'bold',
               margin: '0.4em 0 0.2em 0',
               lineHeight: '1.6',
               wordWrap: 'break-word',
@@ -950,9 +930,9 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
           );
         case 'heading-two':
           return wrapWithIndent(
-            <h2 style={{ 
-              fontSize: '1.25em', 
-              fontWeight: 'bold', 
+            <h2 style={{
+              fontSize: '1.25em',
+              fontWeight: 'bold',
               margin: '0.4em 0 0.2em 0',
               lineHeight: '1.6',
               wordWrap: 'break-word',
@@ -976,24 +956,24 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
         case 'todo-list':
           return wrapWithIndent(
             <div style={{ display: 'flex', alignItems: 'center', margin: '0.2em 0', paddingLeft: '8px' }}>
-              <input 
-                type="checkbox" 
-                checked={element.checked || false} 
-                readOnly 
-                style={{ 
-                  marginRight: 8, 
-                  marginTop: '0px', 
-                  cursor: 'pointer', 
-                  transform: 'scale(1.1)', 
+              <input
+                type="checkbox"
+                checked={element.checked || false}
+                readOnly
+                style={{
+                  marginRight: 8,
+                  marginTop: '0px',
+                  cursor: 'pointer',
+                  transform: 'scale(1.1)',
                   flexShrink: 0,
                   accentColor: isDarkMode ? '#60a5fa' : '#3b82f6'
-                }} 
+                }}
               />
-              <div style={{ 
-                flex: 1, 
-                lineHeight: '1.6', 
-                textDecoration: element.checked ? 'line-through' : 'none', 
-                opacity: element.checked ? 0.6 : 1, 
+              <div style={{
+                flex: 1,
+                lineHeight: '1.6',
+                textDecoration: element.checked ? 'line-through' : 'none',
+                opacity: element.checked ? 0.6 : 1,
                 transition: 'all 0.2s ease',
                 wordWrap: 'break-word',
                 overflowWrap: 'break-word'
@@ -1035,7 +1015,7 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
               </span>
             );
           }
-          
+
           const editorStatic = useSlateStatic();
           const selected = useSelected ? useSelected() : false;
           let isSelected = false;
@@ -1045,54 +1025,54 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
               const path = ReactEditor.findPath(editorStatic as any, element);
               isSelected = Range.includes(selection, path);
             }
-          } catch {}
-          
+          } catch { }
+
           // 图片调整大小逻辑
           const ImageResizer: React.FC<{ element: any, path: any }> = ({ element: imgElement, path: imgPath }) => {
             const [resizing, setResizing] = React.useState(false);
             const [hovering, setHovering] = React.useState(false);
-            
-                         const handleResizeMouseDown = (e: React.MouseEvent) => {
-               if (readOnly) return;
-               e.stopPropagation();
-               e.preventDefault();
-               setResizing(true);
-               
-               const startX = e.clientX;
-               const startY = e.clientY;
-               const startWidth = imgElement.width || 320;
-               const startHeight = imgElement.height || 240;
-               
-               const onMouseMove = (e: MouseEvent) => {
-                 const deltaX = e.clientX - startX;
-                 const deltaY = e.clientY - startY;
-                 
-                 const minWidth = 100;
-                 const minHeight = 75;
-                 
-                 // 右下角拖拽：同时调整宽度和高度
-                 const newWidth = Math.max(minWidth, startWidth + deltaX);
-                 const newHeight = Math.max(minHeight, startHeight + deltaY);
-                 
-                 // 更新图片尺寸
-                 const newProperties = { 
-                   ...imgElement, 
-                   width: newWidth,
-                   height: newHeight
-                 };
-                 Transforms.setNodes(editorStatic, newProperties, { at: imgPath });
-               };
-              
+
+            const handleResizeMouseDown = (e: React.MouseEvent) => {
+              if (readOnly) return;
+              e.stopPropagation();
+              e.preventDefault();
+              setResizing(true);
+
+              const startX = e.clientX;
+              const startY = e.clientY;
+              const startWidth = imgElement.width || 320;
+              const startHeight = imgElement.height || 240;
+
+              const onMouseMove = (e: MouseEvent) => {
+                const deltaX = e.clientX - startX;
+                const deltaY = e.clientY - startY;
+
+                const minWidth = 100;
+                const minHeight = 75;
+
+                // 右下角拖拽：同时调整宽度和高度
+                const newWidth = Math.max(minWidth, startWidth + deltaX);
+                const newHeight = Math.max(minHeight, startHeight + deltaY);
+
+                // 更新图片尺寸
+                const newProperties = {
+                  ...imgElement,
+                  width: newWidth,
+                  height: newHeight
+                };
+                Transforms.setNodes(editorStatic, newProperties, { at: imgPath });
+              };
+
               const onMouseUp = () => {
                 setResizing(false);
                 document.removeEventListener('mousemove', onMouseMove);
                 document.removeEventListener('mouseup', onMouseUp);
               };
-              
+
               document.addEventListener('mousemove', onMouseMove);
               document.addEventListener('mouseup', onMouseUp);
             };
-            
+
             // 调整手柄样式
             const handleStyle = () => ({
               position: 'absolute' as const,
@@ -1108,9 +1088,9 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
               bottom: -4,
               right: -4,
             });
-            
 
-            
+
+
             return (
               <span
                 {...attributes}
@@ -1124,7 +1104,7 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
                   height: 'auto',
                   margin: '8px auto',
                   //@ts-ignore
-                 boxShadow: isSelected ? '0 0 0 2px #6366f1' : 'none',
+                  boxShadow: isSelected ? '0 0 0 2px #6366f1' : 'none',
                   borderRadius: 8,
                   background: '#fff',
                   transition: 'box-shadow 0.2s',
@@ -1144,18 +1124,18 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
                   }}
                   draggable={false}
                 />
-                
-                                 {/* 调整大小手柄 - 只显示右下角 */}
-                 {!readOnly && (
-                                        <div
-                       style={handleStyle()}
-                       onMouseDown={handleResizeMouseDown}
-                     />
-                 )}
+
+                {/* 调整大小手柄 - 只显示右下角 */}
+                {!readOnly && (
+                  <div
+                    style={handleStyle()}
+                    onMouseDown={handleResizeMouseDown}
+                  />
+                )}
               </span>
             );
           };
-          
+
           // 获取当前图片路径
           let imagePath;
           try {
@@ -1173,7 +1153,7 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
                   width: width + 'px',
                   margin: '0 auto',
                   //@ts-ignore
-                 boxShadow: isSelected ? '0 0 0 2px #6366f1' : 'none',
+                  boxShadow: isSelected ? '0 0 0 2px #6366f1' : 'none',
                   borderRadius: 8,
                   background: '#fff',
                   transition: 'box-shadow 0.2s',
@@ -1195,7 +1175,7 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
               </span>
             );
           }
-          
+
           return <ImageResizer element={element} path={imagePath} />;
         }
         case 'video': {
@@ -1204,150 +1184,150 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
             const [resizing, setResizing] = React.useState(false);
             const [hovering, setHovering] = React.useState(false);
             const isSelected = useSelected();
-            
+
             const handleResizeMouseDown = (e: React.MouseEvent) => {
               if (readOnly) return;
               e.stopPropagation();
               e.preventDefault();
               setResizing(true);
-              
+
               const startX = e.clientX;
               const startY = e.clientY;
               const startWidth = videoElement.width || 320;
               const startHeight = videoElement.height || 240;
-              
+
               const onMouseMove = (e: MouseEvent) => {
                 const deltaX = e.clientX - startX;
                 const deltaY = e.clientY - startY;
-                
+
                 const minWidth = 200;
                 const minHeight = 150;
-                
+
                 // 右下角拖拽：同时调整宽度和高度
                 const newWidth = Math.max(minWidth, startWidth + deltaX);
                 const newHeight = Math.max(minHeight, startHeight + deltaY);
-                
+
                 // 更新视频尺寸
-                const newProperties = { 
-                  ...videoElement, 
+                const newProperties = {
+                  ...videoElement,
                   width: newWidth,
                   height: newHeight
                 };
                 Transforms.setNodes(editor, newProperties, { at: videoPath });
               };
-             
-             const onMouseUp = () => {
-               setResizing(false);
-               document.removeEventListener('mousemove', onMouseMove);
-               document.removeEventListener('mouseup', onMouseUp);
-             };
-             
-             document.addEventListener('mousemove', onMouseMove);
-             document.addEventListener('mouseup', onMouseUp);
-           };
-           
-           // 调整手柄样式
-           const handleStyle = () => ({
-             position: 'absolute' as const,
-             width: '8px',
-             height: '8px',
-             backgroundColor: '#3b82f6',
-             border: '1px solid #ffffff',
-             borderRadius: '2px',
-             cursor: 'se-resize',
-             opacity: (isSelected || hovering) && !readOnly ? 1 : 0,
-             transition: 'opacity 0.2s',
-             zIndex: 1000,
-             bottom: -4,
-             right: -4,
-           });
-           
-           return (
-             <span
-               {...attributes}
-               contentEditable={false}
-               onMouseEnter={() => setHovering(true)}
-               onMouseLeave={() => setHovering(false)}
-               style={{
-                 display: 'block',
-                 position: 'relative',
-                 width: (videoElement.width || 320) + 'px',
-                 height: 'auto',
-                 margin: 0, // 🔥 移除margin避免空白
-                 //@ts-ignore
-                 boxShadow: isSelected ? '0 0 0 2px #6366f1' : 'none',
-                 borderRadius: 8,
-                 background: '#fff',
-                 transition: 'box-shadow 0.2s',
-                 cursor: resizing ? 'grabbing' : 'default',
-               }}
-             >
-               <video
-                 src={videoElement.url}
-                 controls
-                 style={{
-                   width: '100%',
-                   height: videoElement.height ? videoElement.height + 'px' : 'auto',
-                   maxWidth: '100%',
-                   objectFit: videoElement.height ? 'cover' : 'contain',
-                   display: 'block',
-                   borderRadius: 8,
-                   background: '#000',
-                 }}
-               />
-               
-               {/* 调整大小手柄 - 只显示右下角 */}
-               {!readOnly && (
-                 <div
-                   style={handleStyle()}
-                   onMouseDown={handleResizeMouseDown}
-                 />
-               )}
-             </span>
-           );
-         };
-         
-         // 获取当前视频路径
-         let videoPath;
-         try {
-           videoPath = ReactEditor.findPath(editor, element);
-         } catch {
-           // 如果无法获取路径，使用简单的视频渲染
-           const width = (element as VideoElement).width || 320;
-           return (
-             <span
-               {...attributes}
-               contentEditable={false}
-               style={{
-                 display: 'block',
-                 position: 'relative',
-                 width: width + 'px',
-                 margin: 0,
-                 //@ts-ignore
-                 boxShadow: isSelected ? '0 0 0 2px #6366f1' : 'none',
-                 borderRadius: 8,
-                 background: '#fff',
-                 transition: 'box-shadow 0.2s',
-               }}
-             >
-               <video
-                 src={(element as VideoElement).url}
-                 controls
-                 style={{
-                   width: '100%',
-                   height: 'auto',
-                   maxWidth: '100%',
-                   objectFit: 'contain',
-                   display: 'block',
-                   borderRadius: 8,
-                   background: '#000',
-                 }}
-               />
-             </span>
-           );
-         }
-         
-         return <VideoResizer element={element} path={videoPath} />;
+
+              const onMouseUp = () => {
+                setResizing(false);
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+              };
+
+              document.addEventListener('mousemove', onMouseMove);
+              document.addEventListener('mouseup', onMouseUp);
+            };
+
+            // 调整手柄样式
+            const handleStyle = () => ({
+              position: 'absolute' as const,
+              width: '8px',
+              height: '8px',
+              backgroundColor: '#3b82f6',
+              border: '1px solid #ffffff',
+              borderRadius: '2px',
+              cursor: 'se-resize',
+              opacity: (isSelected || hovering) && !readOnly ? 1 : 0,
+              transition: 'opacity 0.2s',
+              zIndex: 1000,
+              bottom: -4,
+              right: -4,
+            });
+
+            return (
+              <span
+                {...attributes}
+                contentEditable={false}
+                onMouseEnter={() => setHovering(true)}
+                onMouseLeave={() => setHovering(false)}
+                style={{
+                  display: 'block',
+                  position: 'relative',
+                  width: (videoElement.width || 320) + 'px',
+                  height: 'auto',
+                  margin: 0, // 🔥 移除margin避免空白
+                  //@ts-ignore
+                  boxShadow: isSelected ? '0 0 0 2px #6366f1' : 'none',
+                  borderRadius: 8,
+                  background: '#fff',
+                  transition: 'box-shadow 0.2s',
+                  cursor: resizing ? 'grabbing' : 'default',
+                }}
+              >
+                <video
+                  src={videoElement.url}
+                  controls
+                  style={{
+                    width: '100%',
+                    height: videoElement.height ? videoElement.height + 'px' : 'auto',
+                    maxWidth: '100%',
+                    objectFit: videoElement.height ? 'cover' : 'contain',
+                    display: 'block',
+                    borderRadius: 8,
+                    background: '#000',
+                  }}
+                />
+
+                {/* 调整大小手柄 - 只显示右下角 */}
+                {!readOnly && (
+                  <div
+                    style={handleStyle()}
+                    onMouseDown={handleResizeMouseDown}
+                  />
+                )}
+              </span>
+            );
+          };
+
+          // 获取当前视频路径
+          let videoPath;
+          try {
+            videoPath = ReactEditor.findPath(editor, element);
+          } catch {
+            // 如果无法获取路径，使用简单的视频渲染
+            const width = (element as VideoElement).width || 320;
+            return (
+              <span
+                {...attributes}
+                contentEditable={false}
+                style={{
+                  display: 'block',
+                  position: 'relative',
+                  width: width + 'px',
+                  margin: 0,
+                  //@ts-ignore
+                  boxShadow: isSelected ? '0 0 0 2px #6366f1' : 'none',
+                  borderRadius: 8,
+                  background: '#fff',
+                  transition: 'box-shadow 0.2s',
+                }}
+              >
+                <video
+                  src={(element as VideoElement).url}
+                  controls
+                  style={{
+                    width: '100%',
+                    height: 'auto',
+                    maxWidth: '100%',
+                    objectFit: 'contain',
+                    display: 'block',
+                    borderRadius: 8,
+                    background: '#000',
+                  }}
+                />
+              </span>
+            );
+          }
+
+          return <VideoResizer element={element} path={videoPath} />;
         }
         case 'blockquote': {
           const level = element.blockquoteLevel || 1;
@@ -1369,8 +1349,8 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
         }
         default:
           return wrapWithIndent(
-            <div style={{ 
-              lineHeight: '1.6', 
+            <div style={{
+              lineHeight: '1.6',
               minHeight: '1.4em',
               width: '100%',
               wordWrap: 'break-word',
@@ -1390,27 +1370,27 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
       if (leaf.bgColor) {
         style.background = leaf.bgColor;
         // 自动判断文字颜色
-        const hex = leaf.bgColor.replace('#','');
-        const rgb = hex.length === 6 ? [parseInt(hex.slice(0,2),16),parseInt(hex.slice(2,4),16),parseInt(hex.slice(4,6),16)] : [255,255,255];
-        const luminance = (0.299*rgb[0]+0.587*rgb[1]+0.114*rgb[2])/255;
+        const hex = leaf.bgColor.replace('#', '');
+        const rgb = hex.length === 6 ? [parseInt(hex.slice(0, 2), 16), parseInt(hex.slice(2, 4), 16), parseInt(hex.slice(4, 6), 16)] : [255, 255, 255];
+        const luminance = (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255;
         style.color = luminance > 0.6 ? '#222' : '#fff';
       }
       if (leaf.link) {
         style.textDecoration = 'underline';
         style.color = '#2563eb';
         style.cursor = 'pointer';
-        
+
         // 为链接添加点击事件
         return (
-          <span 
-            {...attributes} 
+          <span
+            {...attributes}
             style={style}
             onClick={e => {
               e.preventDefault();
               // 获取鼠标点击位置
               const mouseX = e.clientX;
               const mouseY = e.clientY;
-              
+
               setPreviewUrl(leaf.link);
               setPreviewPos({ x: mouseX, y: mouseY });
             }}
@@ -1424,10 +1404,10 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
 
     return (
       <Slate editor={editor} initialValue={filteredValue} onChange={handleChange}>
-        <div 
+        <div
           ref={editorContainerRef}
-          className="editor-container" 
-          style={{ 
+          className="editor-container"
+          style={{
             position: 'relative',
             minHeight: '1.5em',
             width: '100%',
@@ -1453,7 +1433,7 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
               return renderElement(props);
             }}
             renderLeaf={renderLeaf}
-                         placeholder="请输入内容..."
+            placeholder="请输入内容..."
             spellCheck
             autoFocus={autoFocus}
             onBlur={onBlur}
@@ -1494,8 +1474,8 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
               background: isDarkMode ? 'rgba(31, 41, 55, 0.95)' : 'rgba(255, 255, 255, 0.95)',
               border: isDarkMode ? '1px solid rgba(75, 85, 99, 0.8)' : '1px solid rgba(229, 231, 235, 0.8)',
               borderRadius: 12,
-              boxShadow: isDarkMode 
-                ? '0 8px 32px rgba(0, 0, 0, 0.6), 0 4px 16px rgba(0, 0, 0, 0.4)' 
+              boxShadow: isDarkMode
+                ? '0 8px 32px rgba(0, 0, 0, 0.6), 0 4px 16px rgba(0, 0, 0, 0.4)'
                 : '0 8px 32px rgba(0, 0, 0, 0.15), 0 4px 16px rgba(0, 0, 0, 0.08)',
               backdropFilter: 'blur(16px)',
               WebkitBackdropFilter: 'blur(16px)',
@@ -1571,15 +1551,15 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
                     setShowIconPicker(false);
                   }}
                 >
-                  <img 
-                    src={icon.url} 
-                    alt={icon.name} 
-                    style={{ 
-                      width: 24, 
-                      height: 24, 
-                      borderRadius: 6, 
-                      background: isDarkMode ? 'rgba(55, 65, 81, 0.6)' : 'rgba(243, 244, 246, 0.8)' 
-                    }} 
+                  <img
+                    src={icon.url}
+                    alt={icon.name}
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: 6,
+                      background: isDarkMode ? 'rgba(55, 65, 81, 0.6)' : 'rgba(243, 244, 246, 0.8)'
+                    }}
                   />
                 </button>
               ))}
@@ -1606,7 +1586,7 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
             }}
           >
             {filteredSlashCommands.length === 0 ? (
-              <div style={{padding:12,textAlign:'center',color:'#aaa'}}>无匹配项</div>
+              <div style={{ padding: 12, textAlign: 'center', color: '#aaa' }}>无匹配项</div>
             ) : filteredSlashCommands.map((cmd, i) => (
               <div
                 key={cmd.type}
@@ -1622,9 +1602,9 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
                 onMouseEnter={() => setSlashMenuIndex(i)}
                 onMouseDown={e => { e.preventDefault(); handleSlashSelect(cmd); }}
               >
-                <span style={{width:28,display:'inline-block',textAlign:'center',fontSize:16,marginRight:8}}>{cmd.icon}</span>
+                <span style={{ width: 28, display: 'inline-block', textAlign: 'center', fontSize: 16, marginRight: 8 }}>{cmd.icon}</span>
                 <span>{cmd.label}</span>
-                <span style={{marginLeft:8,fontSize:12,color:'#aaa'}}>{cmd.desc}</span>
+                <span style={{ marginLeft: 8, fontSize: 12, color: '#aaa' }}>{cmd.desc}</span>
               </div>
             ))}
           </div>
@@ -1635,7 +1615,7 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
             id="preview-card"
             style={{
               position: 'fixed',
-              left: previewPos.x - previewSize.width/2,
+              left: previewPos.x - previewSize.width / 2,
               top: previewPos.y - previewSize.height - 20,
               zIndex: 99999,
               background: isDarkMode ? '#23272e' : '#fff',
@@ -1666,7 +1646,7 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
             onMouseMove={e => {
               if (isDragging && previewPos) {
                 setPreviewPos({
-                  x: e.clientX - dragOffset.x + previewSize.width/2,
+                  x: e.clientX - dragOffset.x + previewSize.width / 2,
                   y: e.clientY - dragOffset.y + previewSize.height + 20
                 });
               }
@@ -1676,7 +1656,7 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
             }}
           >
             {/* 拖拽头部区域 */}
-            <div 
+            <div
               id="drag-header"
               style={{
                 height: 32,
@@ -1690,9 +1670,9 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
                 userSelect: 'none',
               }}
             >
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
                 gap: 6,
                 fontSize: 12,
                 color: isDarkMode ? '#9ca3af' : '#6b7280'
@@ -1716,17 +1696,17 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
                 ✕
               </button>
             </div>
-            
+
             {/* 网页内容区域 */}
             <div style={{ flex: 1, position: 'relative' }}>
-              <WebPageRenderer 
-                url={previewUrl} 
-                width={previewSize.width} 
+              <WebPageRenderer
+                url={previewUrl}
+                width={previewSize.width}
                 height={previewSize.height - 72} // 减去头部和底部高度
-                nodeId={previewUrl} 
+                nodeId={previewUrl}
               />
             </div>
-            
+
             {/* 底部操作栏 */}
             <div style={{
               display: 'flex',
@@ -1776,7 +1756,7 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
                   +
                 </button>
               </div>
-              
+
               <button
                 style={{
                   background: '#2563eb',
@@ -1793,7 +1773,7 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
                 在浏览器打开
               </button>
             </div>
-            
+
             {/* 右下角缩放手柄 */}
             <div
               style={{
@@ -1813,7 +1793,7 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
                 const startY = e.clientY;
                 const startWidth = previewSize.width;
                 const startHeight = previewSize.height;
-                
+
                 const handleMouseMove = (moveEvent: MouseEvent) => {
                   const deltaX = moveEvent.clientX - startX;
                   const deltaY = moveEvent.clientY - startY;
@@ -1822,13 +1802,13 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
                     height: Math.max(250, Math.min(600, startHeight + deltaY))
                   });
                 };
-                
+
                 const handleMouseUp = () => {
                   setIsResizing(false);
                   document.removeEventListener('mousemove', handleMouseMove);
                   document.removeEventListener('mouseup', handleMouseUp);
                 };
-                
+
                 document.addEventListener('mousemove', handleMouseMove);
                 document.addEventListener('mouseup', handleMouseUp);
               }}
@@ -1848,23 +1828,27 @@ const RichTextEditor = forwardRef<ReactEditor, RichTextEditorProps>(
         {/* 支持 Ctrl+Enter 快捷键跳转 - 修复：将useEffect移出条件渲染 */}
       </Slate>
     );
-      }
+  }
 );
 
 // 新增：Notion风格悬浮工具栏
 const MARKS = [
   { type: 'bold', icon: <b>B</b>, title: '加粗' },
   { type: 'underline', icon: <u>U</u>, title: '下划线' },
-  { type: 'color', icon: (
-      <span style={{position:'relative',color:'#e11d48',fontWeight:600,display:'inline-block'}}>
+  {
+    type: 'color', icon: (
+      <span style={{ position: 'relative', color: '#e11d48', fontWeight: 600, display: 'inline-block' }}>
         A
-        <span style={{position:'absolute',left:0,right:0,bottom:-2,height:2,background:'#e11d48',borderRadius:1}} />
+        <span style={{ position: 'absolute', left: 0, right: 0, bottom: -2, height: 2, background: '#e11d48', borderRadius: 1 }} />
       </span>
-    ), title: '文字颜色' },
-  { type: 'bgColor', icon: (
-      <span style={{background:'#fde68a',padding:'2px 6px',borderRadius:4,color:'#222',fontWeight:600,display:'inline-block',boxShadow:'0 0 0 1px #fbbf24'}}>A</span>
-    ), title: '背景色' },
-  { type: 'link', icon: <span style={{textDecoration:'underline'}}>🔗</span>, title: '超链接' },
+    ), title: '文字颜色'
+  },
+  {
+    type: 'bgColor', icon: (
+      <span style={{ background: '#fde68a', padding: '2px 6px', borderRadius: 4, color: '#222', fontWeight: 600, display: 'inline-block', boxShadow: '0 0 0 1px #fbbf24' }}>A</span>
+    ), title: '背景色'
+  },
+  { type: 'link', icon: <span style={{ textDecoration: 'underline' }}>🔗</span>, title: '超链接' },
 ];
 
 // 类型声明
@@ -1888,20 +1872,17 @@ function toggleMark(editor: BaseEditor & SlateReactEditor, format: string, value
     Editor.addMark(editor, format, value ?? true);
   }
 }
-function setLink(editor: BaseEditor & SlateReactEditor, url: string): void {
-  if (!url) return;
-  Editor.addMark(editor, 'link', url);
-}
+
 function removeLink(editor: BaseEditor & SlateReactEditor): void {
   Editor.removeMark(editor, 'link');
 }
 
-const COLORS = ['#e11d48','#2563eb','#059669','#f59e42','#fbbf24','#f472b6','#6d28d9','#374151','#111827'];
-const BG_COLORS_LIGHT = ['#fef3c7','#fce7f3','#dbeafe','#d1fae5','#fee2e2','#f3f4f6','#fef9c3','#e0e7ff','#f1f5f9'];
-const BG_COLORS_DARK = ['#7c5c00','#4b5563','#374151','#1e293b','#334155','#78350f','#3b3b3b','#22223b','#23272e'];
+const COLORS = ['#e11d48', '#2563eb', '#059669', '#f59e42', '#fbbf24', '#f472b6', '#6d28d9', '#374151', '#111827'];
+const BG_COLORS_LIGHT = ['#fef3c7', '#fce7f3', '#dbeafe', '#d1fae5', '#fee2e2', '#f3f4f6', '#fef9c3', '#e0e7ff', '#f1f5f9'];
+const BG_COLORS_DARK = ['#7c5c00', '#4b5563', '#374151', '#1e293b', '#334155', '#78350f', '#3b3b3b', '#22223b', '#23272e'];
 
 // 1. 新增 setBlockAlign 工具函数
-function setBlockAlign(editor: BaseEditor & SlateReactEditor, align: 'left'|'center'|'right') {
+function setBlockAlign(editor: BaseEditor & SlateReactEditor, align: 'left' | 'center' | 'right') {
   if (!editor.selection) return;
   Transforms.setNodes(
     editor,
@@ -1916,17 +1897,17 @@ function setBlockAlign(editor: BaseEditor & SlateReactEditor, align: 'left'|'cen
 // 1. 新增 insertLink 方法
 function insertLink(editor: BaseEditor & SlateReactEditor, url: string, savedSelection?: any): void {
   if (!url) return;
-  
+
   // 使用保存的选区或当前选区
   const selection = savedSelection || editor.selection;
-  
+
   if (selection && Range.isExpanded(selection)) {
     // 先恢复选区
     Transforms.select(editor, selection);
-    
+
     // 直接对选中的文字应用link属性作为mark，而不是创建inline节点
     Editor.addMark(editor, 'link', url);
-    
+
     // 移动光标到选区末尾，避免后续输入继续带link属性
     Transforms.collapse(editor, { edge: 'end' });
     Editor.removeMark(editor, 'link');
@@ -1948,7 +1929,7 @@ const HoveringToolbar = ({ editor }: HoveringToolbarProps) => {
   const bgColors = isDarkMode ? BG_COLORS_DARK : BG_COLORS_LIGHT;
 
   // 追加：获取当前 selection 所在 block 的对齐方式
-  let currentAlign: 'left'|'center'|'right' = 'left';
+  let currentAlign: 'left' | 'center' | 'right' = 'left';
   if (editor.selection) {
     const [block] = Editor.nodes(editor, {
       match: (n: any) => Editor.isBlock(editor, n as any) && SlateElement.isElement(n),
@@ -1969,7 +1950,7 @@ const HoveringToolbar = ({ editor }: HoveringToolbarProps) => {
       // 只在 linkInputRect 有值时定位
       if (linkInputRect) {
         el.style.top = `${linkInputRect.top + window.scrollY - el.offsetHeight - 8}px`;
-        el.style.left = `${linkInputRect.left + window.scrollX + linkInputRect.width/2 - el.offsetWidth/2}px`;
+        el.style.left = `${linkInputRect.left + window.scrollX + linkInputRect.width / 2 - el.offsetWidth / 2}px`;
       }
       return;
     }
@@ -1986,7 +1967,7 @@ const HoveringToolbar = ({ editor }: HoveringToolbarProps) => {
     el.style.opacity = '1';
     el.style.pointerEvents = 'auto';
     el.style.top = `${rect.top + window.scrollY - el.offsetHeight - 8}px`;
-    el.style.left = `${rect.left + window.scrollX + rect.width/2 - el.offsetWidth/2}px`;
+    el.style.left = `${rect.left + window.scrollX + rect.width / 2 - el.offsetWidth / 2}px`;
   });
 
   return ReactDOM.createPortal(
@@ -2023,11 +2004,11 @@ const HoveringToolbar = ({ editor }: HoveringToolbarProps) => {
             cursor: 'pointer',
             color:
               mark.type === 'bold' ? (isMarkActive(editor, 'bold') ? '#2563eb' : '#222') :
-              mark.type === 'underline' ? (isMarkActive(editor, 'underline') ? '#2563eb' : '#222') :
-              mark.type === 'color' ? '#e11d48' :
-              mark.type === 'bgColor' ? '#f59e42' :
-              mark.type === 'link' ? '#2563eb' :
-              undefined,
+                mark.type === 'underline' ? (isMarkActive(editor, 'underline') ? '#2563eb' : '#222') :
+                  mark.type === 'color' ? '#e11d48' :
+                    mark.type === 'bgColor' ? '#f59e42' :
+                      mark.type === 'link' ? '#2563eb' :
+                        undefined,
             fontWeight: mark.type === 'bold' ? 'bold' : undefined,
             textDecoration: mark.type === 'underline' ? 'underline' : undefined,
           }}
@@ -2086,7 +2067,7 @@ const HoveringToolbar = ({ editor }: HoveringToolbarProps) => {
           }}
           onMouseDown={e => { e.preventDefault(); setBlockAlign(editor, 'left'); ReactEditor.focus(editor); }}
         >
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="3" y="4" width="12" height="2" rx="1" fill="currentColor"/><rect x="3" y="8" width="8" height="2" rx="1" fill="currentColor"/><rect x="3" y="12" width="10" height="2" rx="1" fill="currentColor"/></svg>
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="3" y="4" width="12" height="2" rx="1" fill="currentColor" /><rect x="3" y="8" width="8" height="2" rx="1" fill="currentColor" /><rect x="3" y="12" width="10" height="2" rx="1" fill="currentColor" /></svg>
         </button>
         <button
           title="居中对齐"
@@ -2097,40 +2078,40 @@ const HoveringToolbar = ({ editor }: HoveringToolbarProps) => {
           }}
           onMouseDown={e => { e.preventDefault(); setBlockAlign(editor, 'center'); ReactEditor.focus(editor); }}
         >
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="5" y="4" width="8" height="2" rx="1" fill="currentColor"/><rect x="3" y="8" width="12" height="2" rx="1" fill="currentColor"/><rect x="4" y="12" width="10" height="2" rx="1" fill="currentColor"/></svg>
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="5" y="4" width="8" height="2" rx="1" fill="currentColor" /><rect x="3" y="8" width="12" height="2" rx="1" fill="currentColor" /><rect x="4" y="12" width="10" height="2" rx="1" fill="currentColor" /></svg>
         </button>
       </div>
       {showColor && (
-        <div style={{position:'absolute',top:36,left:0,display:'flex',background:'#fff',border:'1px solid #eee',borderRadius:6,padding:4,gap:2,zIndex:10000}}>
-          <span title="清除颜色" style={{width:18,height:18,display:'inline-flex',alignItems:'center',justifyContent:'center',cursor:'pointer',border:'1.5px solid #eee',borderRadius:4,background:'#fff',color:'#aaa',fontSize:14}} onMouseDown={e=>{e.preventDefault();Editor.removeMark(editor,'color');setShowColor(false);ReactEditor.focus(editor);}}>🗙</span>
-          {COLORS.map(c=>(
-            <span key={c} style={{width:18,height:18,background:c,borderRadius:4,display:'inline-block',cursor:'pointer',border:'1.5px solid #fff',boxShadow:'0 0 1px #aaa'}} onMouseDown={e=>{e.preventDefault();toggleMark(editor,'color',c);setShowColor(false);ReactEditor.focus(editor);}} />
+        <div style={{ position: 'absolute', top: 36, left: 0, display: 'flex', background: '#fff', border: '1px solid #eee', borderRadius: 6, padding: 4, gap: 2, zIndex: 10000 }}>
+          <span title="清除颜色" style={{ width: 18, height: 18, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: '1.5px solid #eee', borderRadius: 4, background: '#fff', color: '#aaa', fontSize: 14 }} onMouseDown={e => { e.preventDefault(); Editor.removeMark(editor, 'color'); setShowColor(false); ReactEditor.focus(editor); }}>🗙</span>
+          {COLORS.map(c => (
+            <span key={c} style={{ width: 18, height: 18, background: c, borderRadius: 4, display: 'inline-block', cursor: 'pointer', border: '1.5px solid #fff', boxShadow: '0 0 1px #aaa' }} onMouseDown={e => { e.preventDefault(); toggleMark(editor, 'color', c); setShowColor(false); ReactEditor.focus(editor); }} />
           ))}
         </div>
       )}
       {showBgColor && (
-        <div style={{position:'absolute',top:36,left:40,display:'flex',background:'#fff',border:'1px solid #eee',borderRadius:6,padding:4,gap:2,zIndex:10000}}>
-          <span title="清除背景色" style={{width:18,height:18,display:'inline-flex',alignItems:'center',justifyContent:'center',cursor:'pointer',border:'1.5px solid #eee',borderRadius:4,background:'#fff',color:'#aaa',fontSize:14}} onMouseDown={e=>{e.preventDefault();Editor.removeMark(editor,'bgColor');setShowBgColor(false);ReactEditor.focus(editor);}}>🗙</span>
-          {bgColors.map(c=>(
-            <span key={c} style={{width:18,height:18,background:c,borderRadius:4,display:'inline-block',cursor:'pointer',border:'1.5px solid #fff',boxShadow:'0 0 1px #aaa'}} onMouseDown={e=>{e.preventDefault();toggleMark(editor,'bgColor',c);setShowBgColor(false);ReactEditor.focus(editor);}} />
+        <div style={{ position: 'absolute', top: 36, left: 40, display: 'flex', background: '#fff', border: '1px solid #eee', borderRadius: 6, padding: 4, gap: 2, zIndex: 10000 }}>
+          <span title="清除背景色" style={{ width: 18, height: 18, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: '1.5px solid #eee', borderRadius: 4, background: '#fff', color: '#aaa', fontSize: 14 }} onMouseDown={e => { e.preventDefault(); Editor.removeMark(editor, 'bgColor'); setShowBgColor(false); ReactEditor.focus(editor); }}>🗙</span>
+          {bgColors.map(c => (
+            <span key={c} style={{ width: 18, height: 18, background: c, borderRadius: 4, display: 'inline-block', cursor: 'pointer', border: '1.5px solid #fff', boxShadow: '0 0 1px #aaa' }} onMouseDown={e => { e.preventDefault(); toggleMark(editor, 'bgColor', c); setShowBgColor(false); ReactEditor.focus(editor); }} />
           ))}
         </div>
       )}
       {showLinkInput && (
         <input
           ref={input => { if (input) setTimeout(() => input.focus(), 0); }}
-          style={{position:'absolute',top:36,left:80,width:160,padding:2,border:'1px solid #eee',borderRadius:4,fontSize:13,zIndex:10000}}
+          style={{ position: 'absolute', top: 36, left: 80, width: 160, padding: 2, border: '1px solid #eee', borderRadius: 4, fontSize: 13, zIndex: 10000 }}
           value={linkValue}
-          onChange={e=>setLinkValue(e.target.value)}
-          onKeyDown={e=>{
-            if(e.key==='Enter'){insertLink(editor,linkValue,savedSelection);setShowLinkInput(false);setLinkInputRect(null);setSavedSelection(null);}
-            if(e.key==='Escape'){setShowLinkInput(false);setLinkInputRect(null);setSavedSelection(null);}
+          onChange={e => setLinkValue(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === 'Enter') { insertLink(editor, linkValue, savedSelection); setShowLinkInput(false); setLinkInputRect(null); setSavedSelection(null); }
+            if (e.key === 'Escape') { setShowLinkInput(false); setLinkInputRect(null); setSavedSelection(null); }
           }}
           placeholder="输入链接并回车"
         />
       )}
-      {isMarkActive(editor,'link') && (
-        <button style={{background:'none',border:'none',cursor:'pointer',color:'#e11d48',marginLeft:2}} title="移除链接" onMouseDown={e=>{e.preventDefault();removeLink(editor);ReactEditor.focus(editor);}}>✕</button>
+      {isMarkActive(editor, 'link') && (
+        <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#e11d48', marginLeft: 2 }} title="移除链接" onMouseDown={e => { e.preventDefault(); removeLink(editor); ReactEditor.focus(editor); }}>✕</button>
       )}
     </div>,
     document.body
@@ -2154,16 +2135,16 @@ function withShortcuts(editor: Editor) {
       if (match) {
         const [node, path] = match;
         const start = Editor.start(editor, path);
-        
+
         // 如果光标在行首且有缩进，删除缩进而不是字符
         if (Range.equals(selection, { anchor: start, focus: start })) {
           const currentIndent = (node as any).indent || 0;
           if (currentIndent > 0) {
-            Transforms.setNodes(editor, { 
-              ...node, 
-              indent: currentIndent - 1 
+            Transforms.setNodes(editor, {
+              ...node,
+              indent: currentIndent - 1
             } as any, { at: path });
-            
+
             // 确保光标保持在正确位置
             setTimeout(() => {
               try {
@@ -2173,7 +2154,7 @@ function withShortcuts(editor: Editor) {
                 console.warn('Delete backspace focus error:', error);
               }
             }, 0);
-            
+
             return;
           }
         }
@@ -2193,7 +2174,41 @@ function withShortcuts(editor: Editor) {
         const start = Editor.start(editor, path);
         const range = { anchor: start, focus: selection.anchor };
         const beforeText = Editor.string(editor, range);
-        
+
+        // 1. 优先检测标签输入 #标签名 + 空格
+        // 获取光标前的最后一个单词
+        const words = beforeText.split(/\s+/);
+        const lastWord = words[words.length - 1];
+
+        if (lastWord && lastWord.startsWith('#') && lastWord.length > 1) {
+          // 再次确认是否符合标签格式 (不包含空格)
+          const tagContent = lastWord.substring(1);
+          if (!/[#\s]/.test(tagContent)) {
+            // 计算要删除的范围：只删除 #tag 这一部分
+            const end = selection.anchor;
+            const startPoints = Editor.before(editor, end, { distance: lastWord.length, unit: 'character' });
+
+            if (startPoints) {
+              const tagRange = { anchor: startPoints, focus: end };
+              Transforms.select(editor, tagRange);
+              Transforms.delete(editor);
+
+              // 插入标签节点 + 一个空格 Text 节点
+              // 这样可以确保后面一定有一个 Text 节点供光标停留
+              Transforms.insertNodes(editor, [{
+                type: 'tag',
+                value: tagContent,
+                children: [{ text: '' }]
+              } as any, { text: ' ' }]);
+
+              // 移动光标：跨过 Tag(1) 和 Space(1)
+              // 使用默认 unit (character)，避免 'offset' 在 void node 上失效
+              Transforms.move(editor, { distance: 2 });
+              return;
+            }
+          }
+        }
+
         // 标题
         if (beforeText === '#') {
           Transforms.select(editor, range);
@@ -2245,40 +2260,58 @@ function withShortcuts(editor: Editor) {
         const start = Editor.start(editor, path);
         const range = { anchor: start, focus: selection.anchor };
         const beforeText = Editor.string(editor, range);
-        
-        // 匹配 #标签名 格式
-        const tagMatch = beforeText.match(/^#([^\s#]+)$/);
-        if (tagMatch) {
-          const tagValue = tagMatch[1];
-          // 删除输入的文本
-          Transforms.select(editor, range);
-          Transforms.delete(editor);
-          // 插入标签节点
-          Transforms.insertNodes(editor, { 
-            type: 'tag', 
-            value: tagValue, 
-            children: [{ text: '' }] 
-          } as any);
-          // 移动光标到标签节点后面
-          Transforms.move(editor, { distance: 1, unit: 'offset' });
-          // 插入一个空格，让用户继续输入
-          Transforms.insertText(editor, ' ');
-          return;
+
+        // 匹配 #标签名 格式 (支持行内任意位置)
+        // 1. 优先检测标签输入 #标签名 + 回车
+        // 获取光标前的最后一个单词
+        const words = beforeText.split(/\s+/);
+        const lastWord = words[words.length - 1];
+
+        if (lastWord && lastWord.startsWith('#') && lastWord.length > 1) {
+          const tagContent = lastWord.substring(1);
+          if (!/[#\s]/.test(tagContent)) {
+            const end = selection.anchor;
+            const startPoints = Editor.before(editor, end, { distance: lastWord.length, unit: 'character' });
+
+            if (startPoints) {
+              const tagRange = { anchor: startPoints, focus: end };
+              Transforms.select(editor, tagRange);
+              Transforms.delete(editor);
+
+              // 插入标签节点 + 一个空格 Text 节点
+              Transforms.insertNodes(editor, [{
+                type: 'tag',
+                value: tagContent,
+                children: [{ text: '' }]
+              } as any, { text: ' ' }]);
+
+              // 移动光标
+              Transforms.move(editor, { distance: 2 });
+
+              // 强制聚焦，防止光标丢失
+              // 在 void 节点后操作容易导致 DOM selection 丢失
+              setTimeout(() => {
+                ReactEditor.focus(editor);
+              }, 0);
+
+              return;
+            }
+          }
         }
       }
-      
+
       const [match2] = Editor.nodes(editor, {
         match: n => (n as any).type === 'paragraph' ||
-                    (n as any).type === 'heading-one' ||
-                    (n as any).type === 'heading-two' ||
-                    (n as any).type === 'bulleted-list' ||
-                    (n as any).type === 'numbered-list' ||
-                    (n as any).type === 'todo-list',
+          (n as any).type === 'heading-one' ||
+          (n as any).type === 'heading-two' ||
+          (n as any).type === 'bulleted-list' ||
+          (n as any).type === 'numbered-list' ||
+          (n as any).type === 'todo-list',
       }) as any;
       if (match2) {
         const [block, path] = match2;
         const isEmpty = Editor.string(editor, path) === '';
-        
+
         // 空的标题、列表、待办，回车变普通段落，保持缩进
         if (isEmpty && (
           block.type === 'heading-one' ||
@@ -2287,18 +2320,18 @@ function withShortcuts(editor: Editor) {
           block.type === 'numbered-list' ||
           block.type === 'todo-list')
         ) {
-          Transforms.setNodes(editor, { 
-            type: 'paragraph', 
-            indent: (block as any).indent || 0 
+          Transforms.setNodes(editor, {
+            type: 'paragraph',
+            indent: (block as any).indent || 0
           } as any, { at: path });
           return;
         }
-        
+
         // 其它分割线、虚线等逻辑保持不变
         const start = Editor.start(editor, path);
         const range = { anchor: start, focus: selection.anchor };
         const beforeText = Editor.string(editor, range);
-        
+
         if (beforeText === '---') {
           Transforms.select(editor, range);
           Transforms.delete(editor);
@@ -2313,17 +2346,17 @@ function withShortcuts(editor: Editor) {
           Transforms.insertNodes(editor, { type: 'paragraph', children: [{ text: '' }] } as any);
           return;
         }
-        
+
         // 回车时保持当前缩进级别
         const currentIndent = (block as any).indent || 0;
-        
+
         // 标题回车后变成正文格式，保持缩进
         if (block.type === 'heading-one' || block.type === 'heading-two') {
           insertBreak();
           Transforms.setNodes(editor, { type: 'paragraph', indent: currentIndent } as any);
           return;
         }
-        
+
         // 有序/无序/待办列表继续，保持缩进
         if (block.type === 'numbered-list') {
           insertBreak();
@@ -2340,7 +2373,7 @@ function withShortcuts(editor: Editor) {
           Transforms.setNodes(editor, { type: 'todo-list', checked: false, indent: currentIndent } as any);
           return;
         }
-        
+
         // 普通段落换行时保持缩进
         if (block.type === 'paragraph') {
           insertBreak();
@@ -2368,7 +2401,7 @@ const TAG_COLORS = [
 
 // 2. 标签颜色选择器弹窗
 const TagColorPicker: React.FC<{
-  anchorPos: {x: number, y: number};
+  anchorPos: { x: number, y: number };
   value?: string;
   onChange: (colorId: string) => void;
   onClose: () => void;
@@ -2415,7 +2448,7 @@ const TagColorPicker: React.FC<{
           onClick={() => { onChange(c.id); onClose(); }}
           title={c.id}
         >
-          {value === c.id && <span style={{fontSize:16,color:'#6366f1'}}>✓</span>}
+          {value === c.id && <span style={{ fontSize: 16, color: '#6366f1' }}>✓</span>}
         </div>
       ))}
     </div>
@@ -2427,7 +2460,7 @@ const TagElement: React.FC<any> = (props) => {
   const { attributes, children, element, readOnly } = props;
   const { isDarkMode } = useContext(ThemeContext);
   const [showPicker, setShowPicker] = React.useState(false);
-  const [pickerPos, setPickerPos] = React.useState<{x: number, y: number} | null>(null);
+  const [pickerPos, setPickerPos] = React.useState<{ x: number, y: number } | null>(null);
   const tagRef = React.useRef<HTMLSpanElement>(null);
   // 颜色映射
   const colorObj = TAG_COLORS.find(c => c.id === element.color) || TAG_COLORS[0];
@@ -2463,7 +2496,7 @@ const TagElement: React.FC<any> = (props) => {
       ) {
         return;
       }
-      
+
       if (e.key === 'Escape') setShowPicker(false);
     };
     document.addEventListener('mousedown', handleClick, true);
@@ -2499,7 +2532,8 @@ const TagElement: React.FC<any> = (props) => {
           e.stopPropagation();
           setShowPicker(v => !v);
           if (!showPicker) {
-            setPickerPos({ x: e.clientX + window.scrollX, y: e.clientY + window.scrollY });
+            // 使用 clientX/Y，因为 TagColorPicker 使用 fixed 定位
+            setPickerPos({ x: e.clientX, y: e.clientY });
           }
         }}
       >
@@ -2515,7 +2549,7 @@ const TagElement: React.FC<any> = (props) => {
             onChange={handleColorChange}
             onClose={() => setShowPicker(false)}
             isDark={isDarkMode}
-          />, 
+          />,
           document.body
         )
       }

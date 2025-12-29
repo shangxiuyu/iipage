@@ -19,13 +19,13 @@ export interface NodeData {
   pinned?: boolean; // 添加图钉属性，标记是否固定在屏幕位置
   pinnedX?: number; // 固定时的屏幕X坐标
   pinnedY?: number;
-  
+
   // 卡片反转相关属性
   frontContent?: Descendant[]; // 正面内容
   backContent?: Descendant[]; // 反面内容
   isFlipped?: boolean; // 是否显示反面
   isFlipping?: boolean; // 是否正在翻转动画中
-  
+
   // 代码编辑器相关属性
   isCodeMode?: boolean; // 是否为代码编辑模式
   codeContent?: string; // 代码内容
@@ -34,22 +34,22 @@ export interface NodeData {
 
   // 毛玻璃磨砂效果
   frosted?: boolean; // 是否为毛玻璃卡片，默认false
-  
+
   // 标签功能
   tags?: string[]; // 卡片标签列表
-  
+
   // 卡片形状
   shape?: 'rectangle' | 'circle' | 'table'; // 卡片形状
-  
+
   // 文字对齐方式
   textAlign?: 'left' | 'center' | 'right'; // 文字水平对齐方式
   textVerticalAlign?: 'top' | 'center' | 'bottom'; // 文字垂直对齐方式
-  
+
   // 透明度和边框设置
   transparent?: boolean; // 是否透明
   showBorder?: boolean; // 是否显示边框
   borderColor?: string; // 边框颜色
-  
+
   // 网页渲染相关数据持久化
   webPageState?: any; // 网页状态数据（表单、滚动位置等）
   webPageStateKey?: string; // 网页状态存储键
@@ -218,55 +218,55 @@ interface BoardState {
   selectionEnd: { x: number; y: number } | null;
   currentBackground: string; // 当前背景色ID
   showGrid: boolean; // 是否显示网格
-  
+
   // 连线相关状态
   isConnecting: boolean; // 是否正在连线模式
   connectingFrom: string | null; // 连线起始节点ID
   fromAnchor?: 'top' | 'right' | 'bottom' | 'left'; // 起始锚点位置
-  tempConnection: { 
-    fromX: number; 
-    fromY: number; 
-    toX: number; 
-    toY: number; 
+  tempConnection: {
+    fromX: number;
+    fromY: number;
+    toX: number;
+    toY: number;
     fromAnchor: 'top' | 'right' | 'bottom' | 'left';
   } | null; // 临时连线坐标
-  
+
   // 背景框相关状态
   backgroundFrames: BackgroundFrame[]; // 背景框列表
   selectedFrames: string[]; // 选中的背景框ID列表
   isDraggingFrame: boolean; // 是否正在拖拽背景框
   frameHighlights: { [frameId: string]: string }; // 背景框高亮状态
-  
+
   // 背景模式相关状态
   backgroundMode: BackgroundMode; // 当前背景模式：grid, blank, image, video
-  
+
   // 视频背景相关状态
   videoBackgroundMode: boolean; // 是否开启视频背景模式（保持兼容）
   videoBackgroundUrl: string | null; // 背景视频URL
-  
+
   // 图片背景相关状态
   imageBackgroundUrl: string | null; // 背景图片URL
   imageBlurLevel: number; // 图片模糊级别 0-20
-  
+
   // 内置背景图片相关状态
   builtinBackgroundPath: string | null; // 内置背景图片路径
-  
+
   // 可交互主题相关状态
   interactiveTheme: InteractiveTheme; // 当前可交互主题
-  
+
   // 缩放相关状态
   scale: number; // 缩放比例
   panX: number; // X轴偏移
   panY: number; // Y轴偏移
-  
+
   // 自动保存状态
   autoSaveStatus: 'idle' | 'saving' | 'saved' | 'error'; // 自动保存状态
   lastSavedAt: Date | null; // 最后保存时间
-  
+
   // 复制粘贴状态
   copiedNodeData: NodeData | null; // 复制的单个卡片数据（兼容旧版）
   copiedNodesData: NodeData[]; // 复制的多个卡片数据
-  
+
   // 默认卡片配置
   defaultCardConfig: {
     shape: 'rectangle' | 'circle' | 'table'; // 默认形状
@@ -282,29 +282,29 @@ interface BoardState {
     showBorder: boolean; // 默认边框显示设置
     borderColor: string; // 默认边框颜色
   };
-  
+
   addNode: (x: number, y: number) => void;
   updateNode: (id: string, data: Partial<NodeData>) => void;
   setNodeEditing: (id: string, editing: boolean) => void;
   deleteNode: (id: string) => void;
   deleteSelectedNodes: () => void;
-  
+
   // 强制保存编辑中的节点
   saveEditingNodes: () => void;
-  
+
   // 选择相关方法
   selectNode: (id: string, multiSelect?: boolean) => void;
   clearSelection: () => void;
   setSelectedNodes: (nodeIds: string[]) => void;
-  
+
   // 框选相关方法
   startSelection: (x: number, y: number) => void;
   updateSelection: (x: number, y: number) => void;
   endSelection: () => void;
-  
+
   // 移动相关方法
   moveSelectedNodes: (deltaX: number, deltaY: number) => void;
-  
+
   // 背景框相关方法
   createBackgroundFrame: (x: number, y: number, width: number, height: number) => void;
   updateBackgroundFrame: (id: string, data: Partial<BackgroundFrame>) => void;
@@ -315,26 +315,26 @@ interface BoardState {
   addNodeToFrame: (nodeId: string, frameId: string) => void;
   removeNodeFromFrame: (nodeId: string) => void;
   getFrameNodes: (frameId: string) => NodeData[];
-  
+
   // 背景色相关方法
   setBackground: (backgroundId: string) => void;
   getCurrentBackgroundConfig: () => typeof BACKGROUND_COLORS[0];
   toggleGrid: () => void; // 切换网格显示
-  
+
   // 背景模式相关方法
   setBackgroundMode: (mode: BackgroundMode) => void;
-  
+
   // 视频背景相关方法
   toggleVideoBackgroundMode: () => void; // 切换视频背景模式（保持兼容）
   setVideoBackgroundUrl: (url: string | null) => void; // 设置背景视频URL
-  
+
   // 图片背景相关方法
   setImageBackgroundUrl: (url: string | null) => void; // 设置背景图片URL
   setImageBlurLevel: (level: number) => void; // 设置图片模糊级别
-  
+
   // 内置背景图片相关方法
   setBuiltinBackgroundPath: (path: string | null) => void; // 设置内置背景图片路径
-  
+
   // 缩放和平移相关方法
   setScale: (scale: number) => void;
   setPan: (x: number, y: number) => void;
@@ -342,17 +342,17 @@ interface BoardState {
   zoomIn: () => void; // 放大
   zoomOut: () => void; // 缩小
   zoomToFit: () => void; // 适应窗口
-  
+
   // 图钉相关方法
   toggleNodePin: (id: string) => void; // 切换节点的图钉状态
-  
+
   // 可交互主题相关方法
   setInteractiveTheme: (theme: InteractiveTheme) => void; // 设置可交互主题
-  
+
   // 卡片反转相关方法
   flipCard: (id: string) => void; // 翻转卡片
   updateCardSide: (id: string, side: 'front' | 'back', content: Descendant[]) => void; // 更新指定面的内容
-  
+
   // 连线相关方法
   addConnection: (from: string, to: string, fromAnchor?: 'top' | 'right' | 'bottom' | 'left', toAnchor?: 'top' | 'right' | 'bottom' | 'left') => void;
   removeConnection: (from: string, to: string) => void;
@@ -362,41 +362,41 @@ interface BoardState {
   cancelConnecting: () => void;
   getNodeConnections: (nodeId: string) => Connection[];
   optimizeConnections: () => void;
-  
+
   // 连线选择相关方法
   selectConnection: (connectionId: string, multiSelect?: boolean) => void;
   clearConnectionSelection: () => void;
   deleteSelectedConnections: () => void;
-  
+
   // 连线标签相关方法
   updateConnectionLabel: (connectionId: string, label: string) => void;
   setConnectionEditing: (connectionId: string, editing: boolean) => void;
-  
+
   // 连线锚点修改相关方法
   updateConnectionAnchor: (connectionId: string, anchorType: 'from' | 'to', newAnchor: 'top' | 'right' | 'bottom' | 'left') => void;
-  
+
   // 连线样式修改相关方法
   updateConnectionStyle: (connectionId: string, style: 'solid' | 'dashed') => void;
-  
+
   // 连线颜色修改相关方法
   updateConnectionColor: (connectionId: string, color: string) => void;
-  
+
   // 背景框高亮相关方法（用于拖拽交互）
   setFrameHighlight: (frameId: string, color: string | null) => void;
   clearAllFrameHighlights: () => void;
-  
+
   // 手动保存功能
   saveBoard: () => void;
-  
+
   // 手动加载功能
   loadBoard: (boardData: any) => void;
-  
+
   // 清空白板
   clearBoard: () => void;
-  
+
   // 自动保存状态管理
   setAutoSaveStatus: (status: 'idle' | 'saving' | 'saved' | 'error') => void;
-  
+
   // 默认卡片配置相关方法
   updateDefaultCardConfig: (config: Partial<BoardState['defaultCardConfig']>) => void;
   getDefaultCardConfig: () => BoardState['defaultCardConfig'];
@@ -413,11 +413,17 @@ interface BoardState {
   undoStack: UndoState[];
   pushUndo: () => void;
   undo: () => void;
+
+  // Grid Theme Operations
+  gridThemeIndex: number;
+  setGridThemeIndex: (index: number) => void;
+  nextGridTheme: () => void;
+  prevGridTheme: () => void;
 }
 
 export const useBoardStore = create<BoardState>()(
   persist(
-    (set, get) => (    {
+    (set, get) => ({
       nodes: [],
       connections: [],
       selectedNodes: [],
@@ -427,49 +433,55 @@ export const useBoardStore = create<BoardState>()(
       selectionEnd: null,
       currentBackground: 'default',
       showGrid: true,
-      
+
       // 连线相关状态
       isConnecting: false,
       connectingFrom: null,
       fromAnchor: undefined,
       tempConnection: null,
-      
+
       // 背景框相关状态
       backgroundFrames: [],
       selectedFrames: [],
       isDraggingFrame: false,
       frameHighlights: {},
-      
+
       // 背景模式相关状态
       backgroundMode: 'grid' as BackgroundMode,
-      
+
       // 视频背景相关状态
       videoBackgroundMode: false,
       videoBackgroundUrl: null,
-      
+
       // 图片背景相关状态
       imageBackgroundUrl: null,
       imageBlurLevel: 0,
-      
+
       // 内置背景图片相关状态
       builtinBackgroundPath: null,
-      
+
       // 可交互主题相关状态
       interactiveTheme: null,
-      
+
       // 缩放相关状态
       scale: 1,
       panX: 0,
       panY: 0,
-      
-        // 自动保存状态
-  autoSaveStatus: 'idle' as const,
-  lastSavedAt: null,
-  
-  // 复制粘贴状态
-  copiedNodeData: null,
-  copiedNodesData: [],
-      
+
+      // Grid Theme Operations
+      gridThemeIndex: 0,
+      setGridThemeIndex: (index) => set({ gridThemeIndex: index }),
+      nextGridTheme: () => set((state) => ({ gridThemeIndex: state.gridThemeIndex + 1 })),
+      prevGridTheme: () => set((state) => ({ gridThemeIndex: state.gridThemeIndex - 1 })),
+
+      // 自动保存状态
+      autoSaveStatus: 'idle' as const,
+      lastSavedAt: null,
+
+      // 复制粘贴状态
+      copiedNodeData: null,
+      copiedNodesData: [],
+
       // 默认卡片配置
       defaultCardConfig: {
         shape: 'rectangle',
@@ -485,7 +497,7 @@ export const useBoardStore = create<BoardState>()(
         showBorder: false, // 默认不显示边框
         borderColor: '#D1D5DB', // 默认边框颜色（浅灰色）
       },
-      
+
       // 手动保存功能
       saveBoard: () => {
         const state = get();
@@ -501,12 +513,13 @@ export const useBoardStore = create<BoardState>()(
           imageBlurLevel: state.imageBlurLevel,
           builtinBackgroundPath: state.builtinBackgroundPath,
           interactiveTheme: state.interactiveTheme,
+          gridThemeIndex: state.gridThemeIndex, // Persist grid theme
           savedAt: new Date().toISOString()
         };
-        
+
         // 保存到localStorage
         localStorage.setItem('whiteboard-backup', JSON.stringify(boardData));
-        
+
         // 触发下载备份文件
         const blob = new Blob([JSON.stringify(boardData, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
@@ -517,10 +530,10 @@ export const useBoardStore = create<BoardState>()(
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        
+
         console.log('📁 白板数据已保存');
       },
-      
+
       // 手动加载功能
       loadBoard: (boardData: any) => {
         try {
@@ -536,13 +549,14 @@ export const useBoardStore = create<BoardState>()(
             imageBlurLevel: boardData.imageBlurLevel || 0,
             builtinBackgroundPath: boardData.builtinBackgroundPath || null,
             interactiveTheme: boardData.interactiveTheme || null,
+            gridThemeIndex: boardData.gridThemeIndex || 0,
           });
           console.log('📂 白板数据已加载');
         } catch (error) {
           console.error('❌ 加载白板数据失败:', error);
         }
       },
-      
+
       // 清空白板
       clearBoard: () => {
         set({
@@ -564,24 +578,24 @@ export const useBoardStore = create<BoardState>()(
         });
         console.log('🗑️ 白板已清空');
       },
-      
+
       addNode: (x, y) => {
         get().pushUndo();
-          // 创建完全独立的初始内容对象
-          const createEmptyContent = () => [{ type: 'paragraph', children: [{ text: '' }] } as any];
-          
+        // 创建完全独立的初始内容对象
+        const createEmptyContent = () => [{ type: 'paragraph', children: [{ text: '' }] } as any];
+
         set((state) => {
           return {
             nodes: [
               ...state.nodes.map(n => ({ ...n, editing: false, selected: false })),
-              { 
+              {
                 id: Date.now().toString() + Math.random().toString(36).slice(2, 8),
-                x, 
-                y, 
+                x,
+                y,
                 width: state.defaultCardConfig.width, // 使用默认配置的宽度
                 height: state.defaultCardConfig.height, // 使用默认配置的高度
                 content: createEmptyContent(), // 正面内容，也用于向后兼容
-                editing: true, 
+                editing: true,
                 selected: false,
                 frontContent: createEmptyContent(), // 正面内容（新字段）
                 backContent: createEmptyContent(), // 反面内容（完全独立）
@@ -604,7 +618,7 @@ export const useBoardStore = create<BoardState>()(
           };
         });
       },
-        
+
       updateNode: (id, data) => {
         get().pushUndo();
         set((state) => {
@@ -633,14 +647,14 @@ export const useBoardStore = create<BoardState>()(
           };
         });
       },
-        
+
       setNodeEditing: (id, editing) =>
         set((state) => ({
           nodes: state.nodes.map((n) =>
             n.id === id ? { ...n, editing } : n
           ),
         })),
-        
+
       deleteNode: (id) => {
         get().pushUndo();
         set((state) => ({
@@ -649,7 +663,7 @@ export const useBoardStore = create<BoardState>()(
           connections: state.connections.filter(c => c.from !== id && c.to !== id),
         }));
       },
-        
+
       deleteSelectedNodes: () => {
         get().pushUndo();
         set((state) => {
@@ -661,7 +675,7 @@ export const useBoardStore = create<BoardState>()(
           };
         });
       },
-        
+
       // 强制保存编辑中的节点
       saveEditingNodes: () =>
         set((state) => ({
@@ -672,13 +686,13 @@ export const useBoardStore = create<BoardState>()(
           })),
           selectedNodes: [],
         })),
-        
+
       // 选择节点
       selectNode: (id, multiSelect = false) =>
         set((state) => {
           if (multiSelect) {
             const isSelected = state.selectedNodes.includes(id);
-            const newSelected = isSelected 
+            const newSelected = isSelected
               ? state.selectedNodes.filter(nodeId => nodeId !== id)
               : [...state.selectedNodes, id];
             return {
@@ -698,13 +712,13 @@ export const useBoardStore = create<BoardState>()(
             };
           }
         }),
-        
+
       clearSelection: () =>
         set((state) => ({
           selectedNodes: [],
           nodes: state.nodes.map(n => ({ ...n, selected: false }))
         })),
-        
+
       setSelectedNodes: (nodeIds) =>
         set((state) => ({
           selectedNodes: nodeIds,
@@ -713,7 +727,7 @@ export const useBoardStore = create<BoardState>()(
             selected: nodeIds.includes(n.id)
           }))
         })),
-        
+
       // 开始框选
       startSelection: (x, y) =>
         set(() => ({
@@ -721,38 +735,38 @@ export const useBoardStore = create<BoardState>()(
           selectionStart: { x, y },
           selectionEnd: { x, y },
         })),
-        
+
       // 更新框选区域
       updateSelection: (x, y) =>
         set(() => ({
           selectionEnd: { x, y },
         })),
-        
+
       // 结束框选
       endSelection: () =>
         set((state) => {
           if (!state.selectionStart || !state.selectionEnd) {
             return { isSelecting: false, selectionStart: null, selectionEnd: null };
           }
-          
+
           // 计算框选区域
           const minX = Math.min(state.selectionStart.x, state.selectionEnd.x);
           const maxX = Math.max(state.selectionStart.x, state.selectionEnd.x);
           const minY = Math.min(state.selectionStart.y, state.selectionEnd.y);
           const maxY = Math.max(state.selectionStart.y, state.selectionEnd.y);
-          
+
           // 找到在框选区域内的节点
           const selectedNodeIds = state.nodes
             .filter(node => {
               const nodeWidth = node.width || 250;
               const nodeHeight = node.height || 150;
-              return node.x >= minX && 
-                     node.x + nodeWidth <= maxX && 
-                     node.y >= minY && 
-                     node.y + nodeHeight <= maxY;
+              return node.x >= minX &&
+                node.x + nodeWidth <= maxX &&
+                node.y >= minY &&
+                node.y + nodeHeight <= maxY;
             })
             .map(node => node.id);
-          
+
           return {
             isSelecting: false,
             selectionStart: null,
@@ -764,7 +778,7 @@ export const useBoardStore = create<BoardState>()(
             }))
           };
         }),
-        
+
       // 移动选中的节点
       moveSelectedNodes: (deltaX, deltaY) => {
         set((state) => {
@@ -809,25 +823,25 @@ export const useBoardStore = create<BoardState>()(
           get().optimizeConnections();
         }, 100);
       },
-        
+
       // 设置背景色
       setBackground: (backgroundId) =>
         set(() => ({
           currentBackground: backgroundId
         })),
-        
+
       // 获取当前背景色配置
       getCurrentBackgroundConfig: () => {
         const state = get();
         return BACKGROUND_COLORS.find(bg => bg.id === state.currentBackground) || BACKGROUND_COLORS[0];
       },
-      
+
       // 切换网格显示
       toggleGrid: () =>
         set((state) => ({
           showGrid: !state.showGrid
         })),
-      
+
       // 背景模式相关方法
       setBackgroundMode: (mode: BackgroundMode) =>
         set(() => ({
@@ -835,7 +849,7 @@ export const useBoardStore = create<BoardState>()(
           // 当切换到视频模式时，同时更新 videoBackgroundMode 以保持兼容
           videoBackgroundMode: mode === 'video'
         })),
-      
+
       // 视频背景相关方法
       toggleVideoBackgroundMode: () =>
         set((state) => {
@@ -845,82 +859,82 @@ export const useBoardStore = create<BoardState>()(
             backgroundMode: newVideoMode ? 'video' : 'grid'
           };
         }),
-      
+
       setVideoBackgroundUrl: (url: string | null) =>
         set(() => ({
           videoBackgroundUrl: url
         })),
-      
+
       // 图片背景相关方法
       setImageBackgroundUrl: (url: string | null) =>
         set(() => ({
           imageBackgroundUrl: url
         })),
-      
+
       setImageBlurLevel: (level: number) =>
         set(() => ({
           imageBlurLevel: Math.max(0, Math.min(20, level))
         })),
-      
+
       // 内置背景图片相关方法
       setBuiltinBackgroundPath: (path: string | null) =>
         set(() => ({
           builtinBackgroundPath: path
         })),
-      
+
       // 缩放和平移相关方法
       setScale: (scale: number) =>
         set(() => ({
           scale
         })),
-        
+
       setPan: (x: number, y: number) =>
         set(() => ({
           panX: x,
           panY: y
         })),
-        
+
       resetView: () =>
         set(() => ({
           scale: 1,
           panX: 0,
           panY: 0
         })),
-        
+
       zoomIn: () =>
         set((state) => ({
           scale: state.scale * 1.1
         })),
-        
+
       zoomOut: () =>
         set((state) => ({
           scale: state.scale * 0.9
         })),
-        
+
       zoomToFit: () =>
         set((state) => {
           const nodes = get().nodes;
           if (nodes.length === 0) return state;
-          
+
           const maxX = Math.max(...nodes.map(n => n.x + (n.width || 250)));
           const maxY = Math.max(...nodes.map(n => n.y + (n.height || 150)));
           const minX = Math.min(...nodes.map(n => n.x));
           const minY = Math.min(...nodes.map(n => n.y));
-          
+
           const contentWidth = maxX - minX;
           const contentHeight = maxY - minY;
-          
+
           const scaleX = window.innerWidth / contentWidth;
           const scaleY = window.innerHeight / contentHeight;
           const scale = Math.min(scaleX, scaleY, 1) * 0.8; // 留一些边距
-          
+
           return {
             scale,
             panX: -minX * scale + (window.innerWidth - contentWidth * scale) / 2,
             panY: -minY * scale + (window.innerHeight - contentHeight * scale) / 2
           };
         }),
-        
+
       // 图钉相关方法
       toggleNodePin: (id: string) =>
         set((state) => ({
@@ -928,73 +942,73 @@ export const useBoardStore = create<BoardState>()(
             n.id === id ? { ...n, pinned: !n.pinned } : n
           ),
         })),
-      
+
       // 可交互主题相关方法
       setInteractiveTheme: (theme: InteractiveTheme) =>
         set(() => ({
           interactiveTheme: theme,
         })),
-      
+
       // 卡片反转相关方法
       flipCard: (id: string) => {
         set((state) => {
           const nodeIndex = state.nodes.findIndex(n => n.id === id);
           if (nodeIndex === -1) return state;
-          
+
           const node = state.nodes[nodeIndex];
-          
+
           // 创建节点的更新副本，同时确保保留代码相关属性
           const updatedNode = {
             ...node,
             isFlipped: !node.isFlipped,
             isFlipping: true // 添加动画标记
           };
-          
+
           // 创建新的节点数组
           const updatedNodes = [...state.nodes];
           updatedNodes[nodeIndex] = updatedNode;
-          
+
           // 添加延迟重置动画状态的逻辑
           setTimeout(() => {
             set((state) => {
               const currentNodeIndex = state.nodes.findIndex(n => n.id === id);
               if (currentNodeIndex === -1) return state;
-              
+
               const currentNode = state.nodes[currentNodeIndex];
-              
+
               const updatedCurrentNodes = [...state.nodes];
               updatedCurrentNodes[currentNodeIndex] = {
                 ...currentNode,
                 isFlipping: false
               };
-              
+
               return { nodes: updatedCurrentNodes };
             });
           }, 600); // 与CSS动画持续时间相匹配
-          
+
           return { nodes: updatedNodes };
         });
       },
-      
+
       updateCardSide: (id: string, side: 'front' | 'back', content: Descendant[]) =>
         set((state) => ({
           nodes: state.nodes.map(n =>
             n.id === id ? { ...n, [side + 'Content']: JSON.parse(JSON.stringify(content)) } : n
           ),
         })),
-      
+
       // 连线相关方法
       addConnection: (from: string, to: string, fromAnchor?: 'top' | 'right' | 'bottom' | 'left', toAnchor?: 'top' | 'right' | 'bottom' | 'left') => {
         set((state) => ({
           connections: [...state.connections, { from, to, fromAnchor, toAnchor }],
         }));
       },
-        
+
       removeConnection: (from: string, to: string) =>
         set((state) => ({
           connections: state.connections.filter(c => c.from !== from || c.to !== to),
         })),
-        
+
       startConnecting: (nodeId: string, fromAnchor?: 'top' | 'right' | 'bottom' | 'left') => {
         // 在这里计算起始点的屏幕坐标
         const { nodes, backgroundFrames, panX, panY, scale } = get();
@@ -1024,114 +1038,114 @@ export const useBoardStore = create<BoardState>()(
           case 'left': fromX = entityX; fromY = entityY + entityHeight / 2; break;
         }
 
-        set({ 
-          isConnecting: true, 
+        set({
+          isConnecting: true,
           connectingFrom: nodeId,
           fromAnchor: fromAnchor,
           // 同时设置临时连线的起点和初始终点
           tempConnection: { fromX, fromY, toX: fromX, toY: fromY, fromAnchor: fromAnchor || 'right' }
         });
       },
-        
+
       updateTempConnection: (fromX: number, fromY: number, toX: number, toY: number, fromAnchor: 'top' | 'right' | 'bottom' | 'left') => {
         set(() => ({
           tempConnection: { fromX, fromY, toX, toY, fromAnchor },
         }));
       },
-        
-        finishConnecting: (nodeId?: string, toAnchor?: 'top' | 'right' | 'bottom' | 'left') => {
-          set((state) => {
-            if (state.isConnecting && state.connectingFrom && nodeId) {
-              // 获取起始锚点信息
-              const fromAnchor = (state as any).fromAnchor;
-              // 创建连线时传递锚点信息
-              return {
-                connections: [...state.connections, { 
-                  from: state.connectingFrom, 
-                  to: nodeId, 
-                  fromAnchor, 
-                  toAnchor 
-                }],
-                isConnecting: false,
-                connectingFrom: null,
-                tempConnection: null,
-                fromAnchor: undefined,
-              };
-            }
-            // 没有目标节点时只清除连线状态
+
+      finishConnecting: (nodeId?: string, toAnchor?: 'top' | 'right' | 'bottom' | 'left') => {
+        set((state) => {
+          if (state.isConnecting && state.connectingFrom && nodeId) {
+            // 获取起始锚点信息
+            const fromAnchor = (state as any).fromAnchor;
+            // 创建连线时传递锚点信息
             return {
+              connections: [...state.connections, {
+                from: state.connectingFrom,
+                to: nodeId,
+                fromAnchor,
+                toAnchor
+              }],
               isConnecting: false,
               connectingFrom: null,
               tempConnection: null,
               fromAnchor: undefined,
             };
-          });
-        },
-        
-        cancelConnecting: () =>
-          set(() => ({
+          }
+          // 没有目标节点时只清除连线状态
+          return {
             isConnecting: false,
             connectingFrom: null,
             tempConnection: null,
-          })),
-        
-        getNodeConnections: (nodeId: string) =>
-          get().connections.filter((c: Connection) => c.from === nodeId || c.to === nodeId),
-        
-        // 优化连接的锚点位置（当节点移动后调用）
-        optimizeConnections: () => {
-          set((state) => {
-            const optimizedConnections = state.connections.map((connection) => {
-              const fromNode = state.nodes.find(n => n.id === connection.from);
-              const toNode = state.nodes.find(n => n.id === connection.to);
-              
-              if (!fromNode || !toNode) return connection;
-              
-              // 如果连接没有指定锚点，或者我们想要重新优化
-              const fromX = fromNode.pinned ? (fromNode.pinnedX ?? 100) : fromNode.x;
-              const fromY = fromNode.pinned ? (fromNode.pinnedY ?? 100) : fromNode.y;
-              const toX = toNode.pinned ? (toNode.pinnedX ?? 100) : toNode.x;
-              const toY = toNode.pinned ? (toNode.pinnedY ?? 100) : toNode.y;
+            fromAnchor: undefined,
+          };
+        });
+      },
 
-              const deltaX = toX - fromX;
-              const deltaY = toY - fromY;
+      cancelConnecting: () =>
+        set(() => ({
+          isConnecting: false,
+          connectingFrom: null,
+          tempConnection: null,
+        })),
 
-              // 根据相对位置选择最佳锚点
-              let fromAnchor: 'top' | 'right' | 'bottom' | 'left';
-              let toAnchor: 'top' | 'right' | 'bottom' | 'left';
+      getNodeConnections: (nodeId: string) =>
+        get().connections.filter((c: Connection) => c.from === nodeId || c.to === nodeId),
 
-              if (Math.abs(deltaX) > Math.abs(deltaY)) {
-                // 水平距离更大
-                if (deltaX > 0) {
-                  fromAnchor = 'right';
-                  toAnchor = 'left';
-                } else {
-                  fromAnchor = 'left';
-                  toAnchor = 'right';
-                }
+      // 优化连接的锚点位置（当节点移动后调用）
+      optimizeConnections: () => {
+        set((state) => {
+          const optimizedConnections = state.connections.map((connection) => {
+            const fromNode = state.nodes.find(n => n.id === connection.from);
+            const toNode = state.nodes.find(n => n.id === connection.to);
+
+            if (!fromNode || !toNode) return connection;
+
+            // 如果连接没有指定锚点，或者我们想要重新优化
+            const fromX = fromNode.pinned ? (fromNode.pinnedX ?? 100) : fromNode.x;
+            const fromY = fromNode.pinned ? (fromNode.pinnedY ?? 100) : fromNode.y;
+            const toX = toNode.pinned ? (toNode.pinnedX ?? 100) : toNode.x;
+            const toY = toNode.pinned ? (toNode.pinnedY ?? 100) : toNode.y;
+
+            const deltaX = toX - fromX;
+            const deltaY = toY - fromY;
+
+            // 根据相对位置选择最佳锚点
+            let fromAnchor: 'top' | 'right' | 'bottom' | 'left';
+            let toAnchor: 'top' | 'right' | 'bottom' | 'left';
+
+            if (Math.abs(deltaX) > Math.abs(deltaY)) {
+              // 水平距离更大
+              if (deltaX > 0) {
+                fromAnchor = 'right';
+                toAnchor = 'left';
               } else {
-                // 垂直距离更大
-                if (deltaY > 0) {
-                  fromAnchor = 'bottom';
-                  toAnchor = 'top';
-                } else {
-                  fromAnchor = 'top';
-                  toAnchor = 'bottom';
-                }
+                fromAnchor = 'left';
+                toAnchor = 'right';
               }
+            } else {
+              // 垂直距离更大
+              if (deltaY > 0) {
+                fromAnchor = 'bottom';
+                toAnchor = 'top';
+              } else {
+                fromAnchor = 'top';
+                toAnchor = 'bottom';
+              }
+            }
 
-              // 只在连接没有手动指定锚点时才自动优化
-              return {
-                ...connection,
-                fromAnchor: connection.fromAnchor ?? fromAnchor,
-                toAnchor: connection.toAnchor ?? toAnchor,
-              };
-            });
-            
-            return { connections: optimizedConnections };
+            // 只在连接没有手动指定锚点时才自动优化
+            return {
+              ...connection,
+              fromAnchor: connection.fromAnchor ?? fromAnchor,
+              toAnchor: connection.toAnchor ?? toAnchor,
+            };
           });
-        },
-       
+
+          return { connections: optimizedConnections };
+        });
+      },
+
       // 连线选择相关方法
       selectConnection: (connectionId: string, multiSelect?: boolean) => {
         set((state) => {
@@ -1171,7 +1185,7 @@ export const useBoardStore = create<BoardState>()(
 
       deleteSelectedConnections: () => {
         set((state) => ({
-          connections: state.connections.filter(c => 
+          connections: state.connections.filter(c =>
             !state.selectedConnections.includes(`${c.from}-${c.to}`)
           ),
           selectedConnections: []
@@ -1243,20 +1257,20 @@ export const useBoardStore = create<BoardState>()(
           })
         }));
       },
-       
+
       // 自动保存状态管理
-      setAutoSaveStatus: (status) => 
-        set(() => ({ 
+      setAutoSaveStatus: (status) =>
+        set(() => ({
           autoSaveStatus: status,
           lastSavedAt: status === 'saved' ? new Date() : get().lastSavedAt
         })),
-      
+
       // 默认卡片配置相关方法
       updateDefaultCardConfig: (config: Partial<BoardState['defaultCardConfig']>) =>
         set((state) => ({
           defaultCardConfig: { ...state.defaultCardConfig, ...config }
         })),
-      
+
       getDefaultCardConfig: () =>
         get().defaultCardConfig,
 
@@ -1278,7 +1292,7 @@ export const useBoardStore = create<BoardState>()(
         if (nodes.length > 0) {
           // 深度复制多个节点数据到剪贴板
           const copiedData: NodeData[] = JSON.parse(JSON.stringify(nodes));
-          set({ 
+          set({
             copiedNodesData: copiedData,
             copiedNodeData: copiedData[0] || null // 兼容旧版，取第一个
           });
@@ -1289,18 +1303,18 @@ export const useBoardStore = create<BoardState>()(
       pasteNode: () => {
         const state = get();
         if (!state.copiedNodeData) return;
-        
+
         // 生成新的ID
         const newId = Date.now().toString() + Math.random().toString(36).slice(2, 8);
-        
+
         // 计算粘贴位置（在当前视口中心）
         const containerElement = document.querySelector('.board-canvas');
         if (!containerElement) return;
-        
+
         const rect = containerElement.getBoundingClientRect();
         const centerX = (rect.width / 2 - state.panX) / state.scale;
         const centerY = (rect.height / 2 - state.panY) / state.scale;
-        
+
         // 创建新节点，偏移一点位置避免完全重叠
         const newNode: NodeData = {
           ...state.copiedNodeData,
@@ -1310,45 +1324,45 @@ export const useBoardStore = create<BoardState>()(
           editing: false,
           selected: false,
         };
-        
+
         set((state) => ({
           nodes: [...state.nodes, newNode],
           selectedNodes: [newId], // 选中新粘贴的节点
         }));
-        
+
         console.log('✅ 卡片已粘贴:', newId);
       },
 
       pasteNodes: () => {
         const state = get();
         if (!state.copiedNodesData || state.copiedNodesData.length === 0) return;
-        
+
         // 计算粘贴位置（在当前视口中心）
         const containerElement = document.querySelector('.board-canvas');
         if (!containerElement) return;
-        
+
         const rect = containerElement.getBoundingClientRect();
         const centerX = (rect.width / 2 - state.panX) / state.scale;
         const centerY = (rect.height / 2 - state.panY) / state.scale;
-        
+
         // 计算原始卡片的包围盒中心
         const originalNodes = state.copiedNodesData;
         const minX = Math.min(...originalNodes.map(n => n.x));
         const maxX = Math.max(...originalNodes.map(n => n.x + (n.width || 324)));
         const minY = Math.min(...originalNodes.map(n => n.y));
         const maxY = Math.max(...originalNodes.map(n => n.y + (n.height || 200)));
-        
+
         const originalCenterX = (minX + maxX) / 2;
         const originalCenterY = (minY + maxY) / 2;
-        
+
         // 计算偏移量
         const offsetX = centerX - originalCenterX + 20; // 稍微偏移避免完全重叠
         const offsetY = centerY - originalCenterY + 20;
-        
+
         // 创建新节点
         const newNodes: NodeData[] = [];
         const newNodeIds: string[] = [];
-        
+
         originalNodes.forEach((node, index) => {
           const newId = Date.now().toString() + Math.random().toString(36).slice(2, 8) + index;
           const newNode: NodeData = {
@@ -1362,12 +1376,12 @@ export const useBoardStore = create<BoardState>()(
           newNodes.push(newNode);
           newNodeIds.push(newId);
         });
-        
+
         set((state) => ({
           nodes: [...state.nodes, ...newNodes],
           selectedNodes: newNodeIds, // 选中所有新粘贴的节点
         }));
-        
+
         console.log(`✅ ${newNodes.length}个卡片已粘贴:`, newNodeIds);
       },
 
@@ -1420,12 +1434,12 @@ export const useBoardStore = create<BoardState>()(
             borderRadius: 8,
           },
         };
-        
+
         set((state) => ({
           backgroundFrames: [...state.backgroundFrames, newFrame],
           selectedFrames: [frameId],
         }));
-        
+
         console.log('✅ 背景框已创建:', frameId);
       },
 
@@ -1474,7 +1488,7 @@ export const useBoardStore = create<BoardState>()(
           const updatedNodes = state.nodes.map((node) =>
             node.containerId === id ? { ...node, containerId: undefined } : node
           );
-          
+
           return {
             backgroundFrames: state.backgroundFrames.filter((frame) => frame.id !== id),
             selectedFrames: state.selectedFrames.filter((frameId) => frameId !== id),
@@ -1759,7 +1773,7 @@ const unsubscribe = useBoardStore.subscribe((state, prevState) => {
     isFirstChange = false;
     return;
   }
-  
+
   // 检查是否有实际的数据变化（排除UI状态变化）
   const hasDataChanged = (
     JSON.stringify(state.nodes) !== JSON.stringify(prevState.nodes) ||
@@ -1778,19 +1792,19 @@ const unsubscribe = useBoardStore.subscribe((state, prevState) => {
     state.panY !== prevState.panY ||
     JSON.stringify(state.defaultCardConfig) !== JSON.stringify(prevState.defaultCardConfig)
   );
-  
+
   if (!hasDataChanged) {
     return; // 没有实际数据变化，不需要保存
   }
-  
+
   // 设置为保存中状态
   state.setAutoSaveStatus('saving');
-  
+
   // 防抖：清除之前的定时器
   if (autoSaveTimer) {
     clearTimeout(autoSaveTimer);
   }
-  
+
   // 设置新的定时器
   autoSaveTimer = window.setTimeout(() => {
     try {
@@ -1809,7 +1823,7 @@ const unsubscribe = useBoardStore.subscribe((state, prevState) => {
 // 调试工具：将store暴露到window对象上
 if (typeof window !== 'undefined') {
   (window as any).useBoardStore = useBoardStore;
-  
+
   // 页面卸载时取消订阅
   window.addEventListener('beforeunload', () => {
     unsubscribe();
@@ -1817,7 +1831,7 @@ if (typeof window !== 'undefined') {
       clearTimeout(autoSaveTimer);
     }
   });
-} 
+}
 
 // 在 useBoardStore.ts 顶部或合适位置添加 autoResizeFrame 工具函数
 function autoResizeFrame(frames: BackgroundFrame[], nodes: NodeData[], frameId: string) {
@@ -1844,7 +1858,7 @@ function autoResizeFrame(frames: BackgroundFrame[], nodes: NodeData[], frameId: 
       ? { ...f, x: finalX, y: finalY, width: finalWidth, height: finalHeight }
       : f
   );
-} 
+}
 
 // 工具函数：判断 frame 是否需要扩展包裹所有子卡片
 function isFrameOverflowed(nodes: NodeData[], frame: BackgroundFrame) {
@@ -1861,7 +1875,7 @@ function isFrameOverflowed(nodes: NodeData[], frame: BackgroundFrame) {
   if (maxX + padding > frame.x + frame.width) return true;
   if (maxY + padding > frame.y + frame.height) return true;
   return false;
-} 
+}
 
 // 工具函数：判断卡片是否在背景框内
 function isNodeInsideFrame(node: NodeData, frame: BackgroundFrame) {

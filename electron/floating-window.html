@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 100vw;
+      height: 100vh;
+      background: transparent;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      overflow: hidden;
+      /* Ensure body doesn't block clicks outside the centered container */
+      pointer-events: none;
+    }
+
+    .floating-container {
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      height: 50px;
+      /* Ultra compact height */
+      width: 6px;
+      /* Stage 1: 默认极细 */
+      background: linear-gradient(180deg, rgba(100, 116, 139, 0.5) 0%, rgba(71, 85, 105, 0.5) 100%);
+      backdrop-filter: blur(4px);
+      border-radius: 4px 0 0 4px;
+      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow: hidden;
+      display: flex;
+      z-index: 100;
+      pointer-events: auto;
+      /* Re-enable pointer events for the container */
+    }
+
+    /* Stage 2: 悬停展开为横条 */
+    .floating-container.hover-expanded {
+      width: 240px;
+      /* Wider for better input space */
+      height: 110px;
+      /* Reduced height to fit content tightly (10+28+6+54+10 = ~108px) */
+      background: rgba(30, 30, 35, 0.95);
+      /* 深色背景 */
+      backdrop-filter: blur(20px);
+      box-shadow: -2px 0 10px rgba(0, 0, 0, 0.2);
+      border-radius: 12px 0 0 12px;
+      transition: height 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      /* 高度平滑过渡 */
+    }
+
+    /* 输入框聚焦时容器变高 */
+    .floating-container.hover-expanded.input-focused {
+      height: 150px;
+      /* Expanded height (10+28+6+90+10 = ~144px) */
+    }
+
+    /* Stage 3: 点击展开为面板 */
+    .floating-container.active {
+      width: 320px;
+      height: 80vh;
+      /* Expand height */
+      background: rgba(255, 255, 255, 0.98);
+      box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+      border-radius: 12px 0 0 12px;
+    }
+
+    /* 横条内容 - 改为垂直布局 */
+    .strip-content {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      /* 垂直布局 */
+      padding: 10px 12px;
+      flex-shrink: 0;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      background: transparent;
+      gap: 6px;
+      /* 标题和输入框之间的间距 */
+    }
+
+    .floating-container.hover-expanded .strip-content {
+      background: transparent;
+      /* 透明背景，使用容器背景 */
+      opacity: 1;
+    }
+
+    .floating-container.active .strip-content {
+      display: none;
+    }
+
+    /* 顶部标题行 */
+    .strip-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .vertical-title {
+      font-size: 11px;
+      /* 小字 */
+      font-weight: 400;
+      /* 细字重 */
+      color: #a0a0a8;
+      /* 浅灰色，与深色背景搭配 */
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    .icon-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #a0a0a8;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    .icon-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #60a5fa;
+    }
+
+    .title-wrapper:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .title-wrapper:hover .vertical-title,
+    .title-wrapper:hover svg {
+      color: #e5e5e8;
+    }
+
+    /* 横条输入框样式 */
+    .strip-input-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .strip-input {
+      width: 100%;
+      min-height: 54px;
+      /* 3行高度 (12px * 1.5 * 3 = 54px) */
+      max-height: 100%;
+      padding: 8px 10px;
+      /* 统一内边距 */
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 8px;
+      background: rgba(45, 45, 50, 0.6);
+      /* 深色半透明背景 */
+      font-size: 12px;
+      line-height: 1.5;
+      color: #e5e5e8;
+      /* 浅色文字 */
+      outline: none;
+      resize: none;
+      transition: min-height 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s, background 0.2s;
+      overflow-y: auto;
+    }
+
+    .strip-input:focus {
+      min-height: 90px;
+      /* 5行高度 (12px * 1.5 * 5 = 90px) */
+      border-color: rgba(96, 165, 250, 0.5);
+      background: rgba(50, 50, 55, 0.8);
+      /* 聚焦时稍微亮一点 */
+    }
+
+    .strip-input::placeholder {
+      color: #808088;
+    }
+
+
+    /* 面板内容 */
+    .panel-content {
+      flex: 1;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      opacity: 0;
+      transition: all 0.3s ease;
+      pointer-events: none;
+      min-width: 320px;
+      position: absolute;
+      left: 0;
+      top: 0;
+      background: inherit;
+      border-radius: inherit;
+    }
+
+    .floating-container.active .panel-content {
+      opacity: 1;
+      pointer-events: auto;
+      transition-delay: 0.1s;
+    }
+
+    .view-panel {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .main-panel {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 12px 16px;
+      /* More compact padding */
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      /* Slightly tighter gap */
+      flex-wrap: nowrap;
+      /* Prevent wrapping */
+    }
+
+    .header-title-small {
+      font-size: 11px;
+      /* Even smaller */
+      color: #b0b5ba;
+      /* Lighter gray */
+      white-space: nowrap;
+      font-weight: 400;
+      /* Lighter weight */
+      flex-shrink: 0;
+      /* Prevent title from shrinking */
+      opacity: 0.8;
+      /* Slightly transparent */
+    }
+
+    .action-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #9ca3af;
+      padding: 4px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .action-btn:hover {
+      background: rgba(0, 0, 0, 0.05);
+      color: #ef4444;
+    }
+
+    .search-wrapper {
+      flex: 1;
+      position: relative;
+      min-width: 0;
+      /* Allow flex item to shrink below content size */
+      display: flex;
+      align-items: center;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 10px;
+      color: #9ca3af;
+      pointer-events: none;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 6px 12px 6px 32px;
+      /* Slightly more compact */
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 6px;
+      background: #f9fafb;
+      font-size: 13px;
+      outline: none;
+      transition: all 0.2s;
+      height: 32px;
+    }
+
+    .search-input:focus {
+      background: #fff;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+    }
+
+    .list-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      min-height: 0;
+    }
+
+    .list-item {
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 1px solid transparent;
+    }
+
+    .list-item:hover {
+      background: rgba(0, 0, 0, 0.02);
+      border-color: rgba(0, 0, 0, 0.05);
+    }
+
+    .item-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 4px;
+    }
+
+    .item-desc {
+      font-size: 13px;
+      color: #6b7280;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .header-title-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: background-color 0.2s;
+    }
+
+    .header-title-wrapper:hover {
+      background-color: rgba(0, 0, 0, 0.05);
+    }
+
+    .dark-mode .header-title-wrapper:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .header-title-small {
+      font-size: 12px;
+      color: #9ca3af;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 120px;
+    }
+
+    .header-dropdown-icon {
+      width: 14px;
+      height: 14px;
+      color: #9ca3af;
+      transition: transform 0.2s;
+    }
+
+    .header-title-wrapper.active .header-dropdown-icon {
+      transform: rotate(180deg);
+    }
+
+    /* 下拉菜单样式 */
+    .board-dropdown-menu {
+      position: absolute;
+      top: 40px;
+      left: 10px;
+      width: 200px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      padding: 4px;
+      z-index: 1000;
+      display: none;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .dark-mode .board-dropdown-menu {
+      background: #1f2937;
+      border-color: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .board-dropdown-menu.show {
+      display: block;
+    }
+
+    .board-dropdown-item {
+      padding: 8px 12px;
+      font-size: 13px;
+      color: #374151;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: background-color 0.2s;
+    }
+
+    .dark-mode .board-dropdown-item {
+      color: #d1d5db;
+    }
+
+    .board-dropdown-item:hover {
+      background-color: rgba(0, 0, 0, 0.05);
+    }
+
+    .dark-mode .board-dropdown-item:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .board-dropdown-item.active {
+      background-color: rgba(59, 130, 246, 0.1);
+      color: #3b82f6;
+    }
+
+    .dark-mode .board-dropdown-item.active {
+      background-color: rgba(59, 130, 246, 0.2);
+      color: #60a5fa;
+    }
+
+    .check-icon {
+      width: 14px;
+      height: 14px;
+      opacity: 0;
+    }
+
+    .board-dropdown-item.active .check-icon {
+      opacity: 1;
+    }
+
+    /* Footer Input Styles */
+    .footer-input-area {
+      padding: 10px 12px;
+      /* More compact padding */
+      border-top: 1px solid rgba(0, 0, 0, 0.05);
+      background: #fff;
+      flex-shrink: 0;
+    }
+
+    .input-container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: #f9fafb;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      border-radius: 8px;
+      padding: 8px;
+      transition: all 0.2s;
+    }
+
+    .input-container:focus-within {
+      background: #fff;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+    }
+
+    .quick-input {
+      width: 100%;
+      min-height: 40px;
+      /* Exactly 2 lines (14px * 1.5 * 2 = 42px, rounded to 40px) */
+      max-height: 200px;
+      outline: none;
+      font-size: 14px;
+      line-height: 1.5;
+      color: #374151;
+      overflow-y: auto;
+      transition: min-height 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      padding: 2px 0;
+      /* Slight padding for better text alignment */
+    }
+
+    .quick-input:focus {
+      min-height: 84px;
+      /* Exactly 4 lines (14px * 1.5 * 4 = 84px) */
+    }
+
+    .quick-input:empty:before {
+      content: attr(placeholder);
+      color: #9ca3af;
+    }
+
+    .input-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .mini-board-selector {
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      background: #fff;
+      font-size: 12px;
+      color: #374151;
+      outline: none;
+      max-width: 120px;
+    }
+
+    .mini-send-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 4px;
+      background: #3b82f6;
+      color: #fff;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .mini-send-btn:hover {
+      background: #2563eb;
+    }
+
+    .loading-state,
+    .empty-state,
+    .error-state {
+      text-align: center;
+      padding: 20px;
+      color: #9ca3af;
+      font-size: 13px;
+    }
+
+    /* 深色模式适配 */
+    @media (prefers-color-scheme: dark) {
+      .floating-container {
+        background: linear-gradient(180deg, rgba(148, 163, 184, 0.3) 0%, rgba(100, 116, 139, 0.3) 100%);
+      }
+
+      .floating-container.hover-expanded {
+        background: rgba(40, 40, 45, 0.95);
+        /* 深色模式下稍微亮一点 */
+        box-shadow: -2px 0 10px rgba(0, 0, 0, 0.4);
+      }
+
+      .floating-container.active {
+        background: rgba(30, 30, 30, 0.98);
+      }
+
+      .floating-container.hover-expanded .strip-content {
+        background: transparent;
+      }
+
+      .vertical-title {
+        color: #b0b5ba;
+      }
+
+      .icon-btn {
+        color: #b0b5ba;
+      }
+
+      .icon-btn:hover {
+        background: rgba(255, 255, 255, 0.15);
+        color: #60a5fa;
+      }
+
+      .strip-input {
+        background: rgba(55, 55, 60, 0.7);
+        border-color: rgba(255, 255, 255, 0.2);
+        color: #f0f0f2;
+      }
+
+      .strip-input:focus {
+        background: rgba(60, 60, 65, 0.9);
+        border-color: rgba(96, 165, 250, 0.6);
+      }
+
+      .strip-input::placeholder {
+        color: #909098;
+      }
+
+      .send-btn {
+        background: rgba(96, 165, 250, 0.25);
+      }
+
+      .send-btn:hover {
+        background: rgba(96, 165, 250, 0.35);
+      }
+
+      .header-title-small {
+        color: #9ca3af;
+      }
+
+      .search-input {
+        background: #374151;
+        border-color: rgba(255, 255, 255, 0.1);
+        color: #f3f4f6;
+      }
+
+      .search-input:focus {
+        background: #4b5563;
+      }
+
+      .item-title {
+        color: #e5e7eb;
+      }
+
+      .item-desc {
+        color: #9ca3af;
+      }
+
+      .list-item:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.1);
+      }
+
+      .panel-header {
+        border-bottom-color: rgba(255, 255, 255, 0.1);
+      }
+
+      .footer-input-area {
+        background: transparent;
+        border-top-color: rgba(255, 255, 255, 0.1);
+      }
+
+      .input-container {
+        background: #374151;
+        border-color: rgba(255, 255, 255, 0.05);
+      }
+
+      .input-container:focus-within {
+        background: #4b5563;
+        border-color: #60a5fa;
+      }
+
+      .quick-input {
+        color: #f3f4f6;
+      }
+
+      .mini-board-selector {
+        background: #374151;
+        border-color: rgba(255, 255, 255, 0.1);
+        color: #f3f4f6;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="floating-container" id="floatingContainer">
+    <!-- 横条内容 - 垂直布局 -->
+    <div class="strip-content">
+      <!-- 顶部：标题 + 搜索图标 -->
+      <!-- 顶部：标题 + 搜索图标 -->
+      <div class="strip-header">
+        <div class="title-wrapper" onclick="toggleActive('board-list', event)"
+          style="display: flex; align-items: center; gap: 4px; cursor: pointer; padding: 2px 4px; border-radius: 4px; transition: background 0.2s;">
+          <div class="vertical-title" style="max-width: 100px; overflow: hidden; text-overflow: ellipsis;">我的白板</div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            style="color: #a0a0a8; flex-shrink: 0;">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path>
+          </svg>
+        </div>
+        <div class="icon-btn search-trigger" title="搜索" onclick="toggleActive('search', event)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </div>
+      </div>
+
+      <!-- 输入框区域 -->
+      <div class="strip-input-wrapper">
+        <textarea class="strip-input" id="stripInput" placeholder="快速记录..."></textarea>
+      </div>
+    </div>
+
+    <!-- 展开后的面板内容 -->
+    <div class="panel-content">
+
+      <!-- 统一主面板 -->
+      <div class="main-panel">
+
+        <!-- 顶部：搜索框 + 弱化标题 + 关闭 -->
+        <div class="panel-header">
+          <!-- 标题区域 (带下拉) -->
+          <div class="header-title-wrapper" id="board-selector">
+            <span class="header-title-small">我的白板</span>
+            <svg class="header-dropdown-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </div>
+
+          <!-- 下拉菜单 -->
+          <div class="board-dropdown-menu" id="board-dropdown">
+            <!-- 列表项将通过 JS 动态生成 -->
+          </div>
+          <div class="search-wrapper">
+            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" class="search-input" id="searchInput" placeholder="搜索白板...">
+          </div>
+          <button class="action-btn" onclick="toggleActive('close', event)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        <!-- 中间：列表内容 -->
+        <div class="list-content" id="boardListContainer">
+          <!-- 动态加载 -->
+          <div class="loading-state">加载中...</div>
+        </div>
+
+        <!-- 底部：快速输入区域 -->
+        <div class="footer-input-area">
+          <div class="input-container">
+            <div class="quick-input" id="quickInput" contenteditable="true" placeholder="快速记录灵感..."></div>
+            <div class="input-actions">
+              <select class="mini-board-selector" id="boardSelector">
+                <option value="" disabled selected>选择白板</option>
+              </select>
+              <button class="mini-send-btn" onclick="sendCard()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="22" y1="2" x2="11" y2="13"></line>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const container = document.getElementById('floatingContainer');
+    const searchInput = document.getElementById('searchInput');
+    const quickInput = document.getElementById('quickInput');
+    const boardSelector = document.getElementById('boardSelector');
+    const boardListContainer = document.getElementById('boardListContainer');
+    const stripInput = document.getElementById('stripInput');
+
+    // 状态管理
+    let isActive = false;
+    let isHovered = false;
+
+    // 横条输入框聚焦/失焦处理
+    if (stripInput) {
+      stripInput.addEventListener('focus', () => {
+        container.classList.add('input-focused');
+      });
+
+      stripInput.addEventListener('blur', () => {
+        container.classList.remove('input-focused');
+      });
+
+      // 监听输入框按键事件
+      stripInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          if (e.shiftKey) {
+            // Shift+Enter 换行，不做处理，默认行为
+            return;
+          }
+
+          // Enter 发送消息
+          e.preventDefault();
+          sendStripMessage();
+        }
+      });
+    }
+
+    // 发送消息函数
+    function sendStripMessage() {
+      const content = stripInput.value.trim();
+      if (content) {
+        console.log('发送消息:', content);
+
+        // 调用 Electron API 创建卡片
+        if (window.electronAPI && window.electronAPI.createCardFromFloating) {
+          window.electronAPI.createCardFromFloating(content);
+        }
+
+        // 清空输入框
+        stripInput.value = '';
+        // 恢复默认高度
+        stripInput.style.height = 'auto';
+
+        // 失去焦点
+        stripInput.blur();
+      }
+    }
+
+    // 初始化时获取名称
+    updateBoardName();
+
+    // 鼠标悬停时也尝试更新名称
+    container.addEventListener('mouseenter', () => {
+      isHovered = true;
+      updateState();
+      updateBoardName();
+    });
+    container.addEventListener('mouseleave', () => {
+      isHovered = false;
+      updateState();
+      // 鼠标离开时关闭下拉菜单
+      const dropdown = document.getElementById('board-dropdown');
+      const selector = document.getElementById('board-selector');
+      if (dropdown) dropdown.classList.remove('show');
+      if (selector) selector.classList.remove('active');
+    });
+
+    // 白板切换逻辑
+    const headerBoardSelector = document.getElementById('board-selector');
+    const headerBoardDropdown = document.getElementById('board-dropdown');
+
+    if (headerBoardSelector && headerBoardDropdown) {
+      // 点击标题切换下拉菜单
+      headerBoardSelector.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isShown = headerBoardDropdown.classList.contains('show');
+
+        if (isShown) {
+          headerBoardDropdown.classList.remove('show');
+          headerBoardSelector.classList.remove('active');
+        } else {
+          // 打开前获取最新列表
+          if (window.electronAPI && window.electronAPI.requestBoardList) {
+            window.electronAPI.requestBoardList();
+          }
+          headerBoardDropdown.classList.add('show');
+          headerBoardSelector.classList.add('active');
+        }
+      });
+
+      // 点击其他地方关闭下拉菜单
+      document.addEventListener('click', (e) => {
+        if (!headerBoardSelector.contains(e.target) && !headerBoardDropdown.contains(e.target)) {
+          headerBoardDropdown.classList.remove('show');
+          headerBoardSelector.classList.remove('active');
+        }
+      });
+    }
+
+    // 监听白板列表更新
+    if (window.electronAPI && window.electronAPI.onUpdateBoardList) {
+      window.electronAPI.onUpdateBoardList((_event, list) => {
+        if (!headerBoardDropdown) return;
+
+        headerBoardDropdown.innerHTML = '';
+
+        if (list && list.length > 0) {
+          list.forEach(board => {
+            const item = document.createElement('div');
+            item.className = `board-dropdown-item ${board.isActive ? 'active' : ''}`;
+            item.innerHTML = `
+              <span>${board.title}</span>
+              <svg class="check-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+            `;
+
+            item.addEventListener('click', () => {
+              // 切换白板
+              if (window.electronAPI && window.electronAPI.switchBoard) {
+                window.electronAPI.switchBoard(board.id);
+              }
+              // 关闭下拉
+              headerBoardDropdown.classList.remove('show');
+              headerBoardSelector.classList.remove('active');
+              // 更新标题（乐观更新，实际会由 onUpdateBoardName 再次确认）
+              const titleElement = document.querySelector('.header-title-small');
+              if (titleElement) titleElement.textContent = board.title;
+            });
+
+            headerBoardDropdown.appendChild(item);
+          });
+        } else {
+          const emptyItem = document.createElement('div');
+          emptyItem.className = 'board-dropdown-item';
+          emptyItem.style.cursor = 'default';
+          emptyItem.style.color = '#9ca3af';
+          emptyItem.textContent = '暂无其他白板';
+          headerBoardDropdown.appendChild(emptyItem);
+        }
+      });
+    }
+
+    function toggleActive(action, e) {
+      e.stopPropagation();
+
+      if (action === 'close') {
+        isActive = false;
+      } else {
+        isActive = true; // 无论是搜索还是新增，都打开面板
+
+        // 确保数据已加载
+        loadBoardList();
+        loadBoardsForSelect();
+
+        if (action === 'search') {
+          setTimeout(() => searchInput.focus(), 100);
+        } else if (action === 'add') {
+          setTimeout(() => {
+            quickInput.focus();
+            // 聚焦时会自动展开高度（由CSS控制）
+          }, 100);
+        } else if (action === 'board-list') {
+          // 展开面板后自动打开下拉菜单
+          setTimeout(() => {
+            const selector = document.getElementById('board-selector');
+            if (selector) {
+              // 如果还没打开，就点击打开
+              if (!selector.classList.contains('active')) {
+                selector.click();
+              }
+            }
+          }, 300); // 等待面板展开动画
+        }
+      }
+
+      updateState();
+    }
+
+    function updateState() {
+      if (isActive) {
+        container.classList.add('active');
+        container.classList.remove('hover-expanded');
+      } else if (isHovered) {
+        container.classList.add('hover-expanded');
+        container.classList.remove('active');
+      } else {
+        container.classList.remove('active');
+        container.classList.remove('hover-expanded');
+      }
+      checkMouseIgnore({ clientX: lastMouseX, clientY: lastMouseY });
+    }
+
+    // --- 数据加载逻辑 ---
+
+    async function loadBoardList() {
+      try {
+        const boards = await window.electronAPI.getBoardList();
+        if (!boards || boards.length === 0) {
+          boardListContainer.innerHTML = '<div class="empty-state">暂无白板</div>';
+          return;
+        }
+
+        boardListContainer.innerHTML = boards.map(board => `
+          <div class="list-item" onclick="openBoard('${board.id}')">
+            <div class="item-title">${board.title || '未命名白板'}</div>
+            <div class="item-meta">${board.isActive ? '当前活跃' : ''}</div>
+          </div>
+        `).join('');
+      } catch (err) {
+        console.error('Failed to load boards:', err);
+        boardListContainer.innerHTML = '<div class="error-state">加载失败</div>';
+      }
+    }
+
+    async function loadBoardsForSelect() {
+      try {
+        const boards = await window.electronAPI.getBoardList();
+        boardSelector.innerHTML = '';
+
+        if (!boards || boards.length === 0) {
+          const option = document.createElement('option');
+          option.text = "无";
+          boardSelector.add(option);
+          return;
+        }
+
+        boards.forEach(board => {
+          const option = document.createElement('option');
+          option.value = board.id;
+          option.text = board.title || '未命名白板';
+          if (board.isActive) option.selected = true;
+          boardSelector.add(option);
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function openBoard(id) {
+      console.log('Open board:', id);
+      // TODO: 实现打开白板逻辑
+    }
+
+    // --- 发送卡片逻辑 ---
+
+    async function sendCard() {
+      const content = quickInput.innerHTML;
+      const boardId = boardSelector.value;
+
+      if (!content.trim() && !content.includes('<img')) return;
+      if (!boardId) {
+        alert('请先选择一个白板');
+        return;
+      }
+
+      try {
+        const sendBtn = document.querySelector('.mini-send-btn');
+        const originalHTML = sendBtn.innerHTML;
+        sendBtn.innerHTML = '...';
+
+        await window.electronAPI.createCard(boardId, content);
+
+        quickInput.innerHTML = '';
+        sendBtn.innerHTML = '✓';
+        setTimeout(() => {
+          sendBtn.innerHTML = originalHTML;
+        }, 1000);
+      } catch (err) {
+        console.error('Send failed:', err);
+        alert('发送失败');
+      }
+    }
+
+    // 键盘事件：回车发送
+    quickInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendCard();
+      }
+    });
+
+    // 粘贴事件：处理图片
+    quickInput.addEventListener('paste', (e) => {
+      // 默认行为通常可以处理图片粘贴（作为 img 标签），
+      // 但为了更好的体验，可能需要拦截并处理为 base64 或 blob url
+      // 这里先使用默认行为，Electron 通常能较好地处理 clipboard
+    });
+
+    // --- 鼠标穿透逻辑 (保持不变) ---
+    let lastMouseX = 0;
+    let lastMouseY = 0;
+
+    function checkMouseIgnore(e) {
+      lastMouseX = e.clientX;
+      lastMouseY = e.clientY;
+      const windowWidth = window.innerWidth;
+      const windowHeight = window.innerHeight;
+
+      let visibleWidth = 6;
+      let visibleHeight = 50;
+
+      if (isActive) {
+        visibleWidth = 320;
+        visibleHeight = windowHeight * 0.8;
+      } else if (isHovered) {
+        visibleWidth = 240;
+        // 动态高度：默认110px，聚焦时150px
+        visibleHeight = container.classList.contains('input-focused') ? 150 : 110;
+      }
+
+      const topBound = (windowHeight - visibleHeight) / 2;
+      const bottomBound = topBound + visibleHeight;
+
+      const inHorizontal = e.clientX >= (windowWidth - visibleWidth);
+      const inVertical = e.clientY >= topBound && e.clientY <= bottomBound;
+
+      const inVisibleArea = inHorizontal && inVertical;
+
+      window.electronAPI?.setIgnoreMouseEvents?.(!inVisibleArea);
+    }
+
+    document.addEventListener('mousemove', checkMouseIgnore);
+
+    document.addEventListener('click', (e) => {
+      if (isActive && !container.contains(e.target)) {
+        isActive = false;
+        updateState();
+      }
+    });
+  </script>
+</body>
+
+</html>
+```
